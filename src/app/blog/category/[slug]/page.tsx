@@ -123,7 +123,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {allPosts.map((post) => {
               const isListingPost = post.type === 'listing';
-              const readingTime = !isListingPost && 'Content' in post ? calculateReadingTime(post.Content) : null;
+              const readingTime = !isListingPost && 'Content' in post && post.Content ? calculateReadingTime(post.Content) : null;
               const publishDate = post['Published date'] 
                 ? new Date(post['Published date']).toLocaleDateString('en-US', {
                     year: 'numeric',
