@@ -8,12 +8,6 @@ export interface ListingPost extends BaseFields {
   Slug: string;
   Excerpt?: string;
   'Featured image'?: Attachment[];
-  'Business 1'?: string;
-  'Featured image 1'?: Attachment[];
-  'Business 2'?: string;
-  'Featured image 2'?: Attachment[];
-  'Business 3'?: string;
-  'Featured image 3'?: Attachment[];
   'Published date'?: string;
   'Last updated': string;
   Categories?: RecordLink[];
@@ -21,4 +15,12 @@ export interface ListingPost extends BaseFields {
   'Meta title'?: string;
   'Meta description'?: string;
   'Related blogs'?: RecordLink[];
+  Author?: RecordLink[];
+  Businesses?: RecordLink[]; // Links to Business records
+  Conclusion?: string; // Conclusion content for the listicle
+  
+  // Expanded details (populated when fetching)
+  AuthorDetails?: any;
+  CategoryDetails?: any;
+  BusinessDetails?: any[]; // Array of Business objects
 } 

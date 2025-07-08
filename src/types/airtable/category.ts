@@ -1,13 +1,12 @@
-import { Attachment, BaseFields, RecordLink } from './common';
+import { BaseFields, RecordLink } from './common';
 
 export interface Category extends BaseFields {
+  ID: number;
   Name: string;
-  Published: boolean;
-  Title: string;
   Slug: string;
   Description?: string;
-  'Featured image'?: Attachment[];
-  'Last updated': string;
+  Color?: string;
+  Priority?: number; // For sorting categories by importance/order
   'Blog posts'?: RecordLink[];
-  'Listing posts'?: RecordLink[];
+  Site?: RecordLink[]; // Categories might be linked to specific sites
 } 

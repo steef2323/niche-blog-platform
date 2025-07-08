@@ -16,6 +16,10 @@
     --card-text: #0f172a;
     --chart-text: #0f172a;
     --chart-grid: #e2e8f0;
+    
+    /* Font variables - will be overridden by JS from Sites table */
+    --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   body {
@@ -52,6 +56,30 @@
     color: var(--text-color);
   }
 
+  /* Global Button Styles */
+  .btn-accent {
+    @apply inline-flex items-center px-8 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg;
+    background-color: var(--accent-color);
+    color: var(--text-color);
+  }
+
+  .btn-accent:hover {
+    filter: brightness(0.95);
+    transform: scale(1.05);
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center px-8 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg border-2;
+    background-color: var(--text-color);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .btn-outline:hover {
+    background-color: var(--accent-color);
+    color: var(--text-color);
+  }
+
   .themed-input {
     background-color: var(--background-color);
     color: var(--text-color);
@@ -65,5 +93,92 @@
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px var(--primary-color);
+  }
+
+  /* Site Container - 1140px max-width constraint for entire website */
+  .site-container {
+    @apply mx-auto px-2 sm:px-4;
+    max-width: 1140px;
+    width: 100%;
+  }
+
+  /* Header specific container - maintains same 1140px constraint */
+  .header-container {
+    @apply mx-auto px-4;
+    max-width: 1140px;
+    width: 100%;
+  }
+}
+
+@layer utilities {
+  /* Line clamp utilities for text truncation */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .line-clamp-4 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+
+  /* Mobile carousel utilities */
+  .mobile-carousel {
+    @apply overflow-x-auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .mobile-carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-carousel-grid {
+    @apply flex gap-6 pb-4;
+    width: max-content;
+  }
+
+  .mobile-carousel-item {
+    @apply flex-shrink-0;
+    width: 280px;
+  }
+
+  @media (min-width: 768px) {
+    .mobile-carousel {
+      @apply overflow-visible;
+    }
+    
+    .mobile-carousel-grid {
+      @apply grid;
+      width: auto;
+    }
+    
+    .mobile-carousel-item {
+      @apply flex-shrink;
+      width: auto;
+    }
+  }
+
+  /* Site-wide max-width utility class */
+  .max-site-width {
+    max-width: 1140px;
   }
 }

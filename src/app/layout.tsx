@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { SiteProvider } from '@/contexts/site';
 import { ThemeProvider } from '@/contexts/theme';
 import { getSiteByDomain } from '@/lib/airtable/sites';
+import BaseLayout from '@/components/layout/BaseLayout';
 
 export const metadata: Metadata = {
   title: "Multi-site Framework",
@@ -30,7 +31,9 @@ export default async function RootLayout({
         <body>
           <SiteProvider site={site}>
             <ThemeProvider site={site}>
+              <BaseLayout>
               {children}
+              </BaseLayout>
             </ThemeProvider>
           </SiteProvider>
         </body>

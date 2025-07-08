@@ -46,6 +46,10 @@ export const TABLES = {
   PAGES: 'Pages',
   BLOG_POSTS: 'Blog posts',
   LISTING_POSTS: 'Listing posts',
+  AUTHORS: 'Authors',
+  CATEGORIES: 'Categories',
+  BUSINESSES: 'Businesses',
+  PRIVATE_EVENT_REQUESTS: 'Private Event Requests',
 } as const;
 
 // Helper type for table names

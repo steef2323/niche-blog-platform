@@ -91,8 +91,10 @@ export async function testTypes() {
           site: blogData.Site,
           published: blogData.Published,
           title: blogData.Title,
+          h1: blogData.H1,
           slug: blogData.Slug,
           content: blogData.Content,
+          introduction: blogData.Introduction,
           excerpt: blogData.Excerpt,
           featuredImage: blogData['Featured image'],
           featuredImage2: blogData['Featured image 2'],
@@ -134,6 +136,68 @@ export async function testTypes() {
     console.log('\nAll type tests completed successfully!');
   } catch (error) {
     console.error('Error during type testing:', error);
+    throw error;
+  }
+}
+
+/**
+ * Test function specifically for investigating the Businesses table structure
+ */
+export async function testBusinessesTable() {
+  console.log('Testing Businesses table structure...');
+
+  try {
+    console.log('\nTesting Businesses table...');
+    const businesses = await base(TABLES.BUSINESSES)
+      .select({ maxRecords: 3 })
+      .firstPage();
+    
+    if (businesses.length > 0) {
+      console.log(`Found ${businesses.length} businesses`);
+      
+      businesses.forEach((business, index) => {
+        console.log(`\nBusiness #${index + 1} (ID: ${business.id}):`);
+        console.log('Raw business record:', JSON.stringify(business.fields, null, 2));
+      });
+    } else {
+      console.log('No businesses found');
+    }
+
+    console.log('\nBusinesses table investigation completed!');
+    return businesses.map(business => ({ ...business.fields, id: business.id }));
+  } catch (error) {
+    console.error('Error during businesses table testing:', error);
+    throw error;
+  }
+}
+
+/**
+ * Test function specifically for investigating the updated Listing Posts table structure
+ */
+export async function testListingPostsTable() {
+  console.log('Testing updated Listing Posts table structure...');
+
+  try {
+    console.log('\nTesting Listing Posts table...');
+    const listingPosts = await base(TABLES.LISTING_POSTS)
+      .select({ maxRecords: 3 })
+      .firstPage();
+    
+    if (listingPosts.length > 0) {
+      console.log(`Found ${listingPosts.length} listing posts`);
+      
+      listingPosts.forEach((post, index) => {
+        console.log(`\nListing Post #${index + 1} (ID: ${post.id}):`);
+        console.log('Raw listing post record:', JSON.stringify(post.fields, null, 2));
+      });
+    } else {
+      console.log('No listing posts found');
+    }
+
+    console.log('\nListing Posts table investigation completed!');
+    return listingPosts.map(post => ({ ...post.fields, id: post.id }));
+  } catch (error) {
+    console.error('Error during listing posts table testing:', error);
     throw error;
   }
 } 

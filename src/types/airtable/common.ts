@@ -12,7 +12,23 @@ export type Attachment = {
     large: { url: string; width: number; height: number };
     full: { url: string; width: number; height: number };
   };
+  // SEO and Accessibility fields
+  altText?: string;
+  title?: string;
+  caption?: string;
+  focalPoint?: 'center' | 'top' | 'bottom' | 'left' | 'right';
 };
+
+// Enhanced image interface with required SEO fields for new implementations
+export interface SEOImage {
+  src: string;
+  alt: string;
+  title?: string;
+  caption?: string;
+  width?: number;
+  height?: number;
+  focalPoint?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+}
 
 export type RecordLink = {
   id: string;

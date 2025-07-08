@@ -33,4 +33,10 @@ export interface Site extends BaseFields {
   // SEO
   'Default meta title'?: string;
   'Default meta description'?: string;
+  
+  // Language
+  Language?: string;
+  
+  // Form messages
+  'Success message private form'?: string;
 } 
