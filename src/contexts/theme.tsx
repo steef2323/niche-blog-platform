@@ -27,7 +27,7 @@ export function ThemeProvider({ site, children }: { site: Site | null; children:
           }
         }
       });
-    }
+    } 
   }, [site]);
 
   const value = React.useMemo(() => ({
