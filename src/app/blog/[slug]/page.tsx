@@ -16,7 +16,6 @@ import {
 } from '@/lib/utils/structured-content';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import TableOfContents from '@/components/blog/TableOfContents';
-import PrivateEventFormSection from '@/components/homepage/PrivateEventFormSection';
 import PrivateEventForm from '@/components/ui/PrivateEventForm';
 import BusinessCard from '@/components/blog/BusinessCard';
 import Link from 'next/link';
@@ -189,38 +188,31 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {/* Breadcrumbs */}
           <Breadcrumbs items={breadcrumbItems} className="mb-6" />
 
-          {/* Mobile Table of Contents - Above article on mobile only */}
-          <div className="lg:hidden mb-8">
-            <TableOfContents content={htmlContent} />
-          </div>
-
           <div className="lg:grid lg:grid-cols-12 lg:gap-8">
             {/* Main Content */}
             <div className="lg:col-span-8">
               {/* Hero Section */}
               <header className="mb-8">
-                {/* Category Badge */}
-                {blogPost.CategoryDetails && (
-                  <div className="mb-4">
-                    <span 
-                      className="inline-block px-3 py-1 text-sm font-medium rounded-full"
-                      style={{ 
-                        backgroundColor: `var(--accent-color, ${blogPost.CategoryDetails.Color || '#3B82F6'})`,
-                        color: 'var(--primary-color)'
-                      }}
-                    >
-                      {blogPost.CategoryDetails.Name}
-                    </span>
-                  </div>
-                )}
-
                 {/* Title */}
-                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+                <h1 
+                  className="text-4xl lg:text-5xl font-bold mb-4 leading-tight"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-heading)'
+                  }}
+                >
                   {displayTitle}
                 </h1>
 
                 {/* Meta Information */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
+                <div 
+                  className="flex flex-wrap items-center gap-4 text-sm mb-6"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)',
+                    opacity: 0.7
+                  }}
+                >
                   {(blogPost.AuthorDetails?.Name || blogPost.Author) && (
                     <div className="flex items-center">
                       <span>By </span>
@@ -244,7 +236,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Featured Image */}
                 {blogPost['Featured image']?.[0] && (
-                  <div className="mb-8">
+                  <div className="mb-8 relative">
                     <Image
                       src={blogPost['Featured image'][0].url}
                       alt={displayTitle}
@@ -253,14 +245,40 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       className="w-full h-auto rounded-lg shadow-lg"
                       priority
                     />
+                    {/* Category Badge on Image */}
+                    {blogPost.CategoryDetails && (
+                      <div className="absolute top-4 left-4">
+                        <span 
+                          className="inline-block px-3 py-1 text-sm font-medium rounded-full"
+                          style={{ 
+                            backgroundColor: `var(--accent-color, ${blogPost.CategoryDetails.Color || '#3B82F6'})`,
+                            color: 'var(--primary-color)'
+                          }}
+                        >
+                          {blogPost.CategoryDetails.Name}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
+                {/* Mobile Table of Contents - Collapsible under image */}
+                <div className="lg:hidden mb-8">
+                  <TableOfContents content={htmlContent} collapsible />
+                </div>
+
                 {/* Excerpt */}
                 {displayExcerpt && (
-                  <div className="text-xl text-gray-600 leading-relaxed mb-8 border-l-4 border-[var(--primary-color)] pl-6">
-                    {displayExcerpt}
-                  </div>
+                                  <div 
+                  className="text-xl leading-relaxed mb-8 border-l-4 border-[var(--primary-color)] pl-6"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)',
+                    opacity: 0.8
+                  }}
+                >
+                  {displayExcerpt}
+                </div>
                 )}
               </header>
 
@@ -269,7 +287,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <>
                   {/* Content before Text2.2 */}
                   <div 
-                    className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                    className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)'
+                    }}
                     dangerouslySetInnerHTML={{ 
                       __html: (() => {
                         let content = '';
@@ -305,7 +327,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                   {/* Remaining content after Text2.2 */}
                   <div 
-                    className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                    className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)'
+                    }}
                     dangerouslySetInnerHTML={{ 
                       __html: (() => {
                         let content = '';
@@ -333,7 +359,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <>
                   {/* Standard content rendering */}
               <div 
-                className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                style={{ 
+                  color: 'var(--text-color)',
+                  fontFamily: 'var(--font-body)'
+                }}
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
               />
 
@@ -351,124 +381,176 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </>
               )}
 
-              {/* Bottom Private Event Form - Hidden on mobile */}
-              {showPrivateEventForm && (
-                <div className="hidden lg:block mt-16">
-                  <PrivateEventForm 
-                    title={homePage?.['Private event form - Title']}
-                    subtitle={homePage?.['Private event form - Subtitle']}
-                    successMessage={homePage?.['Private event form - Success message']}
-                    language={site?.Language?.toLowerCase() || 'en'}
-                  />
-                </div>
-              )}
-
-              {/* Related Blogs Section */}
-              {relatedBlogs.length > 0 && (
-                <section className="mt-16">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-8">Other blogs</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {relatedBlogs.map((relatedPost) => {
-                      const relatedTitle = getBlogTitle(relatedPost);
-                      const relatedExcerpt = getBlogExcerpt(relatedPost);
-                      const relatedReadingTime = (() => {
-                        const content = getContentForReadingTime(relatedPost);
-                        return content ? calculateReadingTime(content) : null;
-                      })();
-                      const relatedPublishDate = relatedPost['Published date'] 
-                        ? new Date(relatedPost['Published date']).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })
-                        : null;
-
-                      return (
-                        <article key={relatedPost.id || relatedPost.Slug} className="group">
-                          <Link href={`/blog/${relatedPost.Slug}`} className="block">
-                            {/* Featured Image */}
-                            <div className="aspect-[4/3] relative mb-4 overflow-hidden rounded-lg bg-gray-100">
-                              {relatedPost['Featured image']?.[0] ? (
-                                <Image
-                                  src={relatedPost['Featured image'][0].url}
-                                  alt={relatedTitle}
-                                  fill
-                                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                  <span className="text-gray-400 text-sm">No image</span>
-                                </div>
-                              )}
-                              
-                              {/* Category Badge */}
-                              {relatedPost.CategoryDetails && (
-                                <div className="absolute top-4 left-4">
-                                  <Link
-                                    href={`/blog/category/${relatedPost.CategoryDetails.Slug}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="inline-block px-3 py-1 text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
-                                    style={{ 
-                                      backgroundColor: `var(--accent-color, ${relatedPost.CategoryDetails.Color || '#3B82F6'})`,
-                                      color: 'var(--primary-color)'
-                                    }}
-                                  >
-                                    {relatedPost.CategoryDetails.Name}
-                                  </Link>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Post Content */}
-                            <div>
-                              {/* Title */}
-                              <h3 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-200">
-                                {relatedTitle}
-                              </h3>
-
-                              {/* Excerpt */}
-                              {relatedExcerpt && (
-                                <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
-                                  {relatedExcerpt}
-                                </p>
-                              )}
-
-                              {/* Meta Information */}
-                              <div className="flex items-center gap-3 text-sm text-gray-500">
-                                {relatedPublishDate && <span>{relatedPublishDate}</span>}
-                                {relatedReadingTime && (
-                                  <>
-                                    <span>•</span>
-                                    <span>{formatReadingTime(relatedReadingTime)}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        </article>
-                      );
-                    })}
-                </div>
-                </section>
-              )}
             </div>
 
-            {/* Sidebar */}
-            <aside className="lg:col-span-4 mt-12 lg:mt-0">
-              <div className="sticky top-8 space-y-6">
+            {/* Sidebar - Hidden on mobile */}
+            <aside className="hidden lg:block lg:col-span-4 mt-12 lg:mt-0">
+              <div className="lg:sticky lg:top-8 space-y-6">
                 {/* Table of Contents */}
                 <TableOfContents content={htmlContent} />
 
-                {/* Private Event Form in Sidebar */}
+                {/* Private Event Form Button in Sidebar */}
                 {showPrivateEventForm && (
                   <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold mb-4">Book a Private Event</h3>
-                    <PrivateEventFormSection simplified />
+                    <h3 
+                      className="text-lg font-semibold mb-4"
+                      style={{ 
+                        color: 'var(--text-color)',
+                        fontFamily: 'var(--font-heading)'
+                      }}
+                    >
+                      Book a Private Event
+                    </h3>
+                    <p 
+                      className="mb-4"
+                      style={{ 
+                        color: 'var(--text-color)',
+                        fontFamily: 'var(--font-body)',
+                        opacity: 0.8
+                      }}
+                    >
+                      Ready to plan your special occasion? Get in touch with us to discuss your private event needs.
+                    </p>
+                    <Link 
+                      href="/private-event-form"
+                      className="btn-outline w-full justify-center"
+                    >
+                      Book private event
+                    </Link>
                   </div>
                 )}
               </div>
             </aside>
           </div>
+
+          {/* Bottom Private Event Form - Full Width */}
+          {showPrivateEventForm && (
+            <div className="mt-16">
+              <PrivateEventForm 
+                title={homePage?.['Private event form - Title']}
+                subtitle={homePage?.['Private event form - Subtitle']}
+                successMessage={homePage?.['Private event form - Success message']}
+                language={site?.Language?.toLowerCase() || 'en'}
+              />
+            </div>
+          )}
+
+          {/* Related Blogs Section - Full Width */}
+          {relatedBlogs.length > 0 && (
+            <section className="mt-16">
+              <h2 
+                className="text-3xl font-bold mb-8"
+                style={{ 
+                  color: 'var(--text-color)',
+                  fontFamily: 'var(--font-heading)'
+                }}
+              >
+                Other blogs
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {relatedBlogs.map((relatedPost) => {
+                  const relatedTitle = getBlogTitle(relatedPost);
+                  const relatedExcerpt = getBlogExcerpt(relatedPost);
+                  const relatedReadingTime = (() => {
+                    const content = getContentForReadingTime(relatedPost);
+                    return content ? calculateReadingTime(content) : null;
+                  })();
+                  const relatedPublishDate = relatedPost['Published date'] 
+                    ? new Date(relatedPost['Published date']).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })
+                    : null;
+
+                  return (
+                    <article key={relatedPost.id || relatedPost.Slug} className="group">
+                      <Link href={`/blog/${relatedPost.Slug}`} className="block">
+                        {/* Featured Image */}
+                        <div className="aspect-[4/3] relative mb-4 overflow-hidden rounded-lg bg-gray-100">
+                          {relatedPost['Featured image']?.[0] ? (
+                            <Image
+                              src={relatedPost['Featured image'][0].url}
+                              alt={relatedTitle}
+                              fill
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                              <span className="text-gray-400 text-sm">No image</span>
+                            </div>
+                          )}
+                          
+                          {/* Category Badge */}
+                          {relatedPost.CategoryDetails && (
+                            <div className="absolute top-4 left-4">
+                              <Link
+                                href={`/blog/category/${relatedPost.CategoryDetails.Slug}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-block px-3 py-1 text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
+                                style={{ 
+                                  backgroundColor: `var(--accent-color, ${relatedPost.CategoryDetails.Color || '#3B82F6'})`,
+                                  color: 'var(--primary-color)'
+                                }}
+                              >
+                                {relatedPost.CategoryDetails.Name}
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Post Content */}
+                        <div>
+                          {/* Title */}
+                          <h3 
+                            className="text-xl font-semibold mb-3 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-200"
+                            style={{ 
+                              color: 'var(--text-color)',
+                              fontFamily: 'var(--font-heading)'
+                            }}
+                          >
+                            {relatedTitle}
+                          </h3>
+
+                          {/* Excerpt */}
+                          {relatedExcerpt && (
+                            <p 
+                              className="mb-4 line-clamp-3 leading-relaxed"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                opacity: 0.8
+                              }}
+                            >
+                              {relatedExcerpt}
+                            </p>
+                          )}
+
+                          {/* Meta Information */}
+                          <div 
+                            className="flex items-center gap-3 text-sm"
+                            style={{ 
+                              color: 'var(--text-color)',
+                              fontFamily: 'var(--font-body)',
+                              opacity: 0.6
+                            }}
+                          >
+                            {relatedPublishDate && <span>{relatedPublishDate}</span>}
+                            {relatedReadingTime && (
+                              <>
+                                <span>•</span>
+                                <span>{formatReadingTime(relatedReadingTime)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </article>
       );
     } else {
@@ -496,21 +578,6 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <div className="lg:col-span-8">
               {/* Hero Section */}
               <header className="mb-8">
-                {/* Category Badge */}
-                {listingPost.CategoryDetails && (
-                  <div className="mb-4">
-                    <span 
-                      className="inline-block px-3 py-1 text-sm font-medium rounded-full"
-                      style={{ 
-                        backgroundColor: `var(--accent-color, ${listingPost.CategoryDetails.Color || '#3B82F6'})`,
-                        color: 'var(--primary-color)'
-                      }}
-                    >
-                      {listingPost.CategoryDetails.Name}
-                    </span>
-                  </div>
-                )}
-
                 {/* Type Badge */}
                 <div className="mb-4">
                   <span 
@@ -521,12 +588,24 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </div>
 
                 {/* Title */}
-                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+                <h1 
+                  className="text-4xl lg:text-5xl font-bold mb-4 leading-tight"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-heading)'
+                  }}
+                >
                   {listingPost.Title}
                 </h1>
 
                 {/* Meta Information */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
+                <div 
+                  className="flex flex-wrap items-center gap-4 text-sm mb-6"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {(listingPost.AuthorDetails?.Name || listingPost.Author) && (
                     <div className="flex items-center">
                       <span>By </span>
@@ -534,6 +613,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         <Link 
                           href={`/blog/author/${listingPost.AuthorDetails.Slug}`}
                           className="text-[var(--primary-color)] hover:underline font-medium ml-1"
+                          style={{ 
+                            fontFamily: 'var(--font-body)'
+                          }}
                         >
                           {listingPost.AuthorDetails.Name}
                         </Link>
@@ -550,7 +632,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Featured Image */}
                 {listingPost['Featured image']?.[0] && (
-                  <div className="mb-8">
+                  <div className="mb-8 relative">
                     <Image
                       src={listingPost['Featured image'][0].url}
                       alt={listingPost.Title}
@@ -559,12 +641,33 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       className="w-full h-auto rounded-lg shadow-lg"
                       priority
                     />
+                    {/* Category Badge on Image */}
+                    {listingPost.CategoryDetails && (
+                      <div className="absolute top-4 left-4">
+                        <span 
+                          className="inline-block px-3 py-1 text-sm font-medium rounded-full"
+                          style={{ 
+                            backgroundColor: `var(--accent-color, ${listingPost.CategoryDetails.Color || '#3B82F6'})`,
+                            color: 'var(--primary-color)'
+                          }}
+                        >
+                          {listingPost.CategoryDetails.Name}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Excerpt */}
                 {listingPost.Excerpt && (
-                  <div className="text-xl text-gray-600 leading-relaxed mb-8 border-l-4 border-[var(--primary-color)] pl-6">
+                  <div 
+                    className="text-xl leading-relaxed mb-8 border-l-4 border-[var(--primary-color)] pl-6"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)',
+                      opacity: 0.8
+                    }}
+                  >
                     {listingPost.Excerpt}
                   </div>
                 )}
@@ -573,7 +676,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               {/* Business Listings */}
               {listingPost.BusinessDetails && listingPost.BusinessDetails.length > 0 && (
                 <section className="mb-12">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-8">Featured Businesses</h2>
+                  <h2 
+                    className="text-2xl font-bold mb-8"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    Featured Businesses
+                  </h2>
                   <div className="space-y-8">
                     {listingPost.BusinessDetails.map((business, index) => (
                       <div key={business.id}>
@@ -582,8 +693,31 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         {/* Private Event Form between businesses */}
                         {showPrivateEventForm && index === Math.floor(listingPost.BusinessDetails!.length / 2) - 1 && (
                           <div className="my-12 p-6 bg-gray-50 rounded-lg">
-                            <h3 className="text-xl font-semibold mb-4">Interested in a Private Event?</h3>
-                            <PrivateEventFormSection simplified />
+                            <h3 
+                              className="text-xl font-semibold mb-4"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-heading)'
+                              }}
+                            >
+                              Interested in a Private Event?
+                            </h3>
+                            <p 
+                              className="mb-4"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                opacity: 0.8
+                              }}
+                            >
+                              Ready to plan your special occasion? Get in touch with us to discuss your private event needs.
+                            </p>
+                            <Link 
+                              href="/private-event-form"
+                              className="btn-outline"
+                            >
+                              Book private event
+                            </Link>
                           </div>
                         )}
                       </div>
@@ -595,42 +729,77 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               {/* Conclusion */}
               {listingPost.Conclusion && (
                 <section className="mb-12">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Conclusion</h2>
-                  <div className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-p:text-gray-700 prose-p:leading-relaxed">
-                    <p className="text-lg text-gray-700 leading-relaxed">
+                  <h2 
+                    className="text-2xl font-bold mb-6"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    Conclusion
+                  </h2>
+                  <div 
+                    className="prose prose-lg max-w-none prose-headings:font-bold prose-p:leading-relaxed"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)'
+                    }}
+                  >
+                    <p className="text-lg leading-relaxed">
                       {listingPost.Conclusion}
                     </p>
                   </div>
                 </section>
               )}
 
-              {/* Bottom Private Event Form */}
-              {showPrivateEventForm && (
-                <div className="mt-16 p-8 bg-[var(--primary-color)] text-white rounded-lg">
-                  <h3 className="text-2xl font-bold mb-4">Ready to Book Your Private Event?</h3>
-                  <p className="text-lg mb-6 opacity-90">
-                    Contact us to discuss your special occasion and create an unforgettable experience.
-                  </p>
-                  <PrivateEventFormSection simplified darkMode />
-                </div>
-              )}
             </div>
 
-            {/* Sidebar */}
-            <aside className="lg:col-span-4 mt-12 lg:mt-0">
-              <div className="sticky top-8 space-y-6">
-                {/* Private Event Form in Sidebar */}
+            {/* Sidebar - Hidden on mobile */}
+            <aside className="hidden lg:block lg:col-span-4 mt-12 lg:mt-0">
+              <div className="lg:sticky lg:top-8 space-y-6">
+                {/* Private Event Form Button in Sidebar */}
                 {showPrivateEventForm && (
                   <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold mb-4">Book a Private Event</h3>
-                    <PrivateEventFormSection simplified />
+                    <h3 
+                      className="text-lg font-semibold mb-4"
+                      style={{ 
+                        color: 'var(--text-color)',
+                        fontFamily: 'var(--font-heading)'
+                      }}
+                    >
+                      Book a Private Event
+                    </h3>
+                    <p 
+                      className="mb-4"
+                      style={{ 
+                        color: 'var(--text-color)',
+                        fontFamily: 'var(--font-body)',
+                        opacity: 0.8
+                      }}
+                    >
+                      Ready to plan your special occasion? Get in touch with us to discuss your private event needs.
+                    </p>
+                    <Link 
+                      href="/private-event-form"
+                      className="btn-outline w-full justify-center"
+                    >
+                      Book private event
+                    </Link>
                   </div>
                 )}
 
                 {/* Business Quick Links */}
                 {listingPost.BusinessDetails && listingPost.BusinessDetails.length > 0 && (
                   <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold mb-4">Featured Businesses</h3>
+                    <h3 
+                      className="text-lg font-semibold mb-4"
+                      style={{ 
+                        color: 'var(--text-color)',
+                        fontFamily: 'var(--font-heading)'
+                      }}
+                    >
+                      Featured Businesses
+                    </h3>
                     <div className="space-y-3">
                       {listingPost.BusinessDetails.map((business, index) => (
                         <div key={business.id} className="flex items-center gap-3">
@@ -640,9 +809,25 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                             {index + 1}
                           </span>
                           <div>
-                            <p className="font-medium text-sm text-gray-900">{business.Competitor}</p>
+                            <p 
+                              className="font-medium text-sm"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)'
+                              }}
+                            >
+                              {business.Competitor}
+                            </p>
                             {business.Price && (
-                              <p className="text-xs text-gray-600">From €{business.Price}</p>
+                              <p 
+                                className="text-xs"
+                                style={{ 
+                                  color: 'var(--muted-color)',
+                                  fontFamily: 'var(--font-body)'
+                                }}
+                              >
+                                From €{business.Price}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -653,6 +838,36 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </div>
             </aside>
           </div>
+
+          {/* Bottom Private Event Form - Full Width */}
+          {showPrivateEventForm && (
+            <div className="mt-16 p-8 bg-[var(--primary-color)] text-white rounded-lg">
+              <h3 
+                className="text-2xl font-bold mb-4"
+                style={{ 
+                  color: 'white',
+                  fontFamily: 'var(--font-heading)'
+                }}
+              >
+                Ready to Book Your Private Event?
+              </h3>
+              <p 
+                className="text-lg mb-6 opacity-90"
+                style={{ 
+                  color: 'white',
+                  fontFamily: 'var(--font-body)'
+                }}
+              >
+                Contact us to discuss your special occasion and create an unforgettable experience.
+              </p>
+              <Link 
+                href="/private-event-form"
+                className="btn-outline bg-white text-[var(--primary-color)] hover:bg-gray-100"
+              >
+                Book private event
+              </Link>
+            </div>
+          )}
         </article>
       );
     }

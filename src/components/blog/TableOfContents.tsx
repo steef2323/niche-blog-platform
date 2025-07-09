@@ -11,11 +11,13 @@ interface TOCItem {
 interface TableOfContentsProps {
   content: string;
   className?: string;
+  collapsible?: boolean;
 }
 
-export default function TableOfContents({ content, className = '' }: TableOfContentsProps) {
+export default function TableOfContents({ content, className = '', collapsible = false }: TableOfContentsProps) {
   const [tocItems, setTocItems] = useState<TOCItem[]>([]);
   const [activeId, setActiveId] = useState<string>('');
+  const [isExpanded, setIsExpanded] = useState<boolean>(!collapsible);
 
   useEffect(() => {
     // Parse headings from content
@@ -76,25 +78,61 @@ export default function TableOfContents({ content, className = '' }: TableOfCont
 
   return (
     <div className={`bg-gray-50 rounded-lg p-4 ${className}`}>
-      <h3 className="font-semibold text-gray-900 mb-3">Table of Contents</h3>
-      <nav>
-        <ul className="space-y-2">
-          {tocItems.map(({ id, text, level }) => (
-            <li key={id} style={{ marginLeft: `${(level - 1) * 12}px` }}>
-              <button
-                onClick={() => scrollToHeading(id)}
-                className={`text-left text-sm hover:text-[var(--primary-color)] transition-colors duration-200 ${
-                  activeId === id 
-                    ? 'text-[var(--primary-color)] font-medium' 
-                    : 'text-gray-600'
-                }`}
-              >
-                {text}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {collapsible ? (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-between mb-3 hover:text-[var(--primary-color)] transition-colors"
+          style={{ 
+            color: 'var(--text-color)',
+            fontFamily: 'var(--font-heading)',
+            fontWeight: '600'
+          }}
+        >
+          <span>Table of Contents</span>
+          <svg
+            className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      ) : (
+        <h3 
+          className="mb-3"
+          style={{ 
+            color: 'var(--text-color)',
+            fontFamily: 'var(--font-heading)',
+            fontWeight: '600'
+          }}
+        >
+          Table of Contents
+        </h3>
+      )}
+      
+      {isExpanded && (
+        <nav>
+          <ul className="space-y-2">
+            {tocItems.map(({ id, text, level }) => (
+              <li key={id} style={{ marginLeft: `${(level - 1) * 12}px` }}>
+                <button
+                  onClick={() => scrollToHeading(id)}
+                  className={`text-left text-sm hover:text-[var(--primary-color)] transition-colors duration-200 ${
+                    activeId === id ? 'font-medium' : ''
+                  }`}
+                  style={{ 
+                    color: activeId === id ? 'var(--primary-color)' : 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  {text}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
     </div>
   );
 } 

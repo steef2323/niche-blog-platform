@@ -119,7 +119,7 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
               opacity: 0.7
             }}
           >
-            Explore articles by category to find exactly what you're looking for
+            Explore articles by category to find exactly what you&apos;re looking for
           </p>
         </div>
 
@@ -162,7 +162,7 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
                           <div className="aspect-[4/3] relative overflow-hidden">
                             <Image
                               src={featuredImage}
-                              alt={post.Title}
+                              alt={post.Title || 'Blog post image'}
                               fill
                               className="object-cover hover:scale-105 transition-transform duration-300"
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"

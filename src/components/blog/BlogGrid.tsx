@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BlogPost, ListingPost } from '@/types/airtable';
@@ -23,7 +23,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
   const [offset, setOffset] = useState(postsPerPage);
 
   // Load more posts function
-  const loadMorePosts = async () => {
+  const loadMorePosts = useCallback(async () => {
     if (loading || !hasMore) return;
 
     setLoading(true);
@@ -44,7 +44,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, hasMore, siteId, postsPerPage, offset, apiParams]);
 
   // Infinite scroll effect
   useEffect(() => {
@@ -59,12 +59,21 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [loading, hasMore, offset]);
+  }, [loading, hasMore, offset, loadMorePosts]);
 
   if (posts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">No posts found.</p>
+        <p 
+          className="text-lg"
+          style={{ 
+            color: 'var(--text-color)',
+            fontFamily: 'var(--font-body)',
+            opacity: 0.7
+          }}
+        >
+          No posts found.
+        </p>
       </div>
     );
   }
@@ -101,7 +110,15 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400 text-sm">No image</span>
+                      <span 
+                        className="text-sm"
+                        style={{ 
+                          color: 'var(--muted-color)',
+                          fontFamily: 'var(--font-body)'
+                        }}
+                      >
+                        No image
+                      </span>
                     </div>
                   )}
                   
@@ -133,7 +150,13 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                 {/* Post Content */}
                 <div>
                   {/* Title */}
-                  <h2 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-200">
+                  <h2 
+                    className="text-xl font-semibold mb-3 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-200"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
                     {post.type === 'blog' ? getBlogTitle(post as BlogPost) : (post as ListingPost).Title}
                   </h2>
 
@@ -144,14 +167,28 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                       : ((post as ListingPost).Excerpt || '');
                     
                     return excerpt ? (
-                      <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+                      <p 
+                        className="mb-4 line-clamp-3 leading-relaxed"
+                        style={{ 
+                          color: 'var(--text-color)',
+                          fontFamily: 'var(--font-body)',
+                          opacity: 0.8
+                        }}
+                      >
                         {excerpt}
                       </p>
                     ) : null;
                   })()}
 
                   {/* Meta Information */}
-                  <div className="flex items-center gap-3 text-sm text-gray-500">
+                  <div 
+                    className="flex items-center gap-3 text-sm"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)',
+                      opacity: 0.6
+                    }}
+                  >
                     {publishDate && <span>{publishDate}</span>}
                     {readingTime && (
                       <>
@@ -176,7 +213,14 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
       {/* Loading Indicator */}
       {loading && (
         <div className="text-center py-8">
-          <div className="inline-flex items-center gap-2 text-gray-500">
+          <div 
+            className="inline-flex items-center gap-2"
+            style={{ 
+              color: 'var(--text-color)',
+              fontFamily: 'var(--font-body)',
+              opacity: 0.7
+            }}
+          >
             <div className="w-4 h-4 border-2 border-gray-300 border-t-[var(--primary-color)] rounded-full animate-spin"></div>
             <span>Loading more posts...</span>
           </div>
@@ -186,7 +230,15 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
       {/* End of Posts Message */}
       {!hasMore && posts.length > postsPerPage && (
         <div className="text-center py-8">
-          <p className="text-gray-500">You've reached the end of our posts.</p>
+          <p 
+            style={{ 
+              color: 'var(--text-color)',
+              fontFamily: 'var(--font-body)',
+              opacity: 0.7
+            }}
+          >
+            You&apos;ve reached the end of our posts.
+          </p>
         </div>
       )}
     </div>

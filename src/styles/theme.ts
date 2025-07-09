@@ -17,8 +17,8 @@ export function generateCssVariables(site: Site): string {
     --accent-color: ${site['Accent color']};
     --background-color: ${site['Background color']};
     --text-color: ${site['Text color']};
-    --heading-font: ${site['Heading font']};
-    --body-font: ${site['Body font']};
+    --font-heading: ${site['Heading font']};
+    --font-body: ${site['Body font']};
   `;
 }
 

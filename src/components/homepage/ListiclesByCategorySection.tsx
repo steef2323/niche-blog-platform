@@ -115,7 +115,7 @@ export default function ListiclesByCategorySection({ siteId }: ListiclesByCatego
             className="text-lg text-white/80"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            Discover curated business guides organized by what you're looking for
+            Discover curated business guides organized by what you&apos;re looking for
           </p>
         </div>
 

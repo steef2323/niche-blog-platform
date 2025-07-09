@@ -2,6 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import Header from './Header';
+import Footer from './Footer';
 import { useSite } from '@/contexts/site';
 
 interface BaseLayoutProps {
@@ -28,7 +29,7 @@ export default function BaseLayout({ children, className = '' }: BaseLayoutProps
         {children}
       </main>
       
-      {/* Footer will be implemented in a separate task */}
+      <Footer />
     </div>
   );
 } 

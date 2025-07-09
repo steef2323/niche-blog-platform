@@ -60,7 +60,7 @@ export default function PrivateEventFormSection({ simplified = false, darkMode =
               Thank You!
             </h3>
             <p className={darkMode ? "text-white/80" : "text-gray-600"}>
-              We've received your private event inquiry. Our team will get back to you within 24 hours to discuss your event details.
+              We&apos;ve received your private event inquiry. Our team will get back to you within 24 hours to discuss your event details.
             </p>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function PrivateEventFormSection({ simplified = false, darkMode =
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Looking to host a special event? Let us help you create an unforgettable experience. 
-            Fill out the form below and we'll get back to you with personalized recommendations.
+            Fill out the form below and we&apos;ll get back to you with personalized recommendations.
           </p>
         </div>
 
@@ -302,7 +302,7 @@ export default function PrivateEventFormSection({ simplified = false, darkMode =
                     </div>
                     <div>
                       <h4 className="font-semibold mb-1">24/7 Support</h4>
-                      <p className="text-sm opacity-90">We're here to help throughout your planning journey</p>
+                      <p className="text-sm opacity-90">We&apos;re here to help throughout your planning journey</p>
                     </div>
                   </div>
                 </div>

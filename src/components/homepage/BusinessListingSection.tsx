@@ -1,5 +1,6 @@
 import { ListingPost } from '@/types/airtable';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface BusinessListingSectionProps {
   listingPosts: ListingPost[];
@@ -40,10 +41,12 @@ export default function BusinessListingSection({ listingPosts }: BusinessListing
                 <article className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   {featuredImage && (
                     <div className="aspect-video overflow-hidden">
-                      <img 
+                      <Image 
                         src={featuredImage} 
                         alt={listing.Title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </div>
                   )}

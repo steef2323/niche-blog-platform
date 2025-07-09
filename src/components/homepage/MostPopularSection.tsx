@@ -67,7 +67,7 @@ export default function MostPopularSection({ posts, siteId }: MostPopularSection
                   <div className="aspect-[16/10] relative overflow-hidden">
                     <Image
                       src={featuredImage}
-                      alt={post.Title}
+                      alt={post.Title || 'Featured post image'}
                       fill
                       className="object-cover hover:scale-105 transition-transform duration-300"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

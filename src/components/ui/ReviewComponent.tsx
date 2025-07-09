@@ -30,7 +30,7 @@ const ReviewComponent: React.FC<ReviewComponentProps> = ({
           fontStyle: 'italic',
         }}
       >
-        "{reviewText}"
+        &ldquo;{reviewText}&rdquo;
       </blockquote>
       <cite 
         style={{

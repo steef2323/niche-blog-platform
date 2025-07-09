@@ -45,7 +45,7 @@ export default function ThemeTest() {
             <div className="space-y-2">
               <p className="text-sm font-mono">Body Font: {colors.bodyFont}</p>
               <p style={{ fontFamily: colors.bodyFont }}>
-                This is an example of body text using the site's body font.
+                This is an example of body text using the site&apos;s body font.
               </p>
             </div>
           </div>

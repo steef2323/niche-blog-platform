@@ -5,6 +5,8 @@ import { SiteProvider } from '@/contexts/site';
 import { ThemeProvider } from '@/contexts/theme';
 import { getSiteByDomain } from '@/lib/airtable/sites';
 import BaseLayout from '@/components/layout/BaseLayout';
+import { GoogleTagManagerScript, GoogleTagManagerNoscript } from '@/components/common/GoogleTagManager';
+import GoogleFonts from '@/components/common/GoogleFonts';
 
 export const metadata: Metadata = {
   title: "Multi-site Framework",
@@ -28,9 +30,14 @@ export default async function RootLayout({
 
     return (
       <html lang="en">
+        <head>
+          <GoogleTagManagerScript gtmId={site?.['Google Tag Manager ID']} />
+        </head>
         <body>
+          <GoogleTagManagerNoscript gtmId={site?.['Google Tag Manager ID']} />
           <SiteProvider site={site}>
             <ThemeProvider site={site}>
+              <GoogleFonts />
               <BaseLayout>
               {children}
               </BaseLayout>

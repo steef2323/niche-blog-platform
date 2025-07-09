@@ -78,12 +78,24 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
       {/* Category Header */}
       <div className="mb-8">
         <Link href={`/blog/category/${category.Slug}`}>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4 hover:text-[var(--primary-color)] transition-colors duration-200 cursor-pointer" style={{ color: category.Color || 'inherit' }}>
+          <h2 
+            className="text-3xl font-bold mb-4 hover:text-[var(--primary-color)] transition-colors duration-200 cursor-pointer" 
+            style={{ 
+              color: category.Color || 'var(--text-color)',
+              fontFamily: 'var(--font-heading)'
+            }}
+          >
             {category.Name}
           </h2>
         </Link>
         {category.Description && (
-          <p className="text-lg text-gray-600 max-w-3xl">
+          <p 
+            className="text-lg max-w-3xl"
+            style={{ 
+              color: 'var(--text-color)',
+              fontFamily: 'var(--font-body)'
+            }}
+          >
             {category.Description}
           </p>
         )}
@@ -119,7 +131,15 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400 text-sm">No image</span>
+                      <span 
+                        className="text-sm"
+                        style={{ 
+                          color: 'var(--muted-color)',
+                          fontFamily: 'var(--font-body)'
+                        }}
+                      >
+                        No image
+                      </span>
                     </div>
                   )}
                   
@@ -137,7 +157,13 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
 
                 <div>
                   {/* Title */}
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-200">
+                  <h3 
+                    className="text-xl font-semibold mb-3 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-200"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
                     {post.type === 'blog' ? getBlogTitle(post as BlogPost) : (post as ListingPost).Title}
                   </h3>
 
@@ -148,14 +174,26 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                       : ((post as ListingPost).Excerpt || '');
                     
                     return excerpt ? (
-                      <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+                      <p 
+                        className="mb-4 line-clamp-3 leading-relaxed"
+                        style={{ 
+                          color: 'var(--text-color)',
+                          fontFamily: 'var(--font-body)'
+                        }}
+                      >
                         {excerpt}
                       </p>
                     ) : null;
                   })()}
 
                   {/* Meta Information */}
-                  <div className="flex items-center gap-3 text-sm text-gray-500">
+                  <div 
+                    className="flex items-center gap-3 text-sm"
+                    style={{ 
+                      color: 'var(--muted-color)',
+                      fontFamily: 'var(--font-body)'
+                    }}
+                  >
                     {publishDate && <span>{publishDate}</span>}
                     {readingTime && (
                       <>

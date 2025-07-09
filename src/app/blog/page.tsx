@@ -110,13 +110,23 @@ export default async function BlogPage() {
 
         {/* Blog Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h1 
+            className="text-4xl md:text-5xl font-bold mb-6"
+            style={{ 
+              color: 'var(--text-color)',
+              fontFamily: 'var(--font-heading)'
+            }}
+          >
             {blogPage?.Title || 'Blog'}
           </h1>
           
           {htmlContent && (
             <div 
-              className="prose prose-lg mx-auto text-gray-600 max-w-3xl"
+              className="prose prose-lg mx-auto max-w-3xl"
+              style={{ 
+                color: 'var(--text-color)',
+                fontFamily: 'var(--font-body)'
+              }}
               dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
           )}

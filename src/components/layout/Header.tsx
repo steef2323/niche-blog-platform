@@ -80,7 +80,8 @@ export default function Header({ className = '' }: HeaderProps) {
               <Link href={`https://${site.Domain}/`}>
                 <Image 
                   src={site['Site logo'][0].url}
-                  alt={site.Name || 'Site Logo'}
+                  alt={site['Site logo alt text'] || site.Name || 'Site Logo'}
+                  title={site['Site logo title'] || site.Name || 'Site Logo'}
                   width={50}
                   height={50}
                   className="h-12 w-auto"
@@ -88,7 +89,14 @@ export default function Header({ className = '' }: HeaderProps) {
                 />
               </Link>
             ) : (
-              <Link href={`https://${site.Domain}/`} className="text-xl font-bold" style={{ color: 'var(--text-color)' }}>
+              <Link 
+                href={`https://${site.Domain}/`} 
+                className="text-xl font-bold" 
+                style={{ 
+                  color: 'var(--text-color)',
+                  fontFamily: 'var(--font-heading)'
+                }}
+              >
                 {site.Name || 'Site Name'}
               </Link>
             )}
@@ -125,7 +133,10 @@ export default function Header({ className = '' }: HeaderProps) {
                       hover:opacity-80
                       ${isActive ? 'after:absolute after:bottom-[-4px] after:left-0 after:right-0 after:h-[2px] after:bg-current' : ''}
                     `}
-                    style={{ color: 'var(--text-color)' }}
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)'
+                    }}
                   >
                     {page.Title}
                   </Link>
@@ -200,7 +211,10 @@ export default function Header({ className = '' }: HeaderProps) {
                       className={`
                         font-medium px-2 py-1 ${isActive ? 'font-bold' : ''}
                       `}
-                      style={{ color: 'var(--text-color)' }}
+                      style={{ 
+                        color: 'var(--text-color)',
+                        fontFamily: 'var(--font-body)'
+                      }}
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {page.Title}

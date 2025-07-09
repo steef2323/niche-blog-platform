@@ -7,7 +7,7 @@ export default function SiteSwitcher() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Site 1: "sip and paints"</h2>
+          <h2 className="text-xl font-semibold mb-4">Site 1: &ldquo;sip and paints&rdquo;</h2>
           <div className="space-y-2 text-sm text-gray-600 mb-4">
             <p><strong>Domain:</strong> sipandpaints.nl</p>
             <p><strong>Local:</strong> site1.local</p>
@@ -29,7 +29,7 @@ export default function SiteSwitcher() {
         </div>
 
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Site 2: "sip en paints"</h2>
+          <h2 className="text-xl font-semibold mb-4">Site 2: &ldquo;sip en paints&rdquo;</h2>
           <div className="space-y-2 text-sm text-gray-600 mb-4">
             <p><strong>Domain:</strong> sipenpaints.nl</p>
             <p><strong>Local:</strong> site2.local</p>
@@ -46,7 +46,7 @@ export default function SiteSwitcher() {
             
             <div className="text-xs text-gray-500 text-center">
               <p>To see this site in browser:</p>
-              <p>Add "127.0.0.1 site2.local" to /etc/hosts</p>
+              <p>Add &ldquo;127.0.0.1 site2.local&rdquo; to /etc/hosts</p>
               <p>Then visit site2.local:3000</p>
             </div>
           </div>

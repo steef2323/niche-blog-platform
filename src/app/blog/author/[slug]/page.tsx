@@ -106,24 +106,48 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
               </div>
             ) : (
               <div className="w-24 h-24 mx-auto rounded-full bg-gray-300 flex items-center justify-center">
-                <span className="text-2xl text-gray-600">
+                <span 
+                  className="text-2xl"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {author.Name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 
+            className="text-4xl md:text-5xl font-bold mb-4"
+            style={{ 
+              color: 'var(--text-color)',
+              fontFamily: 'var(--font-heading)'
+            }}
+          >
             {author.Name}
           </h1>
           
           {author.Bio && (
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p 
+              className="text-xl max-w-3xl mx-auto leading-relaxed"
+              style={{ 
+                color: 'var(--text-color)',
+                fontFamily: 'var(--font-body)'
+              }}
+            >
               {author.Bio}
             </p>
           )}
 
-          <div className="mt-6 flex items-center justify-center gap-4 text-sm text-gray-500">
+          <div 
+            className="mt-6 flex items-center justify-center gap-4 text-sm"
+            style={{ 
+              color: 'var(--muted-color)',
+              fontFamily: 'var(--font-body)'
+            }}
+          >
             <span>{allPosts.length} article{allPosts.length !== 1 ? 's' : ''}</span>
             {author['Published date'] && (
               <>
@@ -136,13 +160,25 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
 
         {/* Author's Articles */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          <h2 
+            className="text-2xl font-bold mb-6"
+            style={{ 
+              color: 'var(--text-color)',
+              fontFamily: 'var(--font-heading)'
+            }}
+          >
             Articles by {author.Name}
           </h2>
 
           {allPosts.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">
+              <p 
+                className="text-lg"
+                style={{ 
+                  color: 'var(--muted-color)',
+                  fontFamily: 'var(--font-body)'
+                }}
+              >
                 No articles found by this author.
               </p>
               <Link 
@@ -208,10 +244,20 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                       )}
 
                       {/* Title */}
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
+                      <h3 
+                        className="text-xl font-semibold mb-2 line-clamp-2"
+                        style={{ 
+                          color: 'var(--text-color)',
+                          fontFamily: 'var(--font-heading)'
+                        }}
+                      >
                         <Link 
                           href={`/blog/${post.Slug}`}
                           className="hover:text-[var(--primary-color)] transition-colors duration-200"
+                          style={{ 
+                            color: 'var(--text-color)',
+                            fontFamily: 'var(--font-heading)'
+                          }}
                         >
                           {displayTitle}
                         </Link>
@@ -219,13 +265,25 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
 
                       {/* Excerpt */}
                       {displayExcerpt && (
-                        <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                        <p 
+                          className="text-sm line-clamp-3 mb-4"
+                          style={{ 
+                            color: 'var(--text-color)',
+                            fontFamily: 'var(--font-body)'
+                          }}
+                        >
                           {displayExcerpt}
                         </p>
                       )}
 
                       {/* Meta Information */}
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div 
+                        className="flex items-center justify-between text-xs"
+                        style={{ 
+                          color: 'var(--muted-color)',
+                          fontFamily: 'var(--font-body)'
+                        }}
+                      >
                         <div className="flex items-center gap-2">
                           {publishDate && (
                             <span>{publishDate}</span>
@@ -247,6 +305,9 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                         <Link 
                           href={`/blog/${post.Slug}`}
                           className="text-[var(--primary-color)] hover:underline font-medium"
+                          style={{ 
+                            fontFamily: 'var(--font-body)'
+                          }}
                         >
                           Read more →
                         </Link>

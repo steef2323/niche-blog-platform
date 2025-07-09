@@ -58,9 +58,11 @@
 
   /* Global Button Styles */
   .btn-accent {
-    @apply inline-flex items-center px-8 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg;
+    @apply inline-flex items-center px-8 py-3 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg;
     background-color: var(--accent-color);
     color: var(--text-color);
+    font-family: var(--font-body);
+    font-weight: 600;
   }
 
   .btn-accent:hover {
@@ -69,10 +71,12 @@
   }
 
   .btn-outline {
-    @apply inline-flex items-center px-8 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg border-2;
+    @apply inline-flex items-center px-8 py-3 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg border-2;
     background-color: var(--text-color);
     color: var(--accent-color);
     border-color: var(--accent-color);
+    font-family: var(--font-body);
+    font-weight: 600;
   }
 
   .btn-outline:hover {
@@ -140,15 +144,19 @@
     -webkit-line-clamp: 4;
   }
 
-  /* Mobile carousel utilities */
-  .mobile-carousel {
-    @apply overflow-x-auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  /* Scrollbar hide utilities */
+  .scrollbar-hide {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
   }
 
-  .mobile-carousel::-webkit-scrollbar {
-    display: none;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* WebKit */
+  }
+
+  /* Mobile carousel utilities */
+  .mobile-carousel {
+    @apply overflow-x-auto scrollbar-hide;
   }
 
   .mobile-carousel-grid {
