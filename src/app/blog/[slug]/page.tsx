@@ -14,6 +14,7 @@ import {
   getBlogTitle,
   getBlogExcerpt 
 } from '@/lib/utils/structured-content';
+import { generateBlogPostSchemas, generateListingPostSchemas } from '@/lib/utils/schema';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import TableOfContents from '@/components/blog/TableOfContents';
 import PrivateEventForm from '@/components/ui/PrivateEventForm';
@@ -55,6 +56,28 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     const displayTitle = blogPost ? getBlogTitle(blogPost) : (post['Meta title'] || (post as any).Title || 'Untitled');
     const displayDescription = blogPost ? getBlogExcerpt(blogPost) : (post['Meta description'] || (post as any).Excerpt || '');
 
+    // Generate schema markup based on post type
+    let schemas = [];
+    if (blogPost) {
+      const breadcrumbItems = [
+        { label: 'Home', href: '/' },
+        { label: 'Blog', href: '/blog' },
+        ...(post.CategoryDetails ? [{ 
+          label: post.CategoryDetails.Name, 
+          href: `/blog/category/${post.CategoryDetails.Slug}` 
+        }] : []),
+        { label: displayTitle }
+      ];
+      schemas = generateBlogPostSchemas(blogPost, site, post.AuthorDetails, breadcrumbItems);
+    } else if (listingPost) {
+      const breadcrumbItems = [
+        { label: 'Home', href: '/' },
+        { label: 'Blog', href: '/blog' },
+        { label: displayTitle }
+      ];
+      schemas = generateListingPostSchemas(listingPost, site, breadcrumbItems);
+    }
+
     return {
       title: displayTitle,
       description: displayDescription,
@@ -72,6 +95,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
         description: displayDescription,
         images: post['Featured image']?.[0]?.url ? [post['Featured image'][0].url] : [],
       },
+      other: {
+        // Add JSON-LD schema markup
+        ...schemas.reduce((acc, schema, index) => {
+          acc[`json-ld-${index}`] = JSON.stringify(schema);
+          return acc;
+        }, {} as Record<string, string>)
+      }
     };
   } catch (error) {
     console.error('Error generating metadata:', error);

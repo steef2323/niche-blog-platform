@@ -70,7 +70,10 @@ export default function MostPopularSection({ posts, siteId }: MostPopularSection
                       alt={post.Title || 'Featured post image'}
                       fill
                       className="object-cover hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      quality={75}
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      // Next.js automatically serves WebP/AVIF if supported
                     />
                     {/* Post Type Badge */}
                     <div className="absolute top-3 left-3">

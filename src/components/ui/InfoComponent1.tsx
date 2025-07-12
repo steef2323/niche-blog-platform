@@ -69,7 +69,9 @@ export default function InfoComponent1({ title, text, image, className = '' }: I
             height={image.height || 500}
             className="w-full h-auto object-cover"
             loading="lazy"
+            quality={75}
             sizes="(max-width: 768px) 100vw, 50vw"
+            // Next.js automatically serves WebP/AVIF if supported
           />
           {/* Image Caption for SEO */}
           {image.caption && (
@@ -134,7 +136,9 @@ export default function InfoComponent1({ title, text, image, className = '' }: I
               height={image.height || 500}
               className="w-full h-full object-cover"
               loading="lazy"
+              quality={75}
               sizes="(max-width: 768px) 100vw, 50vw"
+              // Next.js automatically serves WebP/AVIF if supported
             />
           </div>
           {/* Image Caption for SEO */}

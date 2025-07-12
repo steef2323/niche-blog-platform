@@ -76,6 +76,9 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
                 width={businessImage.width || 600}
                 height={businessImage.height || 400}
                 className="w-full h-64 object-cover rounded-lg"
+                loading="lazy"
+                quality={75}
+                // Next.js automatically serves WebP/AVIF if supported
               />
             </div>
           )}

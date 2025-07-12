@@ -36,6 +36,12 @@ export interface Site extends BaseFields {
   'Default meta title'?: string;
   'Default meta description'?: string;
   
+  // Robots.txt configuration
+  'Site URL'?: string;
+  'Custom robots.txt rules'?: string;
+  'Crawl delay'?: number;
+  'Custom user agent rules'?: string;
+  
   // Language
   Language?: string;
   

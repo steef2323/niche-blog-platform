@@ -85,7 +85,9 @@ export default function Header({ className = '' }: HeaderProps) {
                   width={50}
                   height={50}
                   className="h-12 w-auto"
-                  priority
+                  priority // Logo: always preload for LCP
+                  quality={75} // Compress for web
+                  // Next.js automatically serves WebP/AVIF if supported
                 />
               </Link>
             ) : (

@@ -160,7 +160,10 @@ export default function ListiclesByCategorySection({ siteId }: ListiclesByCatego
                               alt={post.Title}
                               fill
                               className="object-cover hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              quality={75}
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                              // Next.js automatically serves WebP/AVIF if supported
                             />
                             {/* Guide Badge */}
                             <div className="absolute top-3 left-3">

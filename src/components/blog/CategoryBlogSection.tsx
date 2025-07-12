@@ -128,6 +128,10 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                       alt={post.type === 'blog' ? getBlogTitle(post as BlogPost) : (post as ListingPost).Title}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                      quality={75}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      // Next.js automatically serves WebP/AVIF if supported
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">

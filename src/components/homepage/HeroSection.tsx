@@ -33,7 +33,9 @@ export default function HeroSection({ homePage }: HeroSectionProps) {
               alt={title || 'Hero image'}
               fill
               className="object-cover"
-              priority
+              priority // Hero image: always preload for LCP
+              quality={75} // Compress for web
+              // Next.js automatically serves WebP/AVIF if supported
             />
             <div className="absolute inset-0 bg-black/20" />
           </div>

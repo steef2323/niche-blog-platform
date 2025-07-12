@@ -159,6 +159,9 @@ export default function Footer({ className = '' }: FooterProps) {
                   width={120}
                   height={60}
                   className="h-15 w-auto"
+                  priority // Footer logo: always preload for LCP
+                  quality={75} // Compress for web
+                  // Next.js automatically serves WebP/AVIF if supported
                 />
               ) : (
                 <div 
