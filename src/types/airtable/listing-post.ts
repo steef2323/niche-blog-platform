@@ -19,6 +19,10 @@ export interface ListingPost extends BaseFields {
   Businesses?: RecordLink[]; // Links to Business records
   Conclusion?: string; // Conclusion content for the listicle
   
+  // Redirect fields
+  'Redirect status'?: string; // e.g., "Redirect", "No redirect"
+  'Redirect to'?: string; // URL or slug to redirect to
+  
   // Expanded details (populated when fetching)
   AuthorDetails?: any;
   CategoryDetails?: any;

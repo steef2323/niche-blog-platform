@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSite, useSitePages, useSiteFeatures } from '@/contexts/site';
 import { Feature, Page } from '@/types/airtable';
+import { getLogoPath } from '@/lib/utils/asset-paths';
 
 interface HeaderProps {
   className?: string;
@@ -57,18 +58,11 @@ export default function Header({ className = '' }: HeaderProps) {
         ${className}
       `}
     >
-      {/* Background swirl effect using accent and background colors */}
+      {/* Background using accent color */}
       <div 
         className="absolute top-0 left-0 w-full h-full -z-10 overflow-hidden" 
         style={{
-          background: `
-            linear-gradient(
-              135deg, 
-              var(--accent-color) 0%, 
-              var(--background-color) 100%
-            )
-          `,
-          clipPath: 'ellipse(200% 100% at 50% 0)'
+          backgroundColor: 'var(--accent-color)'
         }}
       />
 
@@ -76,32 +70,46 @@ export default function Header({ className = '' }: HeaderProps) {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex-shrink-0">
-            {site['Site logo']?.[0]?.url ? (
-              <Link href={`https://${site.Domain}/`}>
-                <Image 
-                  src={site['Site logo'][0].url}
-                  alt={site['Site logo alt text'] || site.Name || 'Site Logo'}
-                  title={site['Site logo title'] || site.Name || 'Site Logo'}
-                  width={50}
-                  height={50}
-                  className="h-12 w-auto"
-                  priority // Logo: always preload for LCP
-                  quality={75} // Compress for web
-                  // Next.js automatically serves WebP/AVIF if supported
-                />
-              </Link>
-            ) : (
-              <Link 
-                href={`https://${site.Domain}/`} 
-                className="text-xl font-bold" 
-                style={{ 
-                  color: 'var(--text-color)',
-                  fontFamily: 'var(--font-heading)'
-                }}
-              >
-                {site.Name || 'Site Name'}
-              </Link>
-            )}
+            {(() => {
+              // Use getLogoPath to prefer local files over Airtable URLs
+              const logoUrl = getLogoPath(
+                site.Domain || '',
+                site['Site logo']?.[0]?.url
+              );
+              const logoAlt = site['Site logo alt text'] || site.Name || 'Site Logo';
+              const logoTitle = site['Site logo title'] || site.Name || 'Site Logo';
+              
+              if (logoUrl && !logoUrl.includes('default-logo')) {
+                return (
+                  <Link href={`https://${site.Domain}/`}>
+                    <Image 
+                      src={logoUrl}
+                      alt={logoAlt}
+                      title={logoTitle}
+                      width={240}
+                      height={48}
+                      className="h-12 w-auto"
+                      priority // Logo: always preload for LCP
+                      quality={100} // High quality for crisp logos
+                      // Next.js automatically serves WebP/AVIF if supported
+                    />
+                  </Link>
+                );
+              }
+              
+              return (
+                <Link 
+                  href={`https://${site.Domain}/`} 
+                  className="text-xl font-bold" 
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-heading)'
+                  }}
+                >
+                  {site.Name || 'Site Name'}
+                </Link>
+              );
+            })()}
           </div>
 
           {/* Desktop Navigation - Centered */}
@@ -152,7 +160,7 @@ export default function Header({ className = '' }: HeaderProps) {
             {hasPrivateEventForm && (
               <Link 
                 href="/private-event-form"
-                className="btn-outline hidden md:inline-flex"
+                className="btn-secondary hidden md:inline-flex"
               >
                 Book private event
               </Link>
@@ -228,7 +236,7 @@ export default function Header({ className = '' }: HeaderProps) {
               {hasPrivateEventForm && (
                 <Link 
                   href="/private-event-form"
-                  className="btn-outline mt-2 w-full justify-center"
+                  className="btn-secondary mt-2 w-full justify-center"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Book private event

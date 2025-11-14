@@ -3,15 +3,11 @@ import "./globals.css";
 import { headers } from 'next/headers';
 import { SiteProvider } from '@/contexts/site';
 import { ThemeProvider } from '@/contexts/theme';
-import { getSiteByDomain } from '@/lib/airtable/sites';
+import { getSiteConfig } from '@/lib/site-detection';
 import BaseLayout from '@/components/layout/BaseLayout';
 import { GoogleTagManagerScript, GoogleTagManagerNoscript } from '@/components/common/GoogleTagManager';
 import GoogleFonts from '@/components/common/GoogleFonts';
-
-export const metadata: Metadata = {
-  title: "Multi-site Framework",
-  description: "A framework for deploying multiple websites from Airtable data",
-};
+import { getFaviconPath } from '@/lib/utils/asset-paths';
 
 export default async function RootLayout({
   children,
@@ -23,19 +19,24 @@ export default async function RootLayout({
   const host = headersList.get('host') || '';
   
   try {
-    // Get the site data
-    console.log('Fetching site data for host:', host);
-    const site = await getSiteByDomain(host);
-    console.log('Site data fetched:', site ? 'success' : 'not found');
+    // SINGLE site detection call - fetches everything in parallel
+    console.log('🔍 Single site detection call for host:', host);
+    const siteConfig = await getSiteConfig(host);
+    console.log('✅ Site config fetched:', siteConfig ? 'success' : 'not found');
+
+    const site = siteConfig?.site || null;
+    const faviconPath = site ? getFaviconPath(site.Domain || host) : '/favicon.ico';
+    const siteLanguage = site?.Language?.toLowerCase() || 'en';
 
     return (
-      <html lang="en">
+      <html lang={siteLanguage}>
         <head>
+          <link rel="icon" href={faviconPath} />
           <GoogleTagManagerScript gtmId={site?.['Google Tag Manager ID']} />
         </head>
         <body>
           <GoogleTagManagerNoscript gtmId={site?.['Google Tag Manager ID']} />
-          <SiteProvider site={site}>
+          <SiteProvider siteConfig={siteConfig}>
             <ThemeProvider site={site}>
               <GoogleFonts />
               <BaseLayout>
@@ -50,7 +51,7 @@ export default async function RootLayout({
     console.error('Error in root layout:', error);
     // Return a basic error layout
     return (
-      <html lang="en">
+      <html lang="en"> {/* Fallback language */}
         <body>
           <div className="p-8">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Site</h1>

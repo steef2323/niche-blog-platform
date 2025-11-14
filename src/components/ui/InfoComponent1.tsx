@@ -75,7 +75,10 @@ export default function InfoComponent1({ title, text, image, className = '' }: I
           />
           {/* Image Caption for SEO */}
           {image.caption && (
-            <div className="p-[20px] pt-2 border-t border-gray-100">
+            <div 
+              className="p-[20px] pt-2 border-t"
+              style={{ borderTopColor: 'var(--border-color)' }}
+            >
               <p 
                 className="text-sm italic text-center"
                 style={{ color: 'var(--muted-color)' }}

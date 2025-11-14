@@ -145,7 +145,7 @@ export default function CategoryPostsGrid({
           <div className="text-center">
             <Link 
               href={`/blog/category/${categoryInfo.Slug}`}
-              className={isAccentSection ? 'btn-outline' : 'btn-accent'}
+              className={isAccentSection ? 'btn-secondary' : 'btn-primary'}
             >
               More {categoryInfo.Name || 'Articles'}
               <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

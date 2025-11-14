@@ -18,11 +18,12 @@ export async function POST(request: NextRequest) {
       location,
       numberOfGuests,
       extraInformation,
-      siteId
+      siteId,
+      createOnly
     } = body;
 
-    // Basic validation
-    if (!name || !email || !phone || !date || !location || !siteId) {
+    // Basic validation - only name and email are required (siteId is optional)
+    if (!name || !email) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -43,20 +44,22 @@ export async function POST(request: NextRequest) {
                     request.headers.get('x-real-ip') || 
                     'unknown';
     
-    // Rate limiting check
-    const now = Date.now();
-    const lastSubmission = submissionTracker.get(clientIP);
-    
-    if (lastSubmission && (now - lastSubmission) < RATE_LIMIT_WINDOW) {
-      // Count submissions in the window
-      const submissionCount = Array.from(submissionTracker.values())
-        .filter(timestamp => (now - timestamp) < RATE_LIMIT_WINDOW).length;
+    // Rate limiting check (only for full submissions, not initial creation)
+    if (!createOnly) {
+      const now = Date.now();
+      const lastSubmission = submissionTracker.get(clientIP);
       
-      if (submissionCount >= MAX_SUBMISSIONS_PER_WINDOW) {
-        return NextResponse.json(
-          { error: 'Too many submissions. Please wait before submitting again.' },
-          { status: 429 }
-        );
+      if (lastSubmission && (now - lastSubmission) < RATE_LIMIT_WINDOW) {
+        // Count submissions in the window
+        const submissionCount = Array.from(submissionTracker.values())
+          .filter(timestamp => (now - timestamp) < RATE_LIMIT_WINDOW).length;
+        
+        if (submissionCount >= MAX_SUBMISSIONS_PER_WINDOW) {
+          return NextResponse.json(
+            { error: 'Too many submissions. Please wait before submitting again.' },
+            { status: 429 }
+          );
+        }
       }
     }
 
@@ -68,27 +71,115 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Combine date and time into a single datetime string
-    // Format as space-separated to prevent timezone conversion
-    let combinedDateTime = date;
-    if (preferredTime) {
-      combinedDateTime = `${date} ${preferredTime}:00`;
+    // If createOnly, just create a minimal record
+    if (createOnly) {
+      // Build record data - try to include Site link if siteId is provided
+      const recordData: any = {
+        'Name': name,
+        'Email': email,
+        'Status': 'New'
+      };
+      
+      // Try to add Site link if siteId is provided and looks like a valid Airtable record ID
+      // If it fails, we'll create the record without the link
+      if (siteId && siteId.startsWith('rec') && siteId.length > 10) {
+        // Only add if it's not a placeholder/masked ID
+        if (!siteId.includes('X')) {
+          recordData['Site link'] = [siteId];
+          console.log(`✅ Adding Site link: ${siteId}`);
+        } else {
+          console.warn(`⚠️ Skipping Site link - appears to be a placeholder ID: ${siteId}`);
+        }
+      } else {
+        console.warn(`⚠️ Invalid or missing siteId: ${siteId}`);
+      }
+
+      try {
+        const record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+        return NextResponse.json(
+          { 
+            success: true, 
+            message: 'Initial record created',
+            id: record.id 
+          },
+          { status: 201 }
+        );
+      } catch (createError: any) {
+        // If creation fails due to invalid Site link, try again without it
+        if (createError.error === 'ROW_DOES_NOT_EXIST' && recordData['Site link']) {
+          console.warn('⚠️ Site link failed, creating record without Site link');
+          delete recordData['Site link'];
+          const record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+          return NextResponse.json(
+            { 
+              success: true, 
+              message: 'Initial record created (without Site link)',
+              id: record.id 
+            },
+            { status: 201 }
+          );
+        }
+        throw createError;
+      }
+
     }
 
-    // Create record in Airtable
-    const record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create({
+    // Combine date and time into a single datetime string (only if provided)
+    // Format as space-separated to prevent timezone conversion
+    let combinedDateTime: string | undefined = undefined;
+    if (date) {
+      combinedDateTime = date;
+      if (preferredTime) {
+        combinedDateTime = `${date} ${preferredTime}:00`;
+      }
+    }
+
+    // Build record data - try to include Site link if siteId is provided
+    const recordData: any = {
       'Name': name,
       'Email': email,
-      'Phone': phone,
-      'Date': combinedDateTime,
-      'Location': location,
-      'Number of guests': numberOfGuests ? parseInt(numberOfGuests) : undefined,
-      'Extra information': extraInformation || '',
-      'Site link': [siteId],
       'Status': 'New'
-    });
+    };
+    
+    // Add optional fields only if they are provided
+    if (phone) recordData['Phone'] = phone;
+    if (combinedDateTime) recordData['Date'] = combinedDateTime;
+    if (location) recordData['Location'] = location;
+    if (numberOfGuests) recordData['Number of guests'] = parseInt(numberOfGuests);
+    if (extraInformation) recordData['Extra information'] = extraInformation;
+    
+    // Try to add Site link if siteId is provided and looks like a valid Airtable record ID
+    // If it fails, we'll create the record without the link
+    if (siteId && siteId.startsWith('rec') && siteId.length > 10) {
+      // Only add if it's not a placeholder/masked ID
+      if (!siteId.includes('X')) {
+        recordData['Site link'] = [siteId];
+        console.log(`✅ Adding Site link: ${siteId}`);
+      } else {
+        console.warn(`⚠️ Skipping Site link - appears to be a placeholder ID: ${siteId}`);
+      }
+    } else {
+      console.warn(`⚠️ Invalid or missing siteId: ${siteId}`);
+    }
 
-    // Update rate limiting tracker
+    // Create full record in Airtable
+    // If creation fails due to invalid Site link, try again without it
+    let record;
+    try {
+      record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+    } catch (createError: any) {
+      // If creation fails due to invalid Site link, try again without it
+      if (createError.error === 'ROW_DOES_NOT_EXIST' && recordData['Site link']) {
+        console.warn('⚠️ Site link failed, creating record without Site link');
+        delete recordData['Site link'];
+        record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+      } else {
+        throw createError;
+      }
+    }
+
+    // Update rate limiting tracker (only for full submissions)
+    const now = Date.now();
     submissionTracker.set(clientIP, now);
 
     // Clean up old entries (optional optimization)

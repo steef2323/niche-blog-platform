@@ -49,4 +49,8 @@ export interface Page extends BaseFields {
   'Private event form - Title'?: string;
   'Private event form - Subtitle'?: string;
   'Private event form - Success message'?: string;
+  
+  // SEO fields
+  'Meta title'?: string;
+  'Meta description'?: string;
 } 

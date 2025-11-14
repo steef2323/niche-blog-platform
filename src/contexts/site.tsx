@@ -1,10 +1,15 @@
 'use client';
 
 import { createContext, useContext, ReactNode } from 'react';
-import { Site } from '@/types/airtable';
+import { Site, Page, Feature } from '@/types/airtable';
+import { SiteConfig } from '@/lib/site-config';
 
 interface SiteContextType {
   site: Site | null;
+  siteId: string | null;
+  pages: Page[];
+  features: Feature[];
+  homepageContent: Page | null;
   isLoading: boolean;
   error: Error | null;
 }
@@ -12,15 +17,19 @@ interface SiteContextType {
 const SiteContext = createContext<SiteContextType | undefined>(undefined);
 
 interface SiteProviderProps {
-  site: Site | null;
+  siteConfig: SiteConfig | null;
   children: ReactNode;
 }
 
-export function SiteProvider({ site, children }: SiteProviderProps) {
+export function SiteProvider({ siteConfig, children }: SiteProviderProps) {
   return (
     <SiteContext.Provider 
       value={{
-        site,
+        site: siteConfig?.site || null,
+        siteId: siteConfig?.siteId || null,
+        pages: siteConfig?.pages || [],
+        features: siteConfig?.features || [],
+        homepageContent: siteConfig?.homepageContent || null,
         isLoading: false,
         error: null
       }}
@@ -55,13 +64,16 @@ export function useSiteTheme() {
 }
 
 export function useSiteFeatures() {
-  const { site } = useSite();
-  if (!site) return [];
-  return site.Features || [];
+  const { features } = useSite();
+  return features;
 }
 
 export function useSitePages() {
-  const { site } = useSite();
-  if (!site) return [];
-  return site.Pages || [];
+  const { pages } = useSite();
+  return pages;
+}
+
+export function useHomepageContent() {
+  const { homepageContent } = useSite();
+  return homepageContent;
 } 

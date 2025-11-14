@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCategoriesBySiteId } from '@/lib/airtable/content';
+import { getSiteConfig } from '@/lib/site-detection';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const categories = await getCategoriesBySiteId(siteId);
+    // Get site config to retrieve Airtable view names
+    const host = request.headers.get('host') || '';
+    const siteConfig = await getSiteConfig(host);
+    const airtableViews = siteConfig?.airtableViews;
+
+    const categories = await getCategoriesBySiteId(siteId, airtableViews?.categories);
     return NextResponse.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);

@@ -9,7 +9,7 @@
     --text-color: #0f172a;
     --primary-color: #3b82f6;
     --secondary-color: #f1f5f9;
-    --accent-color: #f1f5f9;
+    --accent-color: #fefae0; /* Default for sipandpaints.nl - will be overridden by JS */
     --border-color: #e2e8f0;
     --muted-color: #64748b;
     --card-bg: #ffffff;
@@ -57,20 +57,23 @@
   }
 
   /* Global Button Styles */
-  .btn-accent {
-    @apply inline-flex items-center px-8 py-3 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg;
+  /* Primary Button: Accent color background, text color text, text color border */
+  .btn-primary {
+    @apply inline-flex items-center px-8 py-3 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg border-2;
     background-color: var(--accent-color);
     color: var(--text-color);
+    border-color: var(--text-color);
     font-family: var(--font-body);
     font-weight: 600;
   }
 
-  .btn-accent:hover {
+  .btn-primary:hover {
     filter: brightness(0.95);
     transform: scale(1.05);
   }
 
-  .btn-outline {
+  /* Secondary Button: Text color background, accent color text */
+  .btn-secondary {
     @apply inline-flex items-center px-8 py-3 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg border-2;
     background-color: var(--text-color);
     color: var(--accent-color);
@@ -79,9 +82,19 @@
     font-weight: 600;
   }
 
-  .btn-outline:hover {
+  .btn-secondary:hover {
     background-color: var(--accent-color);
     color: var(--text-color);
+    filter: brightness(0.95);
+  }
+
+  /* Legacy button classes - kept for backward compatibility */
+  .btn-accent {
+    @apply btn-primary;
+  }
+
+  .btn-outline {
+    @apply btn-secondary;
   }
 
   .themed-input {

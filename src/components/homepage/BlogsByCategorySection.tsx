@@ -98,7 +98,10 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
   }
 
   return (
-    <section className="py-16 bg-white">
+    <section 
+      className="py-16"
+      style={{ backgroundColor: 'var(--background-color)' }}
+    >
       <div className="site-container">
         {/* Section Header - Left Aligned */}
         <div className="text-left mb-12">
@@ -155,7 +158,11 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
                     return (
                       <article 
                         key={`category-blog-${post.Slug}-${index}`}
-                        className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-gray-200"
+                        className="rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
+                        style={{
+                          backgroundColor: 'var(--card-bg)',
+                          border: '1px solid var(--border-color)',
+                        }}
                       >
                         {/* Featured Image */}
                         {featuredImage && (
@@ -188,13 +195,19 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
 
                           {/* Excerpt */}
                           {post.Excerpt && (
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                            <p 
+                              className="text-sm mb-3 line-clamp-2"
+                              style={{ color: 'var(--muted-color)' }}
+                            >
                               {post.Excerpt}
                             </p>
                           )}
 
                           {/* Date */}
-                          <div className="text-xs text-gray-500">
+                          <div 
+                            className="text-xs"
+                            style={{ color: 'var(--muted-color)' }}
+                          >
                             {formatDate(post['Published date'])}
                           </div>
                         </div>

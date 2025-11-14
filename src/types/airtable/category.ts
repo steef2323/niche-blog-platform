@@ -5,6 +5,9 @@ export interface Category extends BaseFields {
   Name: string;
   Slug: string;
   Description?: string;
+  'Page title'?: string; // Display title for the category page
+  'Meta title'?: string; // SEO meta title
+  'Meta description'?: string; // SEO meta description
   Color?: string;
   Priority?: number; // For sorting categories by importance/order
   'Blog posts'?: RecordLink[];

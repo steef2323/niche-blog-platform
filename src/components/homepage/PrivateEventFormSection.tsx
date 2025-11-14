@@ -130,13 +130,19 @@ export default function PrivateEventFormSection({ simplified = false, darkMode =
           <h2 className="text-3xl font-bold mb-4" style={{ color: 'var(--text-color)' }}>
             Plan Your Private Event
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p 
+            className="max-w-2xl mx-auto"
+            style={{ color: 'var(--muted-color)' }}
+          >
             Looking to host a special event? Let us help you create an unforgettable experience. 
             Fill out the form below and we&apos;ll get back to you with personalized recommendations.
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div 
+          className="rounded-lg shadow-lg overflow-hidden"
+          style={{ backgroundColor: 'var(--card-bg)' }}
+        >
           <div className="md:flex">
             {/* Form */}
             <div className="md:w-2/3 p-8">

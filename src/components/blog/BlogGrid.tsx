@@ -14,12 +14,13 @@ interface BlogGridProps {
   siteId: string;
   postsPerPage: number;
   apiParams?: string; // Optional additional API parameters
+  disableInfiniteScroll?: boolean; // Disable infinite scroll when showing limited posts
 }
 
-export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams }: BlogGridProps) {
+export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams, disableInfiniteScroll = false }: BlogGridProps) {
   const [posts, setPosts] = useState<PostWithType[]>(initialPosts);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(initialPosts.length === postsPerPage);
+  const [hasMore, setHasMore] = useState(disableInfiniteScroll ? false : initialPosts.length === postsPerPage);
   const [offset, setOffset] = useState(postsPerPage);
 
   // Load more posts function
@@ -46,8 +47,10 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
     }
   }, [loading, hasMore, siteId, postsPerPage, offset, apiParams]);
 
-  // Infinite scroll effect
+  // Infinite scroll effect - only if not disabled
   useEffect(() => {
+    if (disableInfiniteScroll) return;
+
     const handleScroll = () => {
       if (
         window.innerHeight + document.documentElement.scrollTop
@@ -59,7 +62,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [loading, hasMore, offset, loadMorePosts]);
+  }, [loading, hasMore, offset, loadMorePosts, disableInfiniteScroll]);
 
   if (posts.length === 0) {
     return (
@@ -100,7 +103,10 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
             <article key={post.id || post.Slug} className="group">
               <Link href={`/blog/${post.Slug}`} className="block">
                 {/* Featured Image */}
-                <div className="aspect-[4/3] relative mb-4 overflow-hidden rounded-lg bg-gray-100">
+                <div 
+                  className="aspect-[4/3] relative mb-4 overflow-hidden rounded-lg"
+                  style={{ backgroundColor: 'var(--secondary-color)' }}
+                >
                   {post['Featured image']?.[0] ? (
                     <Image
                       src={post['Featured image'][0].url}
@@ -113,7 +119,12 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                       // Next.js automatically serves WebP/AVIF if supported
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                    <div 
+                      className="w-full h-full flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(to bottom right, var(--secondary-color), var(--border-color))`,
+                      }}
+                    >
                       <span 
                         className="text-sm"
                         style={{ 
@@ -129,9 +140,25 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                   {/* Post Type & Category Badges */}
                   <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                     {/* Post Type Badge */}
-                    {isListingPost && (
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                    {isListingPost ? (
+                      <span 
+                        className="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                        style={{ 
+                          backgroundColor: 'var(--accent-color)',
+                          color: 'var(--text-color)'
+                        }}
+                      >
                         Business Guide
+                      </span>
+                    ) : (
+                      <span 
+                        className="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                        style={{ 
+                          backgroundColor: 'var(--accent-color)',
+                          color: 'var(--text-color)'
+                        }}
+                      >
+                        Article
                       </span>
                     )}
                     
@@ -140,9 +167,10 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                       <Link
                         href={`/blog/category/${post.CategoryDetails.Slug}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-block px-3 py-1 text-sm font-medium rounded-full text-white hover:opacity-90 transition-opacity"
+                        className="inline-block px-3 py-1 text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
                         style={{ 
-                          backgroundColor: `var(--accent-color, ${post.CategoryDetails.Color || '#3B82F6'})`
+                          backgroundColor: 'var(--accent-color)',
+                          color: 'var(--text-color)'
                         }}
                       >
                         {post.CategoryDetails.Name}
@@ -225,7 +253,13 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
               opacity: 0.7
             }}
           >
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-[var(--primary-color)] rounded-full animate-spin"></div>
+            <div 
+              className="w-4 h-4 border-2 rounded-full animate-spin"
+              style={{
+                borderColor: 'var(--border-color)',
+                borderTopColor: 'var(--primary-color)',
+              }}
+            ></div>
             <span>Loading more posts...</span>
           </div>
         </div>

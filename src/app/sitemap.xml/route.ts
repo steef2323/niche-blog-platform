@@ -1,30 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { getSiteByDomain } from '@/lib/airtable/sites';
+import { getSiteConfig } from '@/lib/site-detection';
 import { 
   getBlogPostsBySiteId, 
   getListingPostsBySiteId, 
   getCategoriesBySiteId,
-  getAllAuthors,
-  getAuthorBySlug
+  getAuthorsBySiteId
 } from '@/lib/airtable/content';
 import { BlogPost, ListingPost, Author, Category } from '@/types/airtable';
-
-// Helper function to get authors by site ID
-async function getAuthorsBySiteId(siteId: string): Promise<Author[]> {
-  try {
-    const allAuthors = await getAllAuthors();
-    // Filter authors that have posts in this site
-    const authorsWithPosts = allAuthors.filter(author => {
-      // This is a simplified filter - in practice you'd need to check if the author has posts in this site
-      return author.Site && Array.isArray(author.Site) && author.Site.includes(siteId);
-    });
-    return authorsWithPosts;
-  } catch (error) {
-    console.error('Error fetching authors by site ID:', error);
-    return [];
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,10 +15,10 @@ export async function GET(request: NextRequest) {
     const headersList = headers();
     const host = headersList.get('host') || '';
     
-    // Get the site data from Airtable
-    const site = await getSiteByDomain(host);
+    // Get the site config (uses static config with views)
+    const siteConfig = await getSiteConfig(host);
     
-    if (!site) {
+    if (!siteConfig || !siteConfig.site) {
       // Return a basic sitemap if no site is found
       const basicSitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -62,12 +45,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch all content for the site
+    const site = siteConfig.site;
+    const siteId = siteConfig.siteId;
+    const airtableViews = siteConfig.airtableViews;
+    
+    // Fetch all content for the site using views if available
     const [blogPosts, listingPosts, categories, authors] = await Promise.all([
-      getBlogPostsBySiteId(site.id),
-      getListingPostsBySiteId(site.id),
-      getCategoriesBySiteId(site.id),
-      getAuthorsBySiteId(site.id)
+      getBlogPostsBySiteId(siteId, undefined, airtableViews?.blogPosts),
+      getListingPostsBySiteId(siteId, undefined, airtableViews?.listingPosts),
+      getCategoriesBySiteId(siteId, airtableViews?.categories),
+      getAuthorsBySiteId(siteId, airtableViews?.authors)
     ]);
 
     // Build the sitemap XML

@@ -26,7 +26,10 @@ export default function MostPopularSection({ posts, siteId }: MostPopularSection
   };
 
   return (
-    <section className="py-16 bg-white">
+    <section 
+      className="py-16"
+      style={{ backgroundColor: 'var(--background-color)' }}
+    >
       <div className="site-container">
         {/* Section Header - Left Aligned */}
         <div className="text-left mb-12">
@@ -60,7 +63,11 @@ export default function MostPopularSection({ posts, siteId }: MostPopularSection
             return (
               <article 
                 key={`${post.type}-${post.Slug}-${index}`}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-gray-200"
+                className="rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
+                style={{
+                  backgroundColor: 'var(--card-bg)',
+                  border: '1px solid var(--border-color)',
+                }}
               >
                 {/* Featured Image */}
                 {featuredImage && (
@@ -78,8 +85,9 @@ export default function MostPopularSection({ posts, siteId }: MostPopularSection
                     {/* Post Type Badge */}
                     <div className="absolute top-3 left-3">
                       <span 
-                        className="px-2 py-1 text-xs font-medium rounded-full text-white"
+                        className="px-2 py-1 text-xs font-medium rounded-full"
                         style={{ 
+                          color: 'var(--text-color)',
                           backgroundColor: isListingPost ? 'var(--accent-color)' : 'var(--primary-color)' 
                         }}
                       >
@@ -104,13 +112,19 @@ export default function MostPopularSection({ posts, siteId }: MostPopularSection
 
                   {/* Excerpt */}
                   {post.Excerpt && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    <p 
+                      className="text-sm mb-4 line-clamp-3"
+                      style={{ color: 'var(--muted-color)' }}
+                    >
                       {post.Excerpt}
                     </p>
                   )}
 
                   {/* Meta Information */}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div 
+                    className="flex items-center justify-between text-xs"
+                    style={{ color: 'var(--muted-color)' }}
+                  >
                     <span>{formatDate(post['Published date'])}</span>
                     {post.CategoryDetails?.Name && (
                       <span 

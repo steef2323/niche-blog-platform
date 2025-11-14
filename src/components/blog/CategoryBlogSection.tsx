@@ -57,11 +57,21 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
     return (
       <div className="py-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-96 mb-8"></div>
+          <div 
+            className="h-8 rounded w-48 mb-4"
+            style={{ backgroundColor: 'var(--border-color)' }}
+          ></div>
+          <div 
+            className="h-4 rounded w-96 mb-8"
+            style={{ backgroundColor: 'var(--border-color)' }}
+          ></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="bg-gray-200 rounded-lg h-64"></div>
+              <div 
+                key={index} 
+                className="rounded-lg h-64"
+                style={{ backgroundColor: 'var(--border-color)' }}
+              ></div>
             ))}
           </div>
         </div>
@@ -74,7 +84,10 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
   }
 
   return (
-    <section className={`${!isFirst ? 'border-t border-gray-200 pt-16' : ''}`}>
+    <section 
+      className={`${!isFirst ? 'border-t pt-16' : ''}`}
+      style={!isFirst ? { borderTopColor: 'var(--border-color)' } : {}}
+    >
       {/* Category Header */}
       <div className="mb-8">
         <Link href={`/blog/category/${category.Slug}`}>
@@ -121,7 +134,10 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
             <article key={post.id || post.Slug} className="group">
               <Link href={`/blog/${post.Slug}`} className="block">
                 {/* Featured Image */}
-                <div className="aspect-[4/3] relative mb-4 overflow-hidden rounded-lg bg-gray-100">
+                <div 
+                  className="aspect-[4/3] relative mb-4 overflow-hidden rounded-lg"
+                  style={{ backgroundColor: 'var(--secondary-color)' }}
+                >
                   {post['Featured image']?.[0] ? (
                     <Image
                       src={post['Featured image'][0].url}
@@ -134,7 +150,12 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                       // Next.js automatically serves WebP/AVIF if supported
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                    <div 
+                      className="w-full h-full flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(to bottom right, var(--secondary-color), var(--border-color))`,
+                      }}
+                    >
                       <span 
                         className="text-sm"
                         style={{ 
@@ -149,11 +170,13 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                   
                   {/* Post Type Badge */}
                   <div className="absolute top-3 left-3">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      isListingPost 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
+                    <span 
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      style={{ 
+                        backgroundColor: 'var(--accent-color)',
+                        color: 'var(--text-color)'
+                      }}
+                    >
                       {isListingPost ? 'Listicle' : 'Article'}
                     </span>
                   </div>

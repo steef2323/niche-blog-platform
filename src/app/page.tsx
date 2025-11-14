@@ -1,8 +1,6 @@
 import { headers } from 'next/headers';
 import { Metadata } from 'next';
-import { getSiteByDomain } from '@/lib/airtable/sites';
-import { getFeaturesBySiteId } from '@/lib/airtable/features';
-import { getBlogPostsBySiteId, getListingPostsBySiteId, getHomepageContent } from '@/lib/airtable/content';
+import { getSiteConfig } from '@/lib/site-detection';
 import { generateHomepageSchemas } from '@/lib/utils/schema';
 import Homepage from '@/components/homepage/Homepage';
 
@@ -11,26 +9,49 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = headersList.get('host') || '';
   
   try {
-    const site = await getSiteByDomain(host);
-    if (!site?.id) {
+    // Use centralized site detection - will use cache if already called in layout
+    const siteConfig = await getSiteConfig(host);
+    const site = siteConfig?.site;
+    
+    if (!site) {
       return { title: 'Home' };
     }
 
-    // Generate schema markup for homepage
-    const schemas = generateHomepageSchemas(site);
+    // Get homepage content for meta fields and review schema
+    const homePage = siteConfig?.homepageContent || null;
+    
+    // Use Page meta fields with fallback to site defaults
+    const metaTitle = homePage?.['Meta title'] || site['Default meta title'] || site.Name || 'Home';
+    const metaDescription = homePage?.['Meta description'] || site['Default meta description'] || `Welcome to ${site.Name}`;
+    
+    // Build canonical URL
+    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
+    const canonicalUrl = siteUrl;
+
+    // Generate schema markup for homepage (includes review if present)
+    const schemas = generateHomepageSchemas(site, homePage || undefined);
+
+    // Get Open Graph image from homepage featured image or site logo
+    const ogImage = homePage?.['Featured image']?.[0]?.url || site['Site logo']?.[0]?.url;
 
     return {
-      title: site['Default meta title'] || site.Name || 'Home',
-      description: site['Default meta description'] || `Welcome to ${site.Name}`,
+      title: metaTitle,
+      description: metaDescription,
+      alternates: {
+        canonical: canonicalUrl,
+      },
       openGraph: {
-        title: site['Default meta title'] || site.Name || 'Home',
-        description: site['Default meta description'] || `Welcome to ${site.Name}`,
+        title: metaTitle,
+        description: metaDescription,
         type: 'website',
+        url: canonicalUrl,
+        ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: 'summary_large_image',
-        title: site['Default meta title'] || site.Name || 'Home',
-        description: site['Default meta description'] || `Welcome to ${site.Name}`,
+        title: metaTitle,
+        description: metaDescription,
+        ...(ogImage && { images: [ogImage] }),
       },
       other: {
         // Add JSON-LD schema markup

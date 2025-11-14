@@ -19,11 +19,26 @@ export function ThemeProvider({ site, children }: { site: Site | null; children:
       const lines = themeVars.split('\n').filter(line => line.trim());
       
       lines.forEach(line => {
-        const [property, value] = line.split(':').map(s => s.trim());
+        const trimmedLine = line.trim();
+        if (trimmedLine && trimmedLine.includes(':')) {
+          const colonIndex = trimmedLine.indexOf(':');
+          const property = trimmedLine.substring(0, colonIndex).trim();
+          let value = trimmedLine.substring(colonIndex + 1).trim();
+          
+          // Remove trailing semicolon if present
+          if (value.endsWith(';')) {
+            value = value.slice(0, -1).trim();
+          }
+          
         if (property && value) {
           // Don't overwrite font variables that are set by GoogleFonts component
           if (!property.includes('font')) {
             document.documentElement.style.setProperty(property, value);
+              // Debug log for accent color to verify it's being set
+              if (property === '--accent-color') {
+                console.log(`✅ Setting --accent-color to: ${value}`);
+              }
+            }
           }
         }
       });

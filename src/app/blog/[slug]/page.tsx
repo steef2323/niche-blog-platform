@@ -2,9 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import Image from 'next/image';
 import { Metadata } from 'next';
-import { getSiteByDomain } from '@/lib/airtable/sites';
-import { getBlogPostBySlug, getListingPostBySlug, getRelatedBlogPosts, getHomepageContent } from '@/lib/airtable/content';
-import { getFeaturesBySiteId } from '@/lib/airtable/features';
+import { getSiteConfig } from '@/lib/site-detection';
+import { getBlogPostBySlug, getListingPostBySlug, getRelatedBlogPosts, getHomepageContent, getBlogPostsBySiteId } from '@/lib/airtable/content';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { parseMarkdownToHtml } from '@/lib/utils/markdown';
 import { 
@@ -19,6 +18,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import TableOfContents from '@/components/blog/TableOfContents';
 import PrivateEventForm from '@/components/ui/PrivateEventForm';
 import BusinessCard from '@/components/blog/BusinessCard';
+import LazyRelatedBlogs from '@/components/blog/LazyRelatedBlogs';
 import Link from 'next/link';
 import { BlogPost, ListingPost } from '@/types/airtable';
 
@@ -38,14 +38,15 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   const host = headersList.get('host') || '';
   
   try {
-    const site = await getSiteByDomain(host);
+    const siteConfig = await getSiteConfig(host);
+    const site = siteConfig?.site;
     if (!site?.id) {
       return { title: 'Post Not Found' };
     }
 
-    // Try to get either blog post or listing post
-    const blogPost = await getBlogPostBySlug(params.slug, site.id);
-    const listingPost = !blogPost ? await getListingPostBySlug(params.slug, site.id) : null;
+    // Try to get either blog post or listing post using views if available
+    const blogPost = await getBlogPostBySlug(params.slug, site.id, siteConfig?.airtableViews?.blogPosts);
+    const listingPost = !blogPost ? await getListingPostBySlug(params.slug, site.id, siteConfig?.airtableViews?.listingPosts) : null;
     const post = blogPost || listingPost;
     
     if (!post) {
@@ -109,19 +110,35 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 }
 
-async function getPostData(slug: string, siteId: string): Promise<PostData | null> {
+async function getPostData(slug: string, siteId: string, blogPostsViewName?: string, listingPostsViewName?: string): Promise<PostData | null> {
   // Try blog post first
-  const blogPost = await getBlogPostBySlug(slug, siteId);
+  const blogPost = await getBlogPostBySlug(slug, siteId, blogPostsViewName);
   if (blogPost) {
     return { post: blogPost, type: 'blog' };
   }
   
   // If not found, try listing post
-  const listingPost = await getListingPostBySlug(slug, siteId);
+  const listingPost = await getListingPostBySlug(slug, siteId, listingPostsViewName);
   if (listingPost) {
     return { post: listingPost, type: 'listing' };
   }
   
+  return null;
+}
+
+/**
+ * Check if a post has a redirect and return the redirect URL
+ * @param post BlogPost or ListingPost
+ * @returns Redirect URL or null if no redirect
+ */
+function getRedirectUrl(post: BlogPost | ListingPost): string | null {
+  // Check if redirect status is set to "Redirect"
+  if (post['Redirect status'] && post['Redirect status'].toLowerCase().includes('redirect')) {
+    const redirectTo = post['Redirect to'];
+    if (redirectTo && redirectTo.trim().length > 0) {
+      return redirectTo.trim();
+    }
+  }
   return null;
 }
 
@@ -130,26 +147,64 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const host = headersList.get('host') || '';
   
   try {
-    // Get site data
-    const site = await getSiteByDomain(host);
-    if (!site?.id) {
+    // SINGLE site detection call - uses cache if already called in layout
+    const siteConfig = await getSiteConfig(host);
+    if (!siteConfig?.site?.id) {
       redirect('/');
     }
 
+    const { site, siteId, features, airtableViews } = siteConfig;
+
     // Check if Blog feature is enabled
-    const features = await getFeaturesBySiteId(site.id);
     const blogFeature = features.find(f => f.Name === 'Blog');
     if (!blogFeature) {
       redirect('/');
     }
 
-    // Get post data (either blog or listing)
-    const postData = await getPostData(params.slug, site.id);
+    // Get post data (either blog or listing) using views if available
+    const postData = await getPostData(params.slug, siteId, airtableViews?.blogPosts, airtableViews?.listingPosts);
     if (!postData) {
+      console.log(`❌ No post found with slug: ${params.slug} for site ID: ${siteId}`);
       notFound();
     }
 
     const { post, type } = postData;
+
+    // Debug: Log redirect fields and published status
+    console.log(`📋 Post found: ${post.Slug || 'unknown'}`);
+    console.log(`   Published: ${post.Published || false}`);
+    console.log(`   Redirect status: ${post['Redirect status'] || 'not set'}`);
+    console.log(`   Redirect to: ${post['Redirect to'] || 'not set'}`);
+
+    // Check for redirect FIRST (even if unpublished)
+    const redirectUrl = getRedirectUrl(post);
+    if (redirectUrl) {
+      console.log(`🔄 Redirecting from /blog/${params.slug} to: ${redirectUrl}`);
+      
+      // Check if it's an absolute URL (starts with http:// or https://)
+      if (redirectUrl.startsWith('http://') || redirectUrl.startsWith('https://')) {
+        // External redirect - use Next.js redirect
+        redirect(redirectUrl);
+      } else {
+        // Internal redirect - could be a slug or a path
+        // If it's just a slug (no slashes), assume it's a blog post slug
+        if (!redirectUrl.startsWith('/')) {
+          redirect(`/blog/${redirectUrl}`);
+        } else {
+          // It's already a path (e.g., /blog/some-slug or /some-page)
+          redirect(redirectUrl);
+        }
+      }
+    }
+    
+    // If no redirect, check if post is published
+    // If unpublished and no redirect, show 404
+    if (!post.Published) {
+      console.log(`❌ Post is unpublished and has no redirect configured. Showing 404.`);
+      notFound();
+    }
+    
+    console.log(`✅ Post is published and has no redirect. Rendering post.`);
 
     // Check if Private event form feature is enabled
     const privateEventFeature = features.find(f => f.Name === 'Private event form');
@@ -192,23 +247,66 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       // Check if we have structured content to insert form after Text2.2
       const sections = blogPost['H2.1'] && blogPost['Text2.1'] ? true : false;
 
-      // Fetch related blog posts if they exist
+      // Fetch related blog posts if they exist, otherwise get random blogs
       let relatedBlogs: BlogPost[] = [];
-      if (blogPost['Related blogs'] && blogPost['Related blogs'].length > 0) {
+      
+      console.log(`Checking for related blogs. Blog post ID: ${blogPost.id}`);
+      console.log(`Related blogs field:`, blogPost['Related blogs']);
+      
+      if (blogPost['Related blogs'] && Array.isArray(blogPost['Related blogs']) && blogPost['Related blogs'].length > 0) {
         try {
           const relatedBlogIds = blogPost['Related blogs'].map(link => 
             typeof link === 'string' ? link : link.id
           );
-          relatedBlogs = await getRelatedBlogPosts(relatedBlogIds, site.id, undefined, 4);
+          console.log(`Fetching ${relatedBlogIds.length} related blogs with IDs:`, relatedBlogIds);
+          relatedBlogs = await getRelatedBlogPosts(relatedBlogIds, siteId, blogPost.id, 4, airtableViews?.blogPosts);
+          console.log(`✅ Fetched ${relatedBlogs.length} related blog posts from "Related blogs" field`);
         } catch (error) {
           console.error('Error fetching related blogs:', error);
         }
+      } else {
+        console.log('No "Related blogs" field found or it is empty');
       }
+      
+      // If no related blogs found, get 3 random blog posts (excluding current post)
+      if (relatedBlogs.length === 0) {
+        try {
+          console.log(`No related blogs found, fetching random blogs. Current post ID: ${blogPost.id}`);
+          const allBlogPosts = await getBlogPostsBySiteId(siteId, 20, airtableViews?.blogPosts);
+          console.log(`Fetched ${allBlogPosts.length} total blog posts`);
+          
+          if (allBlogPosts.length === 0) {
+            console.warn('No blog posts found at all for this site');
+          } else {
+            // Filter out current post and shuffle
+            const otherPosts = allBlogPosts
+              .filter(p => {
+                const matches = p.id !== blogPost.id;
+                if (!matches) {
+                  console.log(`Filtering out current post: ${p.id} === ${blogPost.id}`);
+                }
+                return matches;
+              });
+            
+            console.log(`After filtering current post: ${otherPosts.length} posts remaining`);
+            
+            // Shuffle and take 3
+            const shuffled = otherPosts.sort(() => Math.random() - 0.5);
+            relatedBlogs = shuffled.slice(0, 3);
+            
+            console.log(`✅ Found ${relatedBlogs.length} random blog posts to display`);
+          }
+        } catch (error) {
+          console.error('Error fetching random blogs:', error);
+        }
+      }
+      
+      console.log(`Final relatedBlogs count: ${relatedBlogs.length}`);
 
-      // Fetch homepage content for private event form props
+      // Fetch homepage content for private event form props using views if available
       let homePage = null;
       try {
-        homePage = await getHomepageContent(site.id);
+        homePage = await getHomepageContent(siteId, airtableViews?.pages);
       } catch (error) {
         console.error('Error fetching homepage content:', error);
       }
@@ -249,7 +347,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       {blogPost.AuthorDetails?.Slug ? (
                         <Link 
                           href={`/blog/author/${blogPost.AuthorDetails.Slug}`}
-                          className="text-[var(--primary-color)] hover:underline font-medium ml-1"
+                          className="text-[var(--text-color)] hover:underline font-medium ml-1"
                         >
                           {blogPost.AuthorDetails.Name}
                         </Link>
@@ -281,8 +379,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         <span 
                           className="inline-block px-3 py-1 text-sm font-medium rounded-full"
                           style={{ 
-                            backgroundColor: `var(--accent-color, ${blogPost.CategoryDetails.Color || '#3B82F6'})`,
-                            color: 'var(--primary-color)'
+                            backgroundColor: 'var(--accent-color)',
+                            color: 'var(--text-color)'
                           }}
                         >
                           {blogPost.CategoryDetails.Name}
@@ -300,9 +398,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 {/* Excerpt */}
                 {displayExcerpt && (
                                   <div 
-                  className="text-xl leading-relaxed mb-8 border-l-4 border-[var(--primary-color)] pl-6"
+                  className="text-xl leading-relaxed mb-8 border-l-4 pl-6"
                   style={{ 
                     color: 'var(--text-color)',
+                    borderColor: 'var(--text-color)',
                     fontFamily: 'var(--font-body)',
                     opacity: 0.8
                   }}
@@ -317,7 +416,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <>
                   {/* Content before Text2.2 */}
                   <div 
-                    className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                    data-blog-content
+                    className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-[var(--border-color)] prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--text-color)] prose-a:underline hover:prose-a:opacity-80"
                     style={{ 
                       color: 'var(--text-color)',
                       fontFamily: 'var(--font-body)'
@@ -337,7 +437,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                           const content_text = blogPost[textKey] as string;
                           
                           if (heading && content_text) {
-                            content += `<h2>${heading}</h2>\n${parseMarkdownToHtml(content_text)}\n\n`;
+                            // Create slug-based ID for heading
+                            const headingId = heading
+                              .toLowerCase()
+                              .trim()
+                              .replace(/[^\w\s-]/g, '')
+                              .replace(/\s+/g, '-')
+                              .replace(/-+/g, '-')
+                              .replace(/^-|-$/g, '') || `section-${i}`;
+                            content += `<h2 id="${headingId}">${heading}</h2>\n${parseMarkdownToHtml(content_text)}\n\n`;
                           }
                         }
                         return content;
@@ -357,7 +465,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                   {/* Remaining content after Text2.2 */}
                   <div 
-                    className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                    data-blog-content
+                    className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-[var(--border-color)] prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--text-color)] prose-a:underline hover:prose-a:opacity-80"
                     style={{ 
                       color: 'var(--text-color)',
                       fontFamily: 'var(--font-body)'
@@ -373,12 +482,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                           const content_text = blogPost[textKey] as string;
                           
                           if (heading && content_text) {
-                            content += `<h2>${heading}</h2>\n${parseMarkdownToHtml(content_text)}\n\n`;
+                            // Create slug-based ID for heading
+                            const headingId = heading
+                              .toLowerCase()
+                              .trim()
+                              .replace(/[^\w\s-]/g, '')
+                              .replace(/\s+/g, '-')
+                              .replace(/-+/g, '-')
+                              .replace(/^-|-$/g, '') || `section-${i}`;
+                            content += `<h2 id="${headingId}">${heading}</h2>\n${parseMarkdownToHtml(content_text)}\n\n`;
                           }
                         }
                         // Add conclusion if available
                         if (blogPost.Conclusion) {
-                          content += `<h2>Conclusion</h2>\n${parseMarkdownToHtml(blogPost.Conclusion)}\n\n`;
+                          content += `<h2 id="conclusion">Conclusion</h2>\n${parseMarkdownToHtml(blogPost.Conclusion)}\n\n`;
                         }
                         return content;
                       })()
@@ -389,7 +506,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <>
                   {/* Standard content rendering */}
               <div 
-                className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--primary-color)] prose-a:no-underline hover:prose-a:underline"
+                data-blog-content
+                className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-[var(--border-color)] prose-h2:pb-2 prose-p:leading-relaxed prose-p:mb-6 prose-a:text-[var(--text-color)] prose-a:underline hover:prose-a:opacity-80"
                 style={{ 
                   color: 'var(--text-color)',
                   fontFamily: 'var(--font-body)'
@@ -421,7 +539,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Private Event Form Button in Sidebar */}
                 {showPrivateEventForm && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                  <div className="rounded-lg p-6 shadow-sm border" style={{ backgroundColor: 'var(--accent-color)', borderColor: 'var(--border-color)' }}>
                     <h3 
                       className="text-lg font-semibold mb-4"
                       style={{ 
@@ -429,7 +547,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         fontFamily: 'var(--font-heading)'
                       }}
                     >
-                      Book a Private Event
+                      {homePage?.['Private event form - Title'] || 'Book a Private Event'}
                     </h3>
                     <p 
                       className="mb-4"
@@ -439,11 +557,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         opacity: 0.8
                       }}
                     >
-                      Ready to plan your special occasion? Get in touch with us to discuss your private event needs.
+                      {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
                     </p>
                     <Link 
                       href="/private-event-form"
-                      className="btn-outline w-full justify-center"
+                      className="btn-secondary w-full justify-center"
                     >
                       Book private event
                     </Link>
@@ -465,127 +583,29 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
           )}
 
-          {/* Related Blogs Section - Full Width */}
-          {relatedBlogs.length > 0 && (
-            <section className="mt-16">
-              <h2 
-                className="text-3xl font-bold mb-8"
-                style={{ 
-                  color: 'var(--text-color)',
-                  fontFamily: 'var(--font-heading)'
-                }}
-              >
-                Other blogs
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {relatedBlogs.map((relatedPost) => {
-                  const relatedTitle = getBlogTitle(relatedPost);
-                  const relatedExcerpt = getBlogExcerpt(relatedPost);
-                  const relatedReadingTime = (() => {
-                    const content = getContentForReadingTime(relatedPost);
-                    return content ? calculateReadingTime(content) : null;
-                  })();
-                  const relatedPublishDate = relatedPost['Published date'] 
-                    ? new Date(relatedPost['Published date']).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })
-                    : null;
-
-                  return (
-                    <article key={relatedPost.id || relatedPost.Slug} className="group">
-                      <Link href={`/blog/${relatedPost.Slug}`} className="block">
-                        {/* Featured Image */}
-                        <div className="aspect-[4/3] relative mb-4 overflow-hidden rounded-lg bg-gray-100">
-                          {relatedPost['Featured image']?.[0] ? (
-                            <Image
-                              src={relatedPost['Featured image'][0].url}
-                              alt={relatedTitle}
-                              fill
-                              className="object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                              <span className="text-gray-400 text-sm">No image</span>
-                            </div>
-                          )}
-                          
-                          {/* Category Badge */}
-                          {relatedPost.CategoryDetails && (
-                            <div className="absolute top-4 left-4">
-                              <Link
-                                href={`/blog/category/${relatedPost.CategoryDetails.Slug}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-block px-3 py-1 text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
-                                style={{ 
-                                  backgroundColor: `var(--accent-color, ${relatedPost.CategoryDetails.Color || '#3B82F6'})`,
-                                  color: 'var(--primary-color)'
-                                }}
-                              >
-                                {relatedPost.CategoryDetails.Name}
-                              </Link>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Post Content */}
-                        <div>
-                          {/* Title */}
-                          <h3 
-                            className="text-xl font-semibold mb-3 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-200"
-                            style={{ 
-                              color: 'var(--text-color)',
-                              fontFamily: 'var(--font-heading)'
-                            }}
-                          >
-                            {relatedTitle}
-                          </h3>
-
-                          {/* Excerpt */}
-                          {relatedExcerpt && (
-                            <p 
-                              className="mb-4 line-clamp-3 leading-relaxed"
-                              style={{ 
-                                color: 'var(--text-color)',
-                                fontFamily: 'var(--font-body)',
-                                opacity: 0.8
-                              }}
-                            >
-                              {relatedExcerpt}
-                            </p>
-                          )}
-
-                          {/* Meta Information */}
-                          <div 
-                            className="flex items-center gap-3 text-sm"
-                            style={{ 
-                              color: 'var(--text-color)',
-                              fontFamily: 'var(--font-body)',
-                              opacity: 0.6
-                            }}
-                          >
-                            {relatedPublishDate && <span>{relatedPublishDate}</span>}
-                            {relatedReadingTime && (
-                              <>
-                                <span>•</span>
-                                <span>{formatReadingTime(relatedReadingTime)}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
+          {/* Related Blogs Section - Lazy Loaded */}
+          {relatedBlogs && relatedBlogs.length > 0 ? (
+            <LazyRelatedBlogs relatedBlogs={relatedBlogs} />
+          ) : (
+            <div className="mt-16">
+              <p style={{ color: 'var(--text-color)', opacity: 0.7 }}>
+                No related blogs available. (Debug: relatedBlogs length = {relatedBlogs?.length || 0})
+              </p>
+            </div>
           )}
         </article>
       );
     } else {
       // Listing post layout
       const listingPost = post as ListingPost;
+      
+      // Fetch homepage content for private event form props using views if available
+      let homePage = null;
+      try {
+        homePage = await getHomepageContent(siteId, airtableViews?.pages);
+      } catch (error) {
+        console.error('Error fetching homepage content:', error);
+      }
 
       // Build breadcrumbs for listing posts using Title field
       const breadcrumbItems = [
@@ -608,14 +628,22 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <div className="lg:col-span-8">
               {/* Hero Section */}
               <header className="mb-8">
-                {/* Type Badge */}
-                <div className="mb-4">
-                  <span 
-                    className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                  >
-                    Business Guide
-                  </span>
-                </div>
+                {/* Category Badge */}
+                {listingPost.CategoryDetails && (
+                  <div className="mb-4">
+                    <Link
+                      href={`/blog/category/${listingPost.CategoryDetails.Slug}`}
+                      className="inline-block px-3 py-1 text-sm font-medium rounded-full transition-opacity hover:opacity-80"
+                      style={{ 
+                        backgroundColor: 'var(--accent-color)',
+                        color: 'var(--text-color)',
+                        fontFamily: 'var(--font-body)'
+                      }}
+                    >
+                      {listingPost.CategoryDetails.Name}
+                    </Link>
+                  </div>
+                )}
 
                 {/* Title */}
                 <h1 
@@ -642,7 +670,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       {listingPost.AuthorDetails?.Slug ? (
                         <Link 
                           href={`/blog/author/${listingPost.AuthorDetails.Slug}`}
-                          className="text-[var(--primary-color)] hover:underline font-medium ml-1"
+                          className="text-[var(--text-color)] hover:underline font-medium ml-1"
                           style={{ 
                             fontFamily: 'var(--font-body)'
                           }}
@@ -677,8 +705,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         <span 
                           className="inline-block px-3 py-1 text-sm font-medium rounded-full"
                           style={{ 
-                            backgroundColor: `var(--accent-color, ${listingPost.CategoryDetails.Color || '#3B82F6'})`,
-                            color: 'var(--primary-color)'
+                            backgroundColor: 'var(--accent-color)',
+                            color: 'var(--text-color)'
                           }}
                         >
                           {listingPost.CategoryDetails.Name}
@@ -691,9 +719,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 {/* Excerpt */}
                 {listingPost.Excerpt && (
                   <div 
-                    className="text-xl leading-relaxed mb-8 border-l-4 border-[var(--primary-color)] pl-6"
+                    className="text-xl leading-relaxed mb-8 border-l-4 pl-6"
                     style={{ 
                       color: 'var(--text-color)',
+                      borderColor: 'var(--text-color)',
                       fontFamily: 'var(--font-body)',
                       opacity: 0.8
                     }}
@@ -722,7 +751,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         
                         {/* Private Event Form between businesses */}
                         {showPrivateEventForm && index === Math.floor(listingPost.BusinessDetails!.length / 2) - 1 && (
-                          <div className="my-12 p-6 bg-gray-50 rounded-lg">
+                          <div className="my-12 p-6 rounded-lg" style={{ backgroundColor: 'var(--accent-color)' }}>
                             <h3 
                               className="text-xl font-semibold mb-4"
                               style={{ 
@@ -730,7 +759,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 fontFamily: 'var(--font-heading)'
                               }}
                             >
-                              Interested in a Private Event?
+                              {homePage?.['Private event form - Title'] || 'Interested in a Private Event?'}
                             </h3>
                             <p 
                               className="mb-4"
@@ -740,11 +769,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 opacity: 0.8
                               }}
                             >
-                              Ready to plan your special occasion? Get in touch with us to discuss your private event needs.
+                              {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
                             </p>
                             <Link 
                               href="/private-event-form"
-                              className="btn-outline"
+                              className="btn-secondary"
                             >
                               Book private event
                             </Link>
@@ -789,7 +818,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <div className="lg:sticky lg:top-8 space-y-6">
                 {/* Private Event Form Button in Sidebar */}
                 {showPrivateEventForm && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                  <div className="rounded-lg p-6 shadow-sm border" style={{ backgroundColor: 'var(--accent-color)', borderColor: 'var(--border-color)' }}>
                     <h3 
                       className="text-lg font-semibold mb-4"
                       style={{ 
@@ -797,7 +826,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         fontFamily: 'var(--font-heading)'
                       }}
                     >
-                      Book a Private Event
+                      {homePage?.['Private event form - Title'] || 'Book a Private Event'}
                     </h3>
                     <p 
                       className="mb-4"
@@ -807,11 +836,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         opacity: 0.8
                       }}
                     >
-                      Ready to plan your special occasion? Get in touch with us to discuss your private event needs.
+                      {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
                     </p>
                     <Link 
                       href="/private-event-form"
-                      className="btn-outline w-full justify-center"
+                      className="btn-secondary w-full justify-center"
                     >
                       Book private event
                     </Link>
@@ -820,7 +849,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Business Quick Links */}
                 {listingPost.BusinessDetails && listingPost.BusinessDetails.length > 0 && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                  <div className="rounded-lg p-6 shadow-sm border" style={{ backgroundColor: 'var(--accent-color)', borderColor: 'var(--border-color)' }}>
                     <h3 
                       className="text-lg font-semibold mb-4"
                       style={{ 
@@ -834,7 +863,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       {listingPost.BusinessDetails.map((business, index) => (
                         <div key={business.id} className="flex items-center gap-3">
                           <span 
-                            className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--primary-color)] text-white text-xs font-bold flex items-center justify-center"
+                            className="flex-shrink-0 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
+                            style={{
+                              backgroundColor: 'var(--accent-color)',
+                              color: 'var(--text-color)'
+                            }}
                           >
                             {index + 1}
                           </span>
@@ -871,11 +904,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           {/* Bottom Private Event Form - Full Width */}
           {showPrivateEventForm && (
-            <div className="mt-16 p-8 bg-[var(--primary-color)] text-white rounded-lg">
+            <div className="mt-16 p-8 rounded-lg" style={{ backgroundColor: 'var(--accent-color)' }}>
               <h3 
                 className="text-2xl font-bold mb-4"
                 style={{ 
-                  color: 'white',
+                  color: 'var(--text-color)',
                   fontFamily: 'var(--font-heading)'
                 }}
               >
@@ -884,7 +917,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <p 
                 className="text-lg mb-6 opacity-90"
                 style={{ 
-                  color: 'white',
+                  color: 'var(--text-color)',
                   fontFamily: 'var(--font-body)'
                 }}
               >
@@ -892,7 +925,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </p>
               <Link 
                 href="/private-event-form"
-                className="btn-outline bg-white text-[var(--primary-color)] hover:bg-gray-100"
+                className="btn-secondary"
               >
                 Book private event
               </Link>
@@ -903,7 +936,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     }
 
   } catch (error) {
-    console.error('Error loading post:', error);
-    redirect('/');
+    // Next.js redirect() throws a special error that we should let propagate
+    // Check if it's a redirect error
+    if (error && typeof error === 'object' && 'digest' in error) {
+      const digest = (error as any).digest;
+      if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
+        // This is a Next.js redirect - rethrow it so Next.js can handle it
+        throw error;
+      }
+    }
+    
+    console.error('❌ Error loading post:', error);
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    // Don't redirect on error - let Next.js handle it with notFound()
+    notFound();
   }
 } 

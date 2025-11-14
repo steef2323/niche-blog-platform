@@ -7,6 +7,7 @@ import { getSiteByDomain } from '@/lib/airtable/sites';
 import { getCategoryBySlug, getCombinedPostsByCategorySlug } from '@/lib/airtable/content';
 import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
+import { generateCategoryPageSchemas } from '@/lib/utils/schema';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface CategoryPageProps {
@@ -30,19 +31,70 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
       return { title: 'Category Not Found' };
     }
 
+    // Use Meta title/description with fallbacks
+    const categoryName = category['Page title'] || category.Name;
+    const metaTitle = category['Meta title'] || `${categoryName} - Category`;
+    const metaDescription = category['Meta description'] || 
+      category.Description || 
+      `Browse articles in ${categoryName}`;
+
+    // Build canonical URL
+    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
+    const canonicalUrl = `${siteUrl}/blog/category/${category.Slug}`;
+
+    // Get Open Graph image from site logo
+    const ogImage = site['Site logo']?.[0]?.url;
+
+    // Get posts for schema (limited to first 20)
+    let schemaPosts: Array<{id?: string, Slug: string, Title?: string, H1?: string}> = [];
+    try {
+      const allPosts = await getCombinedPostsByCategorySlug(params.slug, site.id);
+      schemaPosts = allPosts.slice(0, 20).map(post => ({
+        id: post.id,
+        Slug: post.Slug,
+        Title: post.Title,
+        H1: post.type === 'blog' ? (post as any).H1 : undefined
+      }));
+    } catch (error) {
+      console.error('Error fetching posts for schema:', error);
+    }
+
+    // Build breadcrumbs for schema
+    const breadcrumbItems = [
+      { label: 'Home', href: '/' },
+      { label: 'Blog', href: '/blog' },
+      { label: categoryName }
+    ];
+
+    // Generate schema markup
+    const schemas = generateCategoryPageSchemas(category, site, schemaPosts, breadcrumbItems);
+
     return {
-      title: `${category['Page title'] || category.Name} - Category`,
-      description: category.Description || `Browse articles in ${category.Name}`,
+      title: metaTitle,
+      description: metaDescription,
+      alternates: {
+        canonical: canonicalUrl,
+      },
       openGraph: {
-        title: `${category['Page title'] || category.Name} - Category`,
-        description: category.Description || `Browse articles in ${category.Name}`,
+        title: metaTitle,
+        description: metaDescription,
         type: 'website',
+        url: canonicalUrl,
+        ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
-        card: 'summary',
-        title: `${category['Page title'] || category.Name} - Category`,
-        description: category.Description || `Browse articles in ${category.Name}`,
+        card: 'summary_large_image',
+        title: metaTitle,
+        description: metaDescription,
+        ...(ogImage && { images: [ogImage] }),
       },
+      other: {
+        // Add JSON-LD schema markup
+        ...schemas.reduce((acc, schema, index) => {
+          acc[`json-ld-${index}`] = JSON.stringify(schema);
+          return acc;
+        }, {} as Record<string, string>)
+      }
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
@@ -138,7 +190,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             </p>
             <Link 
               href="/blog"
-              className="inline-block px-6 py-3 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--secondary-color)] transition-colors duration-200"
+              className="inline-block px-6 py-3 rounded-lg transition-colors duration-200 hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--primary-color)',
+                color: 'var(--background-color)',
+              }}
             >
               Browse All Articles
             </Link>
@@ -175,7 +231,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               const displayExcerpt = getDisplayExcerpt(post);
 
                               return (
-                  <article key={post.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                  <article 
+                    key={post.id} 
+                    className="rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200"
+                    style={{
+                      backgroundColor: 'var(--card-bg)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
                     {/* Featured Image */}
                     {post['Featured image']?.[0] && (
                       <div className="aspect-video relative">
@@ -189,15 +252,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     )}
 
                     <div className="p-6">
-                      {/* Post Type Badge */}
-                      {isListingPost && (
-                        <div className="mb-3">
-                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                            Business Guide
-                          </span>
-                        </div>
-                      )}
-
                       {/* Title */}
                       <h3 
                         className="text-xl font-semibold mb-2 line-clamp-2"
@@ -265,7 +319,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                       
                       <Link 
                         href={`/blog/${post.Slug}`}
-                        className="text-[var(--primary-color)] hover:underline font-medium"
+                        className="hover:underline font-medium"
+                        style={{ color: 'var(--text-color)' }}
                       >
                         Read more →
                       </Link>

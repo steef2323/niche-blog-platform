@@ -57,6 +57,10 @@ export interface BlogPost extends BaseFields {
   'Main keyword'?: RecordLink[]; // SEO keyword targeting
   Status?: string; // Publication workflow status (e.g., "Write", "Review", "Published")
   
+  // Redirect fields
+  'Redirect status'?: string; // e.g., "Redirect", "No redirect"
+  'Redirect to'?: string; // URL or slug to redirect to
+  
   // NEW: Dynamic site integration ("from Site" fields)
   'Content tone (from Site)'?: string[]; // Inherited content tone
   'Language (from Site)'?: string[]; // Inherited language settings

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBlogPostsBySiteId, getListingPostsBySiteId } from '@/lib/airtable/content';
+import { getSiteConfig } from '@/lib/site-detection';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +14,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Site ID is required' }, { status: 400 });
     }
 
-    // Get both blog posts and listing posts
+    // Get site config to retrieve Airtable view names
+    const host = request.headers.get('host') || '';
+    const siteConfig = await getSiteConfig(host);
+    const airtableViews = siteConfig?.airtableViews;
+
+    // Get both blog posts and listing posts using views if available
     const [blogPosts, listingPosts] = await Promise.all([
-      getBlogPostsBySiteId(siteId),
-      getListingPostsBySiteId(siteId)
+      getBlogPostsBySiteId(siteId, undefined, airtableViews?.blogPosts),
+      getListingPostsBySiteId(siteId, undefined, airtableViews?.listingPosts)
     ]);
 
     // Combine posts

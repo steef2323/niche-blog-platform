@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSite, useSiteFeatures } from '@/contexts/site';
-import { Page, Feature } from '@/types/airtable';
+import { useSite, useSiteFeatures, useHomepageContent } from '@/contexts/site';
+import { Feature } from '@/types/airtable';
 import { InfoComponent1, InfoComponent2, ReviewComponent, PrivateEventForm } from '@/components/ui';
 import { attachmentToSEOImage } from '@/lib/utils/image-seo';
 
@@ -12,45 +11,12 @@ import PopularPostsSection from './PopularPostsSection';
 export default function Homepage() {
   const { site } = useSite();
   const features = useSiteFeatures();
-  const [homePage, setHomePage] = useState<Page | null>(null);
-  const [loading, setLoading] = useState(true);
+  const homePage = useHomepageContent(); // Get homepage content directly from context - no API call needed!
 
   // Check if private event form feature is enabled
   const hasPrivateEventForm = features.some(
-    (feature: any) => {
-      // The feature record might contain only the ID, so we need to check if it's expanded
-      if (typeof feature === 'object' && feature !== null) {
-        return (feature as unknown as Feature).Name === 'Private event form';
-      }
-      return false;
-    }
+    (feature: Feature) => feature.Name === 'Private event form'
   );
-
-
-
-  useEffect(() => {
-    if (!site?.id) return;
-
-    const fetchHomepageContent = async () => {
-      try {
-        const response = await fetch(`/api/homepage-content?siteId=${site.id}`);
-        if (response.ok) {
-          const pageData = await response.json();
-          setHomePage(pageData);
-        }
-      } catch (error) {
-        console.error('Error fetching homepage content:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHomepageContent();
-  }, [site?.id]);
-
-  if (loading) {
-    return <HomepageLoading />;
-  }
 
 
 
@@ -109,7 +75,7 @@ export default function Homepage() {
                     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
-                className="btn-accent"
+                className="btn-primary"
               >
                 {homePage['Button text']}
               </button>
@@ -135,7 +101,7 @@ export default function Homepage() {
                     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
-                className="btn-accent"
+                className="btn-primary"
               >
                 {homePage['Button text']}
               </button>
@@ -154,7 +120,7 @@ export default function Homepage() {
 
           {/* Private Event Form - Below Review Component */}
           {hasPrivateEventForm && (
-            <div id="private-event-form" className="mt-[70px]">
+            <div id="private-event-form" className="mt-[70px] mb-0">
               <PrivateEventForm 
                 title={homePage?.['Private event form - Title']}
                 subtitle={homePage?.['Private event form - Subtitle']}
@@ -166,11 +132,8 @@ export default function Homepage() {
         </div>
       </div>
 
-      {/* Existing sections with additional top padding if Info Components exist */}
-      <div style={{ paddingTop: (infoSection1Data || infoSection2Data || reviewData || hasPrivateEventForm) ? '70px' : '0px' }}>
-        {/* Popular Posts Section */}
-        <PopularPostsSection homePage={homePage} />
-      </div>
+      {/* Popular Posts Section - No extra top padding, PopularPostsSection handles its own padding */}
+      <PopularPostsSection homePage={homePage} />
     </main>
   );
 }

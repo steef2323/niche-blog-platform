@@ -7,6 +7,7 @@ import { getSiteByDomain } from '@/lib/airtable/sites';
 import { getAuthorBySlug, getCombinedPostsByAuthorSlug } from '@/lib/airtable/content';
 import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
+import { generateAuthorPageSchemas } from '@/lib/utils/schema';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 interface AuthorPageProps {
@@ -30,21 +31,70 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
       return { title: 'Author Not Found' };
     }
 
+    // Use Meta title/description with fallbacks
+    const metaTitle = author['Meta title'] || `${author.Name} - Author`;
+    const metaDescription = author['Meta description'] || 
+      author.Bio || 
+      `Read articles by ${author.Name}`;
+
+    // Build canonical URL
+    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
+    const authorSlug = author.Slug || params.slug;
+    const canonicalUrl = `${siteUrl}/blog/author/${authorSlug}`;
+
+    // Get Open Graph image from author profile picture or site logo
+    const ogImage = author['Profile picture']?.[0]?.url || site['Site logo']?.[0]?.url;
+
+    // Get posts for schema (limited to first 20)
+    let schemaPosts: Array<{id?: string, Slug: string, Title?: string, H1?: string}> = [];
+    try {
+      const allPosts = await getCombinedPostsByAuthorSlug(params.slug, site.id);
+      schemaPosts = allPosts.slice(0, 20).map(post => ({
+        id: post.id,
+        Slug: post.Slug,
+        Title: post.Title,
+        H1: post.type === 'blog' ? (post as any).H1 : undefined
+      }));
+    } catch (error) {
+      console.error('Error fetching posts for schema:', error);
+    }
+
+    // Build breadcrumbs for schema
+    const breadcrumbItems = [
+      { label: 'Home', href: '/' },
+      { label: 'Blog', href: '/blog' },
+      { label: `Author: ${author.Name}` }
+    ];
+
+    // Generate schema markup
+    const schemas = generateAuthorPageSchemas(author, site, schemaPosts, breadcrumbItems);
+
     return {
-      title: `${author.Name} - Author`,
-      description: author.Bio || `Read articles by ${author.Name}`,
+      title: metaTitle,
+      description: metaDescription,
+      alternates: {
+        canonical: canonicalUrl,
+      },
       openGraph: {
-        title: `${author.Name} - Author`,
-        description: author.Bio || `Read articles by ${author.Name}`,
-        images: author['Profile picture']?.[0]?.url ? [author['Profile picture'][0].url] : [],
+        title: metaTitle,
+        description: metaDescription,
         type: 'profile',
+        url: canonicalUrl,
+        ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
-        card: 'summary',
-        title: `${author.Name} - Author`,
-        description: author.Bio || `Read articles by ${author.Name}`,
-        images: author['Profile picture']?.[0]?.url ? [author['Profile picture'][0].url] : [],
+        card: 'summary_large_image',
+        title: metaTitle,
+        description: metaDescription,
+        ...(ogImage && { images: [ogImage] }),
       },
+      other: {
+        // Add JSON-LD schema markup
+        ...schemas.reduce((acc, schema, index) => {
+          acc[`json-ld-${index}`] = JSON.stringify(schema);
+          return acc;
+        }, {} as Record<string, string>)
+      }
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
@@ -105,7 +155,10 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                 />
               </div>
             ) : (
-              <div className="w-24 h-24 mx-auto rounded-full bg-gray-300 flex items-center justify-center">
+              <div 
+                className="w-24 h-24 mx-auto rounded-full flex items-center justify-center"
+                style={{ backgroundColor: 'var(--border-color)' }}
+              >
                 <span 
                   className="text-2xl"
                   style={{ 
@@ -183,7 +236,11 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
               </p>
               <Link 
                 href="/blog"
-                className="inline-block mt-4 px-6 py-3 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--secondary-color)] transition-colors duration-200"
+                className="inline-block mt-4 px-6 py-3 rounded-lg hover:opacity-90 transition-colors duration-200"
+                style={{
+                  backgroundColor: 'var(--primary-color)',
+                  color: 'var(--background-color)',
+                }}
               >
                 Browse All Articles
               </Link>
@@ -220,7 +277,14 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                 const displayExcerpt = getDisplayExcerpt(post);
 
                 return (
-                  <article key={post.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                  <article 
+                    key={post.id} 
+                    className="rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200"
+                    style={{
+                      backgroundColor: 'var(--card-bg)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
                     {/* Featured Image */}
                     {post['Featured image']?.[0] && (
                       <div className="aspect-video relative">
@@ -237,7 +301,13 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                       {/* Post Type Badge */}
                       {isListingPost && (
                         <div className="mb-3">
-                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                          <span 
+                            className="inline-block px-2 py-1 text-xs font-medium rounded-full"
+                            style={{
+                              background: `linear-gradient(to right, var(--primary-color), var(--accent-color))`,
+                              color: 'var(--text-color)',
+                            }}
+                          >
                             Business Guide
                           </span>
                         </div>
@@ -304,8 +374,9 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                         
                         <Link 
                           href={`/blog/${post.Slug}`}
-                          className="text-[var(--primary-color)] hover:underline font-medium"
+                          className="hover:underline font-medium"
                           style={{ 
+                            color: 'var(--text-color)',
                             fontFamily: 'var(--font-body)'
                           }}
                         >

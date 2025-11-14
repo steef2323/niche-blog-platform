@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { Metadata } from 'next';
-import { getSiteByDomain } from '@/lib/airtable/sites';
+import { getSiteConfig } from '@/lib/site-detection';
 import { getBlogPageContent, getCategoriesBySiteId, getBlogPostsBySiteId, getListingPostsBySiteId } from '@/lib/airtable/content';
-import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { parseMarkdownToHtml } from '@/lib/utils/markdown';
+import { generateBlogOverviewSchemas } from '@/lib/utils/schema';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import BlogGrid from '@/components/blog/BlogGrid';
@@ -18,32 +18,82 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = headersList.get('host') || '';
   
   try {
-    const site = await getSiteByDomain(host);
+    // Use centralized site detection - will use cache if already called in layout
+    const siteConfig = await getSiteConfig(host);
+    const site = siteConfig?.site;
+    
     if (!site?.id) {
       return { title: 'Blog' };
     }
 
-    const blogPage = await getBlogPageContent(site.id);
+    // Get blog page content using views if available
+    const blogPage = await getBlogPageContent(site.id, siteConfig?.airtableViews?.pages);
+    
+    // Use Page meta fields with fallbacks
+    const metaTitle = blogPage?.['Meta title'] || blogPage?.Title || site['Default meta title'] || 'Blog';
+    const metaDescription = blogPage?.['Meta description'] || 
+      (blogPage?.Content ? blogPage.Content.substring(0, 160) + '...' : null) ||
+      site['Default meta description'] || 
+      'Read our latest articles and insights';
+    
+    // Build canonical URL
+    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
+    const canonicalUrl = `${siteUrl}/blog`;
+
+    // Get Open Graph image from blog page featured image or site logo
+    const ogImage = blogPage?.['Featured image']?.[0]?.url || site['Site logo']?.[0]?.url;
+    
+    // Get initial posts for schema (limited to first 20 for schema)
+    let schemaPosts: Array<{id?: string, Slug: string, Title?: string, H1?: string}> = [];
+    try {
+      const [blogPosts, listingPosts] = await Promise.all([
+        getBlogPostsBySiteId(site.id, 20, siteConfig?.airtableViews?.blogPosts),
+        getListingPostsBySiteId(site.id, 20, siteConfig?.airtableViews?.listingPosts)
+      ]);
+      
+      schemaPosts = [
+        ...blogPosts.map(post => ({ id: post.id, Slug: post.Slug, Title: post.Title, H1: post.H1 })),
+        ...listingPosts.map(post => ({ id: post.id, Slug: post.Slug, Title: post.Title }))
+      ].slice(0, 20);
+    } catch (error) {
+      console.error('Error fetching posts for schema:', error);
+    }
+    
+    // Build breadcrumbs for schema
+    const breadcrumbItems = [
+      { label: 'Home', href: '/' },
+      { label: 'Blog' }
+    ];
+    
+    // Generate schema markup
+    const schemas = generateBlogOverviewSchemas(site, blogPage || undefined, schemaPosts, breadcrumbItems);
     
     return {
-      title: blogPage?.Title || 'Blog',
-      description: blogPage?.Content ? 
-        blogPage.Content.substring(0, 160) + '...' : 
-        'Read our latest articles and insights',
+      title: metaTitle,
+      description: metaDescription,
+      alternates: {
+        canonical: canonicalUrl,
+      },
       openGraph: {
-        title: blogPage?.Title || 'Blog',
-        description: blogPage?.Content ? 
-          blogPage.Content.substring(0, 160) + '...' : 
-          'Read our latest articles and insights',
+        title: metaTitle,
+        description: metaDescription,
         type: 'website',
+        url: canonicalUrl,
+        ...(ogImage && { images: [{ url: ogImage }] }),
       },
       twitter: {
         card: 'summary_large_image',
-        title: blogPage?.Title || 'Blog',
-        description: blogPage?.Content ? 
-          blogPage.Content.substring(0, 160) + '...' : 
-          'Read our latest articles and insights',
+        title: metaTitle,
+        description: metaDescription,
+        ...(ogImage && { images: [ogImage] }),
       },
+      other: {
+        // Add JSON-LD schema markup
+        ...schemas.reduce((acc, schema, index) => {
+          acc[`json-ld-${index}`] = JSON.stringify(schema);
+          return acc;
+        }, {} as Record<string, string>)
+      }
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
@@ -56,23 +106,25 @@ export default async function BlogPage() {
   const host = headersList.get('host') || '';
   
   try {
-    // Get site data
-    const site = await getSiteByDomain(host);
-    if (!site?.id) {
+    // SINGLE site detection call - uses cache if already called in layout
+    const siteConfig = await getSiteConfig(host);
+    if (!siteConfig?.site?.id) {
       redirect('/');
     }
 
+    const { site, siteId, features, airtableViews } = siteConfig;
+
     // Check if Blog feature is enabled
-    const features = await getFeaturesBySiteId(site.id);
     const blogFeature = features.find(f => f.Name === 'Blog');
     if (!blogFeature) {
       redirect('/');
     }
 
     // Get blog page content and categories for this site
+    // Use Airtable views if available for faster queries
     const [blogPage, categories] = await Promise.all([
-      getBlogPageContent(site.id),
-      getCategoriesBySiteId(site.id)
+      getBlogPageContent(siteId, airtableViews?.pages),
+      getCategoriesBySiteId(siteId, airtableViews?.categories)
     ]);
 
     // Parse blog page content if available
@@ -85,11 +137,12 @@ export default async function BlogPage() {
     ];
 
     // Prepare unified listing data if needed (when categories <= 1)
+    // Use Airtable views if available (e.g., "sipandpaints.nl" view)
     let unifiedPosts: PostWithType[] = [];
     if (categories.length <= 1) {
       const [blogPosts, listingPosts] = await Promise.all([
-        getBlogPostsBySiteId(site.id, 8), // Initial 8 blog posts
-        getListingPostsBySiteId(site.id, 4) // Initial 4 listing posts
+        getBlogPostsBySiteId(siteId, 8, airtableViews?.blogPosts), // Use view if available
+        getListingPostsBySiteId(siteId, 4, airtableViews?.listingPosts) // Use view if available
       ]);
 
       // Combine and sort by published date (most recent first)
@@ -140,7 +193,7 @@ export default async function BlogPage() {
               <CategoryBlogSection
                 key={category.id}
                 category={category}
-                siteId={site.id}
+                siteId={siteId}
                 isFirst={index === 0}
               />
             ))}
@@ -149,7 +202,7 @@ export default async function BlogPage() {
           // Single or no categories: Show unified listing
           <BlogGrid 
             initialPosts={unifiedPosts}
-            siteId={site.id}
+            siteId={siteId}
             postsPerPage={12}
           />
         )}

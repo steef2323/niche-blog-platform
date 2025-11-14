@@ -1,0 +1,10 @@
+# Place logo files here
+# Naming convention: {domain}.{ext}
+# Examples:
+# - sipandpaints.nl.png
+# - sipandpaints.nl.svg
+# - example.com.png
+#
+# The code will automatically check for local files first,
+# then fall back to Airtable URLs if not found.
+

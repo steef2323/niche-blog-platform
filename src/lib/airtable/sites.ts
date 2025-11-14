@@ -297,76 +297,141 @@ export async function getSiteByDomain(domain: string): Promise<Site | null> {
 }
 
 /**
- * Fetch pages for a specific site
+ * Fetch pages for a specific site, optionally using an Airtable view
  * @param siteId The ID of the site to fetch pages for
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Array of Page objects
  */
-export async function getPagesBySiteId(siteId: string): Promise<Page[]> {
+export async function getPagesBySiteId(siteId: string, viewName?: string): Promise<Page[]> {
   try {
     ensureServerSide();
-    console.log(`Fetching pages for site ID: ${siteId}`);
+    console.log(`Fetching pages for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch pages');
       return [];
     }
     
-    // Try with a more reliable formula for linked records
-    const pages = await base(TABLES.PAGES)
-      .select({
-        filterByFormula: `AND(
-          {Published} = TRUE(),
-          Site = "${siteId}"
-        )`,
-        sort: [{ field: 'ID', direction: 'asc' }]
-      })
-      .all();
+    let pages: readonly any[] = [];
     
-    console.log(`Found ${pages.length} pages for site ID: ${siteId}`);
-    
-    // If no pages found, try a different approach
-    if (pages.length === 0) {
-      console.log('First approach failed, trying alternative formula...');
+    if (viewName) {
+      // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
+      // No filterByFormula, no manual filtering - the view is pre-filtered
+      console.log(`Using Airtable view "${viewName}" - fetching all pages from view`);
       
-      const pagesAlt = await base(TABLES.PAGES)
+      try {
+        pages = await base(TABLES.PAGES)
+          .select({
+            view: viewName,
+            sort: [{ field: 'ID', direction: 'asc' }],
+            // Don't use filterByFormula with view - view is already filtered
+          })
+          .all();
+        
+        console.log(`✅ Found ${pages.length} pages in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, use filterByFormula
+    if (!viewName || pages.length === 0) {
+      if (!viewName) {
+        console.log('Using fallback method with filterByFormula');
+      } else {
+        console.log('View returned no results, trying fallback method');
+      }
+      
+      pages = await base(TABLES.PAGES)
         .select({
-          filterByFormula: '{Published} = TRUE()'
+          filterByFormula: `AND(
+            {Published} = TRUE(),
+            Site = "${siteId}"
+          )`,
+          sort: [{ field: 'ID', direction: 'asc' }],
         })
         .all();
       
-      console.log(`Found ${pagesAlt.length} total published pages`);
-      
-      // Log the first page to see its structure
-      if (pagesAlt.length > 0) {
-        const firstPage = pagesAlt[0];
-        console.log('Sample page data:', {
-          id: firstPage.id,
-          siteField: firstPage.fields.Site,
-          siteFieldType: typeof firstPage.fields.Site,
-          isArray: Array.isArray(firstPage.fields.Site)
-        });
-        
-        // Filter manually if needed
-        const filteredPages = pagesAlt.filter(page => {
-          const siteField = page.fields.Site;
-          if (Array.isArray(siteField)) {
-            return siteField.includes(siteId);
-          }
-          return false;
-        });
-        
-        console.log(`Manually filtered to ${filteredPages.length} pages for site ID: ${siteId}`);
-        
-        if (filteredPages.length > 0) {
-          return filteredPages.map(page => page.fields as unknown as Page);
-        }
-      }
+      console.log(`Found ${pages.length} pages via fallback`);
     }
     
     return pages.map(page => page.fields as unknown as Page);
   } catch (error) {
     console.error('Error fetching pages:', error);
     return [];
+  }
+}
+
+/**
+ * Get a page by slug from the Pages table, optionally using an Airtable view
+ * @param slug The slug of the page
+ * @param siteId The ID of the site
+ * @param viewName Optional Airtable view name (pre-filtered view)
+ * @returns Page object or null if not found
+ */
+export async function getPageBySlug(siteId: string, slug: string, viewName?: string): Promise<Page | null> {
+  try {
+    ensureServerSide();
+    console.log(`Fetching page with slug: ${slug} for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
+    
+    if (!slug || !siteId) {
+      console.error('Slug and site ID are required to fetch page');
+      return null;
+    }
+    
+    let pages: readonly any[] = [];
+    
+    if (viewName) {
+      // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
+      // Filter for slug within the view
+      console.log(`Using Airtable view "${viewName}" - fetching page with slug: ${slug}`);
+      
+      try {
+        pages = await base(TABLES.PAGES)
+          .select({
+            view: viewName,
+            filterByFormula: `AND({Slug} = "${slug}", {Published} = TRUE())`,
+            maxRecords: 1,
+          })
+          .firstPage();
+        
+        console.log(`✅ Found ${pages.length} page(s) in view "${viewName}" with slug: ${slug}`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, use filterByFormula
+    if (pages.length === 0) {
+      console.log('Using fallback method with filterByFormula...');
+      
+      pages = await base(TABLES.PAGES)
+        .select({
+          filterByFormula: `AND(
+            {Slug} = "${slug}",
+            {Published} = TRUE(),
+            Site = "${siteId}"
+          )`,
+          maxRecords: 1,
+        })
+        .firstPage();
+      
+      console.log(`Found ${pages.length} page(s) via fallback`);
+    }
+    
+    if (pages.length === 0) {
+      console.log(`No page found with slug: ${slug} for site ID: ${siteId}`);
+      return null;
+    }
+    
+    const page = pages[0].fields as unknown as Page;
+    console.log(`✅ Successfully fetched page: ${page.Title} (Slug: ${slug})`);
+    return page;
+  } catch (error) {
+    console.error('Error fetching page by slug:', error);
+    return null;
   }
 }
 

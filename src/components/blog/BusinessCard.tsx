@@ -11,12 +11,23 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
   const businessImage = business.Image?.[0];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div 
+      className="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+      style={{ 
+        backgroundColor: 'var(--card-bg)',
+        borderColor: 'var(--border-color)'
+      }}
+    >
       {/* Rank Badge */}
       <div className="flex items-start gap-6">
         <div className="flex-shrink-0">
           <span 
-            className="w-10 h-10 rounded-full bg-[var(--primary-color)] text-white text-lg font-bold flex items-center justify-center"
+            className="w-10 h-10 rounded-full text-lg font-bold flex items-center justify-center"
+            style={{ 
+              backgroundColor: 'var(--primary-color)',
+              color: 'white',
+              fontFamily: 'var(--font-body)'
+            }}
           >
             {rank}
           </span>
@@ -25,12 +36,24 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
         <div className="flex-1">
           {/* Business Header */}
           <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 
+              className="text-xl font-bold mb-2"
+              style={{ 
+                color: 'var(--text-color)',
+                fontFamily: 'var(--font-heading)'
+              }}
+            >
               {business.Competitor}
             </h3>
             
             {/* Quick Details */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
+            <div 
+              className="flex flex-wrap items-center gap-4 text-sm mb-3"
+              style={{ 
+                color: 'var(--muted-color)',
+                fontFamily: 'var(--font-body)'
+              }}
+            >
               {business.Price && (
                 <div className="flex items-center">
                   <span className="font-medium">From €{business.Price}</span>
@@ -57,7 +80,8 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
                     className="inline-block px-2 py-1 text-xs font-medium rounded"
                     style={{ 
                       backgroundColor: 'var(--secondary-color)', 
-                      color: 'white' 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)'
                     }}
                   >
                     {activity}
@@ -86,7 +110,13 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
           {/* Description */}
           {business.Information && (
             <div className="mb-4">
-              <p className="text-gray-700 leading-relaxed">
+              <p 
+                className="leading-relaxed"
+                style={{ 
+                  color: 'var(--text-color)',
+                  fontFamily: 'var(--font-body)'
+                }}
+              >
                 {business.Information}
               </p>
             </div>
@@ -97,8 +127,22 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
             {/* Location */}
             {business.Cities && business.Cities.length > 0 && (
               <div className="flex items-start gap-2">
-                <span className="text-gray-500 font-medium text-sm">Location:</span>
-                <span className="text-gray-700 text-sm">
+                <span 
+                  className="font-medium text-sm"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  Location:
+                </span>
+                <span 
+                  className="text-sm"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {business.Cities.join(', ')}
                 </span>
               </div>
@@ -107,8 +151,22 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
             {/* Languages */}
             {business['Language '] && business['Language '].length > 0 && (
               <div className="flex items-start gap-2">
-                <span className="text-gray-500 font-medium text-sm">Languages:</span>
-                <span className="text-gray-700 text-sm">
+                <span 
+                  className="font-medium text-sm"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  Languages:
+                </span>
+                <span 
+                  className="text-sm"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {business['Language '].join(', ')}
                 </span>
               </div>
@@ -117,8 +175,22 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
             {/* Private Events */}
             {business['Private event possible?'] && (
               <div className="flex items-start gap-2">
-                <span className="text-gray-500 font-medium text-sm">Private Events:</span>
-                <span className="text-gray-700 text-sm">
+                <span 
+                  className="font-medium text-sm"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  Private Events:
+                </span>
+                <span 
+                  className="text-sm"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {business['Private event possible?']}
                 </span>
               </div>
@@ -127,8 +199,22 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
             {/* Art Instructor */}
             {business['Art instructor'] && (
               <div className="flex items-start gap-2">
-                <span className="text-gray-500 font-medium text-sm">Instructor:</span>
-                <span className="text-gray-700 text-sm">
+                <span 
+                  className="font-medium text-sm"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  Instructor:
+                </span>
+                <span 
+                  className="text-sm"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {business['Art instructor']}
                 </span>
               </div>
@@ -137,8 +223,22 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
             {/* Events per week */}
             {business['Number of events per week'] && (
               <div className="flex items-start gap-2">
-                <span className="text-gray-500 font-medium text-sm">Events/week:</span>
-                <span className="text-gray-700 text-sm">
+                <span 
+                  className="font-medium text-sm"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  Events/week:
+                </span>
+                <span 
+                  className="text-sm"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {business['Number of events per week']}
                 </span>
               </div>
@@ -147,8 +247,22 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
             {/* Around since */}
             {business['Around since'] && (
               <div className="flex items-start gap-2">
-                <span className="text-gray-500 font-medium text-sm">Since:</span>
-                <span className="text-gray-700 text-sm">
+                <span 
+                  className="font-medium text-sm"
+                  style={{ 
+                    color: 'var(--muted-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  Since:
+                </span>
+                <span 
+                  className="text-sm"
+                  style={{ 
+                    color: 'var(--text-color)',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
                   {new Date(business['Around since']).getFullYear()}
                 </span>
               </div>
@@ -159,22 +273,71 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
           {(business['What they do well'] || business['What they don\'t do well']) && (
             <div className="mb-4 space-y-3">
               {business['What they do well'] && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <h4 className="font-medium text-green-800 text-sm mb-1">What they do well:</h4>
-                  <p className="text-green-700 text-sm">{business['What they do well']}</p>
+                <div 
+                  className="p-3 border rounded-lg"
+                  style={{ 
+                    backgroundColor: 'var(--accent-color)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                >
+                  <h4 
+                    className="font-medium text-sm mb-1"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    What they do well:
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)',
+                      opacity: 0.9
+                    }}
+                  >
+                    {business['What they do well']}
+                  </p>
                 </div>
               )}
               {business['What they don\'t do well'] && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <h4 className="font-medium text-amber-800 text-sm mb-1">Areas for improvement:</h4>
-                  <p className="text-amber-700 text-sm">{business['What they don\'t do well']}</p>
+                <div 
+                  className="p-3 border rounded-lg"
+                  style={{ 
+                    backgroundColor: 'var(--secondary-color)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                >
+                  <h4 
+                    className="font-medium text-sm mb-1"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    Areas for improvement:
+                  </h4>
+                  <p 
+                    className="text-sm"
+                    style={{ 
+                      color: 'var(--text-color)',
+                      fontFamily: 'var(--font-body)',
+                      opacity: 0.9
+                    }}
+                  >
+                    {business['What they don\'t do well']}
+                  </p>
                 </div>
               )}
             </div>
           )}
 
           {/* Call to Action */}
-          <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+          <div 
+            className="flex flex-wrap gap-3 pt-4 border-t"
+            style={{ borderColor: 'var(--border-color)' }}
+          >
             {business.Website && (
               <Link
                 href={business.Website}
@@ -183,7 +346,8 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
                 className="inline-flex items-center px-4 py-2 rounded-lg font-medium transition-colors"
                 style={{ 
                   backgroundColor: 'var(--primary-color)', 
-                  color: 'white' 
+                  color: 'white',
+                  fontFamily: 'var(--font-body)'
                 }}
               >
                 Visit Website →
@@ -195,10 +359,17 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
                 href={business['Link to good ads']}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 border rounded-lg font-medium transition-colors hover:bg-gray-50"
+                className="inline-flex items-center px-4 py-2 border rounded-lg font-medium transition-colors"
                 style={{ 
                   borderColor: 'var(--primary-color)', 
-                  color: 'var(--primary-color)' 
+                  color: 'var(--primary-color)',
+                  fontFamily: 'var(--font-body)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--secondary-color)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
                 View Examples

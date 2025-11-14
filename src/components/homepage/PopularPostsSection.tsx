@@ -14,8 +14,11 @@ interface PopularPostsSectionProps {
 
 export default function PopularPostsSection({ homePage }: PopularPostsSectionProps) {
   const { site } = useSite();
-  const [initialPosts, setInitialPosts] = useState<PostWithType[]>([]);
+  const [allPosts, setAllPosts] = useState<PostWithType[]>([]);
+  const [displayedPosts, setDisplayedPosts] = useState<PostWithType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+  const MAX_INITIAL_POSTS = 6;
 
   // Get section title and subtitle from home page
   const sectionTitle = homePage?.['Home - Category 1'] || 'Popular Posts';
@@ -30,7 +33,8 @@ export default function PopularPostsSection({ homePage }: PopularPostsSectionPro
         const response = await fetch(`/api/blog/posts?siteId=${site.id}&limit=12&prioritizePopular=true`);
         if (response.ok) {
           const posts: PostWithType[] = await response.json();
-          setInitialPosts(posts);
+          setAllPosts(posts);
+          setDisplayedPosts(posts.slice(0, MAX_INITIAL_POSTS));
         }
       } catch (error) {
         console.error('Error fetching initial posts:', error);
@@ -42,9 +46,14 @@ export default function PopularPostsSection({ homePage }: PopularPostsSectionPro
     fetchInitialPosts();
   }, [site?.id]);
 
+  const handleLoadMore = () => {
+    setShowAll(true);
+    setDisplayedPosts(allPosts);
+  };
+
   if (loading) {
     return (
-      <section className="py-16 bg-white">
+      <section className="pt-8 pb-16 bg-white">
         <div className="site-container">
           <div className="text-left mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
@@ -53,7 +62,7 @@ export default function PopularPostsSection({ homePage }: PopularPostsSectionPro
             <p className="text-lg text-gray-600">{sectionSubtitle}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="animate-pulse">
                 <div className="bg-gray-300 aspect-[4/3] rounded-xl mb-4"></div>
                 <div className="bg-gray-200 h-4 rounded mb-2"></div>
@@ -66,12 +75,14 @@ export default function PopularPostsSection({ homePage }: PopularPostsSectionPro
     );
   }
 
-  if (initialPosts.length === 0) {
+  if (allPosts.length === 0 && !loading) {
     return null;
   }
 
+  const hasMorePosts = allPosts.length > MAX_INITIAL_POSTS && !showAll;
+
   return (
-    <section className="py-16 bg-white">
+    <section className="pt-8 pb-16 bg-white">
       <div className="site-container">
         {/* Section Header - Left Aligned */}
         <div className="text-left mb-12">
@@ -97,13 +108,47 @@ export default function PopularPostsSection({ homePage }: PopularPostsSectionPro
           </Link>
         </div>
 
-        {/* Use BlogGrid component for lazy loading with prioritized posts */}
-        <BlogGrid 
-          initialPosts={initialPosts}
-          siteId={site?.id || ''}
-          postsPerPage={12}
-          apiParams="prioritizePopular=true"
-        />
+        {/* Display posts using BlogGrid - disable infinite scroll for homepage */}
+        {displayedPosts.length > 0 && (
+          <BlogGrid 
+            key={displayedPosts.length} // Force re-render when posts change
+            initialPosts={displayedPosts}
+            siteId={site?.id || ''}
+            postsPerPage={12}
+            apiParams="prioritizePopular=true"
+            disableInfiniteScroll={true}
+          />
+        )}
+
+        {/* Load More and Blog Overview Buttons */}
+        {hasMorePosts && (
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
+            <button 
+              onClick={handleLoadMore}
+              className="btn-primary"
+            >
+              Load more
+            </button>
+            <Link 
+              href="/blog"
+              className="btn-secondary"
+            >
+              Blog overview
+            </Link>
+          </div>
+        )}
+
+        {/* Show only Blog Overview button if all posts are displayed */}
+        {!hasMorePosts && allPosts.length > 0 && (
+          <div className="flex justify-center items-center mt-12">
+            <Link 
+              href="/blog"
+              className="btn-secondary"
+            >
+              Blog overview
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

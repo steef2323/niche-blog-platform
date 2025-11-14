@@ -19,10 +19,14 @@ export default function HeroSection({ homePage }: HeroSectionProps) {
   const title = homePage.Title;
   const backgroundColor = site['Background color'];
 
+  const accentColor = site['Accent color'];
+  
   return (
     <section 
       className="relative min-h-[50vh] md:min-h-[60vh] flex items-center justify-center overflow-hidden"
-      style={{ backgroundColor }}
+      style={{ 
+        background: `linear-gradient(to bottom, ${accentColor}, ${backgroundColor})`
+      }}
     >
       {/* Background Image Container - Full Section Height */}
       {featuredImage && (
@@ -59,7 +63,7 @@ export default function HeroSection({ homePage }: HeroSectionProps) {
             <div className="px-4">
               <a 
                 href={homePage['Button url'] || '#'} 
-                className="btn-accent"
+                className="btn-primary"
               >
                 {homePage['Button text']}
               </a>

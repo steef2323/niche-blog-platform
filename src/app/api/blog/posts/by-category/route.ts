@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedPostsByCategorySlug } from '@/lib/airtable/content';
+import { getSiteConfig } from '@/lib/site-detection';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,11 +16,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get combined blog and listing posts for this category
+    // Get site config to retrieve Airtable view names
+    const host = request.headers.get('host') || '';
+    const siteConfig = await getSiteConfig(host);
+    const airtableViews = siteConfig?.airtableViews;
+
+    // Get combined blog and listing posts for this category using views if available
     const posts = await getCombinedPostsByCategorySlug(
       categorySlug,
       siteId,
-      limit ? parseInt(limit) : undefined
+      limit ? parseInt(limit) : undefined,
+      airtableViews?.blogPosts,
+      airtableViews?.listingPosts
     );
 
     return NextResponse.json(posts);

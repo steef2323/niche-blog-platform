@@ -1,0 +1,10 @@
+# Place favicon files here
+# Naming convention: {domain}.{ext}
+# Examples:
+# - sipandpaints.nl.ico
+# - sipandpaints.nl.png
+# - example.com.svg
+#
+# The code will automatically check for local files first,
+# then fall back to default favicon if not found.
+

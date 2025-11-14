@@ -2,64 +2,79 @@ import { BlogPost, ListingPost, Page, Business } from '@/types/airtable';
 import base, { TABLES, AirtableError } from './config';
 
 /**
- * Get blog posts for a specific site
+ * Get blog posts for a specific site, optionally using an Airtable view
  * @param siteId The Airtable record ID of the site
  * @param limit Optional limit for number of posts to fetch
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Array of BlogPost objects
  */
-export async function getBlogPostsBySiteId(siteId: string, limit?: number): Promise<BlogPost[]> {
+export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewName?: string): Promise<BlogPost[]> {
   try {
-    console.log(`Fetching blog posts for site ID: ${siteId}`);
+    console.log(`Fetching blog posts for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch blog posts');
       return [];
     }
     
-    // First try the direct filter approach
-    let posts = await base(TABLES.BLOG_POSTS)
-      .select({
-        filterByFormula: `AND(
-          {Published} = TRUE(),
-          Site = "${siteId}"
-        )`,
-        sort: [{ field: 'Published date', direction: 'desc' }],
-      })
-      .all();
+    let posts: any[] = [];
     
-    // If no posts found, try manual filtering approach
-    if (posts.length === 0) {
-      console.log('Direct filter failed, trying manual filtering...');
+    if (viewName) {
+      // NEW SYSTEM: Use Airtable view (which is already filtered for the site)
+      // IMPORTANT: View now contains both published and unpublished posts, so we must filter by Published
+      console.log(`Using Airtable view "${viewName}" - fetching published blog posts from view`);
       
-      const allPosts = await base(TABLES.BLOG_POSTS)
+      try {
+        posts = await base(TABLES.BLOG_POSTS)
+          .select({
+            view: viewName,
+            filterByFormula: `{Published} = TRUE()`, // Filter for published posts only
+            sort: [{ field: 'Published date', direction: 'desc' }],
+          })
+          .all();
+        
+        console.log(`✅ Found ${posts.length} published blog posts in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, use filterByFormula
+    if (!viewName || posts.length === 0) {
+      if (!viewName) {
+        console.log('Using fallback method with filterByFormula');
+      } else {
+        console.log('View returned no results, trying fallback method');
+      }
+      
+      posts = await base(TABLES.BLOG_POSTS)
         .select({
-          filterByFormula: '{Published} = TRUE()',
+          filterByFormula: `AND(
+            {Published} = TRUE(),
+            Site = "${siteId}"
+          )`,
           sort: [{ field: 'Published date', direction: 'desc' }],
         })
         .all();
       
-      console.log(`Found ${allPosts.length} total published blog posts`);
-      
-      // Filter manually for the site
-      posts = allPosts.filter(post => {
-        const siteField = post.fields.Site;
-        if (Array.isArray(siteField)) {
-          return siteField.includes(siteId);
-        }
-        return false;
-      });
-      
-      console.log(`Manually filtered to ${posts.length} blog posts for site ID: ${siteId}`);
+      console.log(`Found ${posts.length} blog posts via fallback`);
     }
+    
+    // Map to BlogPost objects with IDs
+    const blogPosts = posts.map(post => ({
+      ...(post.fields as unknown as BlogPost),
+      id: post.id
+    }));
     
     // Apply limit if specified
-    if (limit && posts.length > limit) {
-      posts = posts.slice(0, limit);
-    }
+    const limitedPosts = limit && blogPosts.length > limit 
+      ? blogPosts.slice(0, limit)
+      : blogPosts;
     
-    console.log(`Returning ${posts.length} blog posts for site ID: ${siteId}`);
+    console.log(`Returning ${limitedPosts.length} blog posts for site ID: ${siteId}`);
     
-    return posts.map(post => post.fields as unknown as BlogPost);
+    return limitedPosts;
   } catch (error) {
     console.error('Error fetching blog posts:', error);
     throw new AirtableError(
@@ -72,54 +87,63 @@ export async function getBlogPostsBySiteId(siteId: string, limit?: number): Prom
 }
 
 /**
- * Get listing posts for a specific site
+ * Get listing posts for a specific site, optionally using an Airtable view
  * @param siteId The Airtable record ID of the site
  * @param limit Optional limit for number of posts to fetch
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Array of ListingPost objects
  */
-export async function getListingPostsBySiteId(siteId: string, limit?: number): Promise<ListingPost[]> {
+export async function getListingPostsBySiteId(siteId: string, limit?: number, viewName?: string): Promise<ListingPost[]> {
   try {
-    console.log(`Fetching listing posts for site ID: ${siteId}`);
+    console.log(`Fetching listing posts for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch listing posts');
       return [];
     }
     
-    // First try the direct filter approach
-    let posts = await base(TABLES.LISTING_POSTS)
-      .select({
-        filterByFormula: `AND(
-          {Published} = TRUE(),
-          Site = "${siteId}"
-        )`,
-        sort: [{ field: 'Published date', direction: 'desc' }],
-      })
-      .all();
+    let posts: any[] = [];
     
-    // If no posts found, try manual filtering approach
-    if (posts.length === 0) {
-      console.log('Direct filter failed, trying manual filtering...');
+    if (viewName) {
+      // NEW SYSTEM: Use Airtable view (which is already filtered for the site)
+      // IMPORTANT: View now contains both published and unpublished posts, so we must filter by Published
+      console.log(`Using Airtable view "${viewName}" - fetching published listing posts from view`);
       
-      const allPosts = await base(TABLES.LISTING_POSTS)
+      try {
+        posts = await base(TABLES.LISTING_POSTS)
+          .select({
+            view: viewName,
+            filterByFormula: `{Published} = TRUE()`, // Filter for published posts only
+            sort: [{ field: 'Published date', direction: 'desc' }],
+          })
+          .all();
+        
+        console.log(`✅ Found ${posts.length} published listing posts in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, use filterByFormula
+    if (!viewName || posts.length === 0) {
+      if (!viewName) {
+        console.log('Using fallback method with filterByFormula');
+      } else {
+        console.log('View returned no results, trying fallback method');
+      }
+      
+      posts = await base(TABLES.LISTING_POSTS)
         .select({
-          filterByFormula: '{Published} = TRUE()',
+          filterByFormula: `AND(
+            {Published} = TRUE(),
+            Site = "${siteId}"
+          )`,
           sort: [{ field: 'Published date', direction: 'desc' }],
         })
         .all();
       
-      console.log(`Found ${allPosts.length} total published listing posts`);
-      
-      // Filter manually for the site
-      posts = allPosts.filter(post => {
-        const siteField = post.fields.Site;
-        if (Array.isArray(siteField)) {
-          return siteField.includes(siteId);
-        }
-        return false;
-      });
-      
-      console.log(`Manually filtered to ${posts.length} listing posts for site ID: ${siteId}`);
+      console.log(`Found ${posts.length} listing posts via fallback`);
     }
     
     // Apply limit if specified
@@ -142,66 +166,83 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number): P
 }
 
 /**
- * Get homepage content from Pages table
+ * Get homepage content from Pages table, optionally using an Airtable view
  * @param siteId The Airtable record ID of the site
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Page object for homepage or null if not found
  */
-export async function getHomepageContent(siteId: string): Promise<Page | null> {
+export async function getHomepageContent(siteId: string, viewName?: string): Promise<Page | null> {
   try {
-    console.log(`Fetching homepage content for site ID: ${siteId}`);
+    console.log(`Fetching homepage content for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch homepage content');
       return null;
     }
     
-    // First try the direct filter approach
-    let pages = await base(TABLES.PAGES)
-      .select({
-        filterByFormula: `AND(
-          {Published} = TRUE(),
-          Site = "${siteId}",
-          {Page} = "Home"
-        )`,
-        maxRecords: 1,
-      })
-      .firstPage();
+    // NEW SYSTEM: Use ONLY the Airtable view when provided
+    // The view (e.g., "sipandpaints.nl") is already filtered for that site
+    // We just need to find the record where Page = "Home"
+    let homePage: Page | null = null;
     
-    // If no pages found, try manual filtering approach
-    if (pages.length === 0) {
-      console.log('Direct filter failed, trying manual filtering...');
+    if (viewName) {
+      // Use ONLY the Airtable view - no filterByFormula, no manual filtering
+      // The view should already contain only pages for this site
+      console.log(`Using Airtable view "${viewName}" - fetching all pages from view`);
       
-      const allPages = await base(TABLES.PAGES)
-        .select({
-          filterByFormula: 'AND({Published} = TRUE(), {Page} = "Home")',
-        })
-        .all();
-      
-      console.log(`Found ${allPages.length} total published home pages`);
-      
-      // Filter manually for the site
-      const filteredPages = allPages.filter(page => {
-        const siteField = page.fields.Site;
-        if (Array.isArray(siteField)) {
-          return siteField.includes(siteId);
+      try {
+        // Get all pages from the view (view is already filtered for the site)
+        const allPages = await base(TABLES.PAGES)
+          .select({
+            view: viewName,
+            // Don't use filterByFormula with view - get all records and filter in code
+          })
+          .all();
+        
+        console.log(`Found ${allPages.length} pages in view "${viewName}"`);
+        
+        // Filter for the "Home" page in JavaScript
+        const homePages = allPages.filter(page => {
+          const pageType = page.fields.Page;
+          return pageType === 'Home';
+        });
+        
+        if (homePages.length > 0) {
+          console.log(`✅ Found ${homePages.length} Home page(s) in view "${viewName}"`);
+          homePage = homePages[0].fields as unknown as Page;
+          console.log(`✅ Homepage found: "${homePage.Title}" (ID: ${homePages[0].id})`);
+        } else {
+          console.log(`❌ No Home page found in view "${viewName}"`);
         }
-        return false;
-      });
-      
-      console.log(`Manually filtered to ${filteredPages.length} home pages for site ID: ${siteId}`);
-      
-      if (filteredPages.length > 0) {
-        pages = [filteredPages[0]]; // Take the first one
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
       }
     }
     
-    if (pages.length === 0) {
-      console.log(`No homepage found for site ID: ${siteId}`);
-      return null;
+    // Fallback: If no view or view failed, use filterByFormula
+    if (!homePage) {
+      console.log('Using fallback method with filterByFormula');
+      const pages = await base(TABLES.PAGES)
+        .select({
+          filterByFormula: `AND(
+            {Published} = TRUE(),
+            Site = "${siteId}",
+            {Page} = "Home"
+          )`,
+          maxRecords: 1,
+        })
+        .firstPage();
+      
+      if (pages.length > 0) {
+        homePage = pages[0].fields as unknown as Page;
+        console.log(`✅ Homepage found via fallback: "${homePage.Title}"`);
+      } else {
+        console.log(`❌ No homepage found for site ID: ${siteId}`);
+      }
     }
     
-    console.log(`Found homepage for site ID: ${siteId}:`, pages[0].fields.Title);
-    return pages[0].fields as unknown as Page;
+    return homePage;
   } catch (error) {
     console.error('Error fetching homepage content:', error);
     throw new AirtableError(
@@ -214,62 +255,116 @@ export async function getHomepageContent(siteId: string): Promise<Page | null> {
 }
 
 /**
- * Get a single blog post by slug
+ * Get a single blog post by slug, optionally using an Airtable view
  * @param slug The slug of the blog post
  * @param siteId The ID of the site
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Blog post with author and category information
  */
-export async function getBlogPostBySlug(slug: string, siteId: string): Promise<BlogPost | null> {
+export async function getBlogPostBySlug(slug: string, siteId: string, viewName?: string): Promise<BlogPost | null> {
   try {
-    console.log(`Fetching blog post with slug: ${slug} for site ID: ${siteId}`);
+    console.log(`Fetching blog post with slug: ${slug} for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!slug || !siteId) {
       console.error('Slug and site ID are required to fetch blog post');
       return null;
     }
     
-    // First try direct filter
-    let posts = await base(TABLES.BLOG_POSTS)
-      .select({
-        filterByFormula: `AND({Slug} = "${slug}", {Published} = TRUE())`,
-        maxRecords: 1,
-      })
-      .firstPage();
-
-    // If direct filter fails, try manual filtering
+    let posts: any[] = [];
+    
+    if (viewName) {
+      // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
+      // IMPORTANT: Don't filter by Published here - we need to check redirect fields even for unpublished posts
+      // We'll check Published status after checking for redirects
+      console.log(`Using Airtable view "${viewName}" - fetching blog post with slug: ${slug} (including unpublished to check redirects)`);
+      
+      try {
+        posts = await base(TABLES.BLOG_POSTS)
+          .select({
+            view: viewName,
+            filterByFormula: `{Slug} = "${slug}"`, // No Published filter - we need to check redirects
+            maxRecords: 1,
+          })
+          .firstPage();
+        
+        console.log(`✅ Found ${posts.length} blog post(s) in view "${viewName}" with slug: ${slug}`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, use filterByFormula
+    // IMPORTANT: Don't filter by Published here either - we need to check redirect fields
     if (posts.length === 0) {
-      console.log('Direct filter failed, trying manual filtering...');
+      console.log('Using fallback method with filterByFormula (including unpublished to check redirects)...');
       
-      const allPosts = await base(TABLES.BLOG_POSTS)
+      posts = await base(TABLES.BLOG_POSTS)
         .select({
-          filterByFormula: '{Published} = TRUE()',
+          filterByFormula: `AND({Slug} = "${slug}", Site = "${siteId}")`, // No Published filter
+          maxRecords: 1,
         })
-        .all();
-      
-      console.log(`Found ${allPosts.length} total published blog posts`);
-      
-      // Filter manually for slug and site
-      const filteredPosts = allPosts.filter(post => {
-        const postSlug = post.fields.Slug;
-        const siteField = post.fields.Site;
+        .firstPage();
+
+      // If direct filter fails, try manual filtering
+      if (posts.length === 0) {
+        console.log('Direct filter failed, trying manual filtering (including unpublished)...');
         
-        const slugMatches = postSlug === slug;
-        const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+        const allPosts = await base(TABLES.BLOG_POSTS)
+          .select({
+            filterByFormula: `Site = "${siteId}"`, // Get all posts for this site, published or not
+          })
+          .all();
         
-        return slugMatches && siteMatches;
-      });
-      
-      console.log(`Manually filtered to ${filteredPosts.length} posts for slug: ${slug} and site ID: ${siteId}`);
-      posts = filteredPosts;
+        console.log(`Found ${allPosts.length} total blog posts for this site`);
+        
+        // Filter manually for slug and site
+        const filteredPosts = allPosts.filter(post => {
+          const postSlug = post.fields.Slug;
+          const siteField = post.fields.Site;
+          
+          const slugMatches = postSlug === slug;
+          const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+          
+          return slugMatches && siteMatches;
+        });
+        
+        console.log(`Manually filtered to ${filteredPosts.length} posts for slug: ${slug} and site ID: ${siteId}`);
+        
+        // Debug: Log available slugs if no match found
+        if (filteredPosts.length === 0 && allPosts.length > 0) {
+          const availableSlugs = allPosts
+            .map(post => post.fields.Slug)
+            .filter(Boolean)
+            .slice(0, 10); // Limit to first 10 for readability
+          console.log(`📋 Available blog post slugs for this site (first 10):`, availableSlugs);
+          console.log(`🔍 Looking for slug: "${slug}"`);
+        }
+        
+        posts = filteredPosts;
+      }
     }
 
     if (posts.length === 0) {
-      console.log(`No blog post found with slug: ${slug} for site ID: ${siteId}`);
+      console.log(`❌ No blog post found with slug: "${slug}" for site ID: ${siteId}`);
       return null;
     }
-
+    
+    // Now check if the post is published (after we've found it and can check redirects)
     const post = posts[0];
-    const blogPost = post.fields as unknown as BlogPost;
+    const isPublished = post.fields.Published === true;
+    
+    // If not published and no redirect, return null (404)
+    // Note: Redirect check happens in the page component, so we return the post even if unpublished
+    // The page component will check redirect first, then check published status
+    if (!isPublished) {
+      console.log(`⚠️ Post found but is unpublished. Redirect will be checked in page component.`);
+    }
+
+    const blogPost = {
+      ...(post.fields as unknown as BlogPost),
+      id: post.id
+    };
     
     // Debug: Log the author field data
     console.log('Author field data:', JSON.stringify(blogPost.Author, null, 2));
@@ -343,22 +438,83 @@ export async function getBlogPostBySlug(slug: string, siteId: string): Promise<B
 }
 
 /**
- * Get all authors
+ * Get all authors, optionally filtered by site using a view
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Array of Author objects
  */
-export async function getAllAuthors(): Promise<any[]> {
+export async function getAllAuthors(viewName?: string): Promise<any[]> {
   try {
-    console.log('Fetching all authors');
+    console.log(`Fetching authors${viewName ? ` using view: ${viewName}` : ''}`);
+    
+    const selectParams: any = {};
+    if (viewName) {
+      selectParams.view = viewName;
+      console.log(`Using Airtable view "${viewName}" for authors`);
+    }
     
     const authors = await base(TABLES.AUTHORS)
-      .select({
-      })
+      .select(selectParams)
       .all();
     
     console.log(`Found ${authors.length} authors`);
     return authors.map(author => author.fields);
   } catch (error) {
     console.warn('Could not fetch authors (may not have permission):', error);
+    return [];
+  }
+}
+
+/**
+ * Get authors for a specific site, optionally using an Airtable view
+ * @param siteId The ID of the site
+ * @param viewName Optional Airtable view name (pre-filtered view)
+ * @returns Array of Author objects
+ */
+export async function getAuthorsBySiteId(siteId: string, viewName?: string): Promise<any[]> {
+  try {
+    console.log(`Fetching authors for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
+    
+    let authors: any[] = [];
+    
+    if (viewName) {
+      // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
+      // No filterByFormula, no manual filtering - the view is pre-filtered
+      console.log(`Using Airtable view "${viewName}" - fetching all authors from view`);
+      
+      try {
+        const authorRecords = await base(TABLES.AUTHORS)
+          .select({
+            view: viewName,
+            // Don't use filterByFormula with view - view is already filtered
+          })
+          .all();
+        
+        authors = authorRecords.map(record => ({ ...record.fields, id: record.id }));
+        console.log(`✅ Found ${authors.length} authors in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, get all authors and filter by site
+    if (!viewName || authors.length === 0) {
+      if (!viewName) {
+        console.log('Using fallback method - fetching all authors and filtering manually');
+      } else {
+        console.log('View returned no results, trying fallback method');
+      }
+      
+      const allAuthors = await getAllAuthors();
+      authors = allAuthors.filter(author => {
+        const siteField = (author as any).Site;
+        return Array.isArray(siteField) && siteField.includes(siteId);
+      });
+    }
+    
+    return authors;
+  } catch (error) {
+    console.warn('Could not fetch authors by site (may not have permission):', error);
     return [];
   }
 }
@@ -470,33 +626,52 @@ export async function getBlogPostsByAuthorSlug(authorSlug: string, siteId: strin
 }
 
 /**
- * Get blog page content from Pages table
+ * Get blog page content from Pages table, optionally using an Airtable view
  * @param siteId The Airtable record ID of the site
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Page object for blog page or null if not found
  */
-export async function getBlogPageContent(siteId: string): Promise<Page | null> {
+export async function getBlogPageContent(siteId: string, viewName?: string): Promise<Page | null> {
   try {
-    console.log(`Fetching blog page content for site ID: ${siteId}`);
+    console.log(`Fetching blog page content for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch blog page content');
       return null;
     }
     
-    // First try the direct filter approach
-    let pages = await base(TABLES.PAGES)
-      .select({
-        filterByFormula: `AND(
-          {Published} = TRUE(),
-          Site = "${siteId}",
-          {Page} = "Blog overview"
-        )`,
-        maxRecords: 1,
-      })
-      .firstPage();
+    // If view name is provided, use the view and filter for Blog overview page
+    // Otherwise, use filterByFormula
+    let pages;
     
-    // If no pages found, try manual filtering approach
-    if (pages.length === 0) {
+    if (viewName) {
+      // Use Airtable view - view should already be filtered for this site
+      // Then filter for Blog overview page in the results
+      console.log(`Using Airtable view "${viewName}" for pages`);
+      pages = await base(TABLES.PAGES)
+        .select({
+          view: viewName,
+          filterByFormula: '{Page} = "Blog overview"',
+          maxRecords: 1,
+        })
+        .firstPage();
+    } else {
+      // Use filter formula
+      pages = await base(TABLES.PAGES)
+        .select({
+          filterByFormula: `AND(
+            {Published} = TRUE(),
+            Site = "${siteId}",
+            {Page} = "Blog overview"
+          )`,
+          maxRecords: 1,
+        })
+        .firstPage();
+    }
+    
+    // If no pages found and NOT using a view, try manual filtering approach
+    // (If using a view, the view is already filtered - don't try fallback)
+    if (pages.length === 0 && !viewName) {
       console.log('Direct filter failed, trying manual filtering...');
       
       const allPages = await base(TABLES.PAGES)
@@ -598,9 +773,9 @@ export async function getCategoryBySlug(slug: string): Promise<any | null> {
  * @param limit Optional limit for number of posts to fetch
  * @returns Array of BlogPost objects
  */
-export async function getBlogPostsByCategorySlug(categorySlug: string, siteId: string, limit?: number): Promise<BlogPost[]> {
+export async function getBlogPostsByCategorySlug(categorySlug: string, siteId: string, limit?: number, viewName?: string): Promise<BlogPost[]> {
   try {
-    console.log(`Fetching blog posts by category slug: ${categorySlug} for site ID: ${siteId}`);
+    console.log(`Fetching blog posts by category slug: ${categorySlug} for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     // First get the category to find its ID
     const category = await getCategoryBySlug(categorySlug);
@@ -611,44 +786,60 @@ export async function getBlogPostsByCategorySlug(categorySlug: string, siteId: s
     
     console.log(`Found category:`, { id: category.id, name: category.Name, slug: category.Slug });
     
-    // Get all published blog posts and filter manually
-    const allPosts = await base(TABLES.BLOG_POSTS)
-      .select({
-        filterByFormula: '{Published} = TRUE()',
-        sort: [{ field: 'Published date', direction: 'desc' }],
-      })
-      .all();
+    let allPosts: any[] = [];
     
-    console.log(`Found ${allPosts.length} total published blog posts`);
+    if (viewName) {
+      // NEW SYSTEM: Use Airtable view (already filtered for site)
+      // IMPORTANT: View now contains both published and unpublished posts, so we must filter by Published
+      console.log(`Using Airtable view "${viewName}" - fetching published blog posts from view`);
+      
+      try {
+        allPosts = await base(TABLES.BLOG_POSTS)
+          .select({
+            view: viewName,
+            filterByFormula: `{Published} = TRUE()`, // Filter for published posts only
+            sort: [{ field: 'Published date', direction: 'desc' }],
+          })
+          .all();
+        
+        console.log(`✅ Found ${allPosts.length} published blog posts in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
     
-    // Filter for posts in this category and site
+    // Fallback: If no view or view failed, get all published posts
+    if (!viewName || allPosts.length === 0) {
+      if (!viewName) {
+        console.log('Using fallback method - fetching all published blog posts');
+      } else {
+        console.log('View returned no results, trying fallback method');
+      }
+      
+      allPosts = await base(TABLES.BLOG_POSTS)
+        .select({
+          filterByFormula: '{Published} = TRUE()',
+          sort: [{ field: 'Published date', direction: 'desc' }],
+        })
+        .all();
+      
+      console.log(`Found ${allPosts.length} total published blog posts`);
+    }
+    
+    // Filter for posts in this category (site is already filtered by view, Published is already filtered)
     const filteredPosts = allPosts.filter(post => {
-      const siteField = post.fields.Site;
       const categoriesField = post.fields.Categories;
-      
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
-      
-      // Debug category matching
-      console.log(`Post ${post.fields.Title}:`, {
-        postId: post.id,
-        categoriesField: categoriesField,
-        categoryId: category.id,
-        siteField: siteField,
-        siteMatches: siteMatches
-      });
       
       const categoryMatches = Array.isArray(categoriesField) ? categoriesField.some(c => {
         const categoryId = typeof c === 'string' ? c : c.id;
-        console.log(`Comparing category ID: ${categoryId} with target: ${category.id}`);
         return categoryId === category.id;
       }) : false;
       
-      console.log(`Post ${post.fields.Title} matches:`, { siteMatches, categoryMatches });
-      
-      return siteMatches && categoryMatches;
+      return categoryMatches;
     });
     
-    console.log(`Manually filtered to ${filteredPosts.length} posts for category: ${categorySlug} and site ID: ${siteId}`);
+    console.log(`Filtered to ${filteredPosts.length} posts for category: ${categorySlug}`);
     
     // Apply limit if specified
     let posts = filteredPosts;
@@ -713,48 +904,87 @@ export async function getBusinessesByIds(businessIds: string[]): Promise<Busines
 }
 
 /**
- * Get a single listing post by slug with business details
+ * Get a single listing post by slug with business details, optionally using an Airtable view
  * @param slug The slug of the listing post
  * @param siteId The ID of the site
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Listing post with business information
  */
-export async function getListingPostBySlug(slug: string, siteId: string): Promise<ListingPost | null> {
+export async function getListingPostBySlug(slug: string, siteId: string, viewName?: string): Promise<ListingPost | null> {
   try {
-    console.log(`Fetching listing post with slug: ${slug} for site ID: ${siteId}`);
+    console.log(`Fetching listing post with slug: ${slug} for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!slug || !siteId) {
       console.error('Slug and site ID are required to fetch listing post');
       return null;
     }
     
-    // Get all published listing posts and filter manually
-    const allPosts = await base(TABLES.LISTING_POSTS)
-      .select({
-        filterByFormula: '{Published} = TRUE()',
-      })
-      .all();
+    let posts: any[] = [];
     
-    console.log(`Found ${allPosts.length} total published listing posts`);
-    
-    // Filter for slug and site
-    const filteredPosts = allPosts.filter(post => {
-      const postSlug = post.fields.Slug;
-      const siteField = post.fields.Site;
+    if (viewName) {
+      // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
+      // IMPORTANT: Don't filter by Published here - we need to check redirect fields even for unpublished posts
+      console.log(`Using Airtable view "${viewName}" - fetching listing post with slug: ${slug} (including unpublished to check redirects)`);
       
-      const slugMatches = postSlug === slug;
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      try {
+        posts = await base(TABLES.LISTING_POSTS)
+          .select({
+            view: viewName,
+            filterByFormula: `{Slug} = "${slug}"`, // No Published filter - we need to check redirects
+            maxRecords: 1,
+          })
+          .firstPage();
+        
+        console.log(`✅ Found ${posts.length} listing post(s) in view "${viewName}" with slug: ${slug}`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, use filterByFormula
+    // IMPORTANT: Don't filter by Published here either - we need to check redirect fields
+    if (posts.length === 0) {
+      console.log('Using fallback method with filterByFormula (including unpublished to check redirects)...');
       
-      return slugMatches && siteMatches;
-    });
+      // Get all listing posts for this site (published or not) and filter manually
+      const allPosts = await base(TABLES.LISTING_POSTS)
+        .select({
+          filterByFormula: `Site = "${siteId}"`, // Get all posts for this site, published or not
+        })
+        .all();
+      
+      console.log(`Found ${allPosts.length} total listing posts for this site`);
+      
+      // Filter for slug and site
+      const filteredPosts = allPosts.filter(post => {
+        const postSlug = post.fields.Slug;
+        const siteField = post.fields.Site;
+        
+        const slugMatches = postSlug === slug;
+        const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+        
+        return slugMatches && siteMatches;
+      });
+      
+      console.log(`Manually filtered to ${filteredPosts.length} posts for slug: ${slug} and site ID: ${siteId}`);
+      posts = filteredPosts;
+    }
     
-    console.log(`Manually filtered to ${filteredPosts.length} posts for slug: ${slug} and site ID: ${siteId}`);
-    
-    if (filteredPosts.length === 0) {
-      console.log(`No listing post found with slug: ${slug} for site ID: ${siteId}`);
+    if (posts.length === 0) {
+      console.log(`❌ No listing post found with slug: "${slug}" for site ID: ${siteId}`);
       return null;
     }
+    
+    // Check if the post is published (after we've found it and can check redirects)
+    const post = posts[0];
+    const isPublished = post.fields.Published === true;
+    
+    if (!isPublished) {
+      console.log(`⚠️ Listing post found but is unpublished. Redirect will be checked in page component.`);
+    }
 
-    const post = filteredPosts[0];
+    // Post already retrieved above
     const listingPost = { ...post.fields, id: post.id } as ListingPost;
     
     // Fetch business details if available
@@ -876,9 +1106,9 @@ export async function getListingPostsByAuthorSlug(authorSlug: string, siteId: st
  * @param limit Optional limit for number of posts to fetch
  * @returns Array of ListingPost objects
  */
-export async function getListingPostsByCategorySlug(categorySlug: string, siteId: string, limit?: number): Promise<ListingPost[]> {
+export async function getListingPostsByCategorySlug(categorySlug: string, siteId: string, limit?: number, viewName?: string): Promise<ListingPost[]> {
   try {
-    console.log(`Fetching listing posts by category slug: ${categorySlug} for site ID: ${siteId}`);
+    console.log(`Fetching listing posts by category slug: ${categorySlug} for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     // First get the category to find its ID
     const category = await getCategoryBySlug(categorySlug);
@@ -889,32 +1119,60 @@ export async function getListingPostsByCategorySlug(categorySlug: string, siteId
     
     console.log(`Found category:`, { id: category.id, name: category.Name, slug: category.Slug });
     
-    // Get all published listing posts and filter manually
-    const allPosts = await base(TABLES.LISTING_POSTS)
-      .select({
-        filterByFormula: '{Published} = TRUE()',
-        sort: [{ field: 'Published date', direction: 'desc' }],
-      })
-      .all();
+    let allPosts: any[] = [];
     
-    console.log(`Found ${allPosts.length} total published listing posts`);
-    
-    // Filter for posts in this category and site
-    const filteredPosts = allPosts.filter(post => {
-      const siteField = post.fields.Site;
-      const categoriesField = post.fields.Categories;
+    if (viewName) {
+      // NEW SYSTEM: Use Airtable view (already filtered for site)
+      // IMPORTANT: View now contains both published and unpublished posts, so we must filter by Published
+      console.log(`Using Airtable view "${viewName}" - fetching published listing posts from view`);
       
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      try {
+        allPosts = await base(TABLES.LISTING_POSTS)
+          .select({
+            view: viewName,
+            filterByFormula: `{Published} = TRUE()`, // Filter for published posts only
+            sort: [{ field: 'Published date', direction: 'desc' }],
+          })
+          .all();
+        
+        console.log(`✅ Found ${allPosts.length} published listing posts in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
+    
+    // Fallback: If no view or view failed, get all published posts
+    if (!viewName || allPosts.length === 0) {
+      if (!viewName) {
+        console.log('Using fallback method - fetching all published listing posts');
+      } else {
+        console.log('View returned no results, trying fallback method');
+      }
+      
+      allPosts = await base(TABLES.LISTING_POSTS)
+        .select({
+          filterByFormula: '{Published} = TRUE()',
+          sort: [{ field: 'Published date', direction: 'desc' }],
+        })
+        .all();
+      
+      console.log(`Found ${allPosts.length} total published listing posts`);
+    }
+    
+    // Filter for posts in this category (site is already filtered by view, Published is already filtered)
+    const filteredPosts = allPosts.filter(post => {
+      const categoriesField = post.fields.Categories;
       
       const categoryMatches = Array.isArray(categoriesField) ? categoriesField.some(c => {
         const categoryId = typeof c === 'string' ? c : c.id;
         return categoryId === category.id;
       }) : false;
       
-      return siteMatches && categoryMatches;
+      return categoryMatches;
     });
     
-    console.log(`Manually filtered to ${filteredPosts.length} listing posts for category: ${categorySlug} and site ID: ${siteId}`);
+    console.log(`Filtered to ${filteredPosts.length} listing posts for category: ${categorySlug}`);
     
     // Apply limit if specified
     let posts = filteredPosts;
@@ -972,10 +1230,10 @@ export async function getCombinedPostsByAuthorSlug(authorSlug: string, siteId: s
  * @param limit Optional limit for number of posts to fetch
  * @returns Array of combined BlogPost and ListingPost objects with type
  */
-export async function getCombinedPostsByCategorySlug(categorySlug: string, siteId: string, limit?: number) {
+export async function getCombinedPostsByCategorySlug(categorySlug: string, siteId: string, limit?: number, blogPostsViewName?: string, listingPostsViewName?: string) {
   const [blogPosts, listingPosts] = await Promise.all([
-    getBlogPostsByCategorySlug(categorySlug, siteId),
-    getListingPostsByCategorySlug(categorySlug, siteId)
+    getBlogPostsByCategorySlug(categorySlug, siteId, undefined, blogPostsViewName),
+    getListingPostsByCategorySlug(categorySlug, siteId, undefined, listingPostsViewName)
   ]);
 
   // Combine and sort by published date (most recent first)
@@ -997,37 +1255,69 @@ export async function getCombinedPostsByCategorySlug(categorySlug: string, siteI
 }
 
 /**
- * Get all categories assigned to a specific site
+ * Get all categories assigned to a specific site, optionally using an Airtable view
  * @param siteId The ID of the site
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Array of Category objects assigned to the site
  */
-export async function getCategoriesBySiteId(siteId: string): Promise<any[]> {
+export async function getCategoriesBySiteId(siteId: string, viewName?: string): Promise<any[]> {
   try {
-    console.log(`Fetching categories assigned to site ID: ${siteId}`);
+    console.log(`Fetching categories assigned to site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
-    // Get all categories
-    const allCategories = await base(TABLES.CATEGORIES)
-      .select({
-      })
-      .all();
+    let categories: any[] = [];
     
-    console.log(`Found ${allCategories.length} total categories in Airtable`);
+    if (viewName) {
+      // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
+      // No filterByFormula, no manual filtering - the view is pre-filtered
+      console.log(`Using Airtable view "${viewName}" - fetching all categories from view`);
+      
+      try {
+        const categoryRecords = await base(TABLES.CATEGORIES)
+          .select({
+            view: viewName,
+            // Don't use filterByFormula with view - view is already filtered
+          })
+          .all();
+        
+        categories = categoryRecords.map(record => ({ ...record.fields, id: record.id }));
+        console.log(`✅ Found ${categories.length} categories in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
     
-    // Filter categories to only those assigned to this site
-    const siteCategories = allCategories
-      .filter(category => {
-        const siteField = category.fields.Site;
-        const isAssigned = Array.isArray(siteField) && siteField.includes(siteId);
-        console.log(`Category "${category.fields.Name}" (${category.id}): ${isAssigned ? 'ASSIGNED' : 'NOT ASSIGNED'} to site`);
-        return isAssigned;
-      })
-      .map(category => ({ ...category.fields, id: category.id }))
-      .sort((a, b) => {
-        // Sort by Priority field (1 on top, 2 below, etc.)
-        const priorityA = (a as any).Priority || 999; // Default to 999 if no priority set
-        const priorityB = (b as any).Priority || 999;
-        return priorityA - priorityB;
-      });
+    // Fallback: If no view or view failed, get all categories and filter manually
+    if (!viewName || categories.length === 0) {
+      if (!viewName) {
+        console.log('Using fallback method - fetching all categories and filtering manually');
+      } else {
+        console.log('View returned no results, trying fallback method');
+      }
+      
+      const allCategories = await base(TABLES.CATEGORIES)
+        .select({})
+        .all();
+      
+      console.log(`Found ${allCategories.length} total categories in Airtable`);
+      
+      // Filter categories to only those assigned to this site
+      categories = allCategories
+        .filter(category => {
+          const siteField = category.fields.Site;
+          const isAssigned = Array.isArray(siteField) && siteField.includes(siteId);
+          console.log(`Category "${category.fields.Name}" (${category.id}): ${isAssigned ? 'ASSIGNED' : 'NOT ASSIGNED'} to site`);
+          return isAssigned;
+        })
+        .map(category => ({ ...category.fields, id: category.id }));
+    }
+    
+    // Sort by Priority field (1 on top, 2 below, etc.)
+    const siteCategories = categories.sort((a, b) => {
+      const priorityA = (a as any).Priority || 999; // Default to 999 if no priority set
+      const priorityB = (b as any).Priority || 999;
+      return priorityA - priorityB;
+    });
     
     console.log(`Returning ${siteCategories.length} categories assigned to site ID: ${siteId}`);
     console.log('Site categories:', siteCategories.map(cat => ({
@@ -1231,16 +1521,17 @@ export async function getBlogPostsByCategory(categoryId: string, siteId: string,
 }
 
 /**
- * Get related blog posts by their record IDs
+ * Get related blog posts by their record IDs, optionally using an Airtable view
  * @param relatedBlogIds Array of Airtable record IDs from the 'Related blogs' field
  * @param siteId The ID of the site (to ensure related blogs are from same site)
  * @param currentPostId The ID of the current post (to exclude it from results)
  * @param limit Maximum number of related posts to fetch (default: 4)
+ * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Array of BlogPost objects that are related
  */
-export async function getRelatedBlogPosts(relatedBlogIds: string[], siteId: string, currentPostId?: string, limit: number = 4): Promise<BlogPost[]> {
+export async function getRelatedBlogPosts(relatedBlogIds: string[], siteId: string, currentPostId?: string, limit: number = 4, viewName?: string): Promise<BlogPost[]> {
   try {
-    console.log(`Fetching related blog posts for IDs: ${relatedBlogIds.join(', ')}, site ID: ${siteId}`);
+    console.log(`Fetching related blog posts for IDs: ${relatedBlogIds.join(', ')}, site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!relatedBlogIds || relatedBlogIds.length === 0) {
       console.log('No related blog IDs provided');
@@ -1252,43 +1543,89 @@ export async function getRelatedBlogPosts(relatedBlogIds: string[], siteId: stri
       return [];
     }
     
-    // Build filter formula to get specific records
-    const idFilters = relatedBlogIds.map(id => `RECORD_ID() = "${id}"`).join(', ');
-    const filterFormula = `AND(
-      {Published} = TRUE(),
-      OR(${idFilters})
-    )`;
+    let relatedPosts: any[] = [];
     
-    console.log('Filter formula:', filterFormula);
+    if (viewName) {
+      // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
+      // Build filter formula to get specific records within the view
+      const idFilters = relatedBlogIds.map(id => `RECORD_ID() = "${id}"`).join(', ');
+      const filterFormula = `AND(
+        {Published} = TRUE(),
+        OR(${idFilters})
+      )`;
+      
+      console.log(`Using Airtable view "${viewName}" with filter formula: ${filterFormula}`);
+      
+      try {
+        relatedPosts = await base(TABLES.BLOG_POSTS)
+          .select({
+            view: viewName,
+            filterByFormula: filterFormula,
+            sort: [{ field: 'Published date', direction: 'desc' }]
+          })
+          .all();
+        
+        console.log(`✅ Found ${relatedPosts.length} related posts in view "${viewName}"`);
+      } catch (viewError) {
+        console.error(`Error fetching from view "${viewName}":`, viewError);
+        // Fall through to fallback method
+      }
+    }
     
-    const relatedPosts = await base(TABLES.BLOG_POSTS)
-      .select({
-        filterByFormula: filterFormula,
-        sort: [{ field: 'Published date', direction: 'desc' }]
-      })
-      .all();
-    
-    console.log(`Found ${relatedPosts.length} related posts from Airtable`);
+    // Fallback: If no view or view failed, use filterByFormula
+    if (relatedPosts.length === 0) {
+      console.log('Using fallback method with filterByFormula...');
+      
+      // Build filter formula to get specific records
+      const idFilters = relatedBlogIds.map(id => `RECORD_ID() = "${id}"`).join(', ');
+      const filterFormula = `AND(
+        {Published} = TRUE(),
+        OR(${idFilters})
+      )`;
+      
+      console.log('Filter formula:', filterFormula);
+      
+      relatedPosts = await base(TABLES.BLOG_POSTS)
+        .select({
+          filterByFormula: filterFormula,
+          sort: [{ field: 'Published date', direction: 'desc' }]
+        })
+        .all();
+      
+      console.log(`Found ${relatedPosts.length} related posts from Airtable`);
+    }
     
     // Filter for posts from the same site and exclude current post
+    // NOTE: If using a view, the view is already site-specific, so we only need to exclude current post
     const filteredPosts = relatedPosts.filter(post => {
-      const siteField = post.fields.Site;
       const recordId = post.id;
       
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      // Exclude current post
       const isNotCurrentPost = currentPostId ? recordId !== currentPostId : true;
       
-      return siteMatches && isNotCurrentPost;
+      if (viewName) {
+        // When using a view, it's already filtered for the site, so just exclude current post
+        return isNotCurrentPost;
+      } else {
+        // When not using a view, also filter by site
+        const siteField = post.fields.Site;
+        const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+        return siteMatches && isNotCurrentPost;
+      }
     });
     
-    console.log(`Found ${filteredPosts.length} related posts for site ID: ${siteId}`);
+    console.log(`Found ${filteredPosts.length} related posts${viewName ? ' (view already site-filtered)' : ` for site ID: ${siteId}`}`);
     
     // Apply limit
     const limitedPosts = filteredPosts.slice(0, limit);
     
     console.log(`Returning ${limitedPosts.length} related posts`);
     
-    return limitedPosts.map(post => post.fields as unknown as BlogPost);
+    // Map to BlogPost objects with IDs
+    return limitedPosts.map(post => ({
+      ...(post.fields as unknown as BlogPost),
+      id: post.id
+    }));
   } catch (error) {
     console.error('Error fetching related blog posts:', error);
     throw new AirtableError(
