@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+        const records = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+        const record = Array.isArray(records) ? records[0] : records;
         return NextResponse.json(
           { 
             success: true, 
@@ -109,7 +110,8 @@ export async function POST(request: NextRequest) {
         if (createError.error === 'ROW_DOES_NOT_EXIST' && recordData['Site link']) {
           console.warn('⚠️ Site link failed, creating record without Site link');
           delete recordData['Site link'];
-          const record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+          const records = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+          const record = Array.isArray(records) ? records[0] : records;
           return NextResponse.json(
             { 
               success: true, 
@@ -166,13 +168,15 @@ export async function POST(request: NextRequest) {
     // If creation fails due to invalid Site link, try again without it
     let record;
     try {
-      record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+      const records = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+      record = Array.isArray(records) ? records[0] : records;
     } catch (createError: any) {
       // If creation fails due to invalid Site link, try again without it
       if (createError.error === 'ROW_DOES_NOT_EXIST' && recordData['Site link']) {
         console.warn('⚠️ Site link failed, creating record without Site link');
         delete recordData['Site link'];
-        record = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+        const records = await base(TABLES.PRIVATE_EVENT_REQUESTS).create(recordData);
+        record = Array.isArray(records) ? records[0] : records;
       } else {
         throw createError;
       }
