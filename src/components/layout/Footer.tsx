@@ -217,13 +217,14 @@ export default function Footer({ className = '' }: FooterProps) {
       </div>
       
       {/* Bottom bar with copyright */}
-      <div 
-        className="border-t py-4"
-        style={{ 
-          borderColor: 'var(--text-color)',
-          borderOpacity: 0.2
-        }}
-      >
+      <div className="py-4 relative">
+        <div 
+          className="absolute top-0 left-0 right-0 h-px"
+          style={{ 
+            backgroundColor: 'var(--text-color)',
+            opacity: 0.2
+          }}
+        />
         <div className="site-container">
           <p 
             className="text-sm text-center"
