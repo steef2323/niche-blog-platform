@@ -59,7 +59,7 @@ async function fetchRedirectsFromTable(
   const redirects = new Map<string, string>();
   
   try {
-    let records: any[] = [];
+    let records: readonly any[] = [];
     
     if (viewName) {
       // Use view if provided (assumes view is pre-filtered for site)

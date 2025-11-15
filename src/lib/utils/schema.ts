@@ -365,7 +365,7 @@ export function generateCollectionPageSchema(site: Site, posts: Array<{id?: stri
  * @returns Array of schema objects
  */
 export function generateHomepageSchemas(site: Site, homePage?: Page) {
-  const schemas = [
+  const schemas: any[] = [
     generateWebSiteSchema(site),
     generateOrganizationSchema(site)
   ];
@@ -373,8 +373,8 @@ export function generateHomepageSchemas(site: Site, homePage?: Page) {
   // Add Review schema if review exists
   if (homePage?.['Review 1'] && homePage?.['Review reviewer 1']) {
     schemas.push(generateReviewSchema(
-      homePage['Review 1'],
-      homePage['Review reviewer 1'],
+      homePage['Review 1']!,
+      homePage['Review reviewer 1']!,
       site
     ));
   }
@@ -396,7 +396,7 @@ export function generateBlogOverviewSchemas(
   posts?: Array<{id?: string, Slug: string, Title?: string, H1?: string}>,
   breadcrumbs?: Array<{label: string, href?: string}>
 ) {
-  const schemas = [
+  const schemas: any[] = [
     generateWebSiteSchema(site),
     generateOrganizationSchema(site)
   ];
@@ -470,7 +470,7 @@ export function generateCategoryPageSchemas(
   posts?: Array<{id?: string, Slug: string, Title?: string, H1?: string}>,
   breadcrumbs?: Array<{label: string, href?: string}>
 ) {
-  const schemas = [
+  const schemas: any[] = [
     generateWebSiteSchema(site),
     generateOrganizationSchema(site),
     generateCategoryPageSchema(category, site, posts)
@@ -540,7 +540,7 @@ export function generateAuthorPageSchemas(
   posts?: Array<{id?: string, Slug: string, Title?: string, H1?: string}>,
   breadcrumbs?: Array<{label: string, href?: string}>
 ) {
-  const schemas = [
+  const schemas: any[] = [
     generateWebSiteSchema(site),
     generateOrganizationSchema(site),
     generatePersonSchema(author, site),

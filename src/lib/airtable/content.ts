@@ -17,7 +17,7 @@ export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewN
       return [];
     }
     
-    let posts: any[] = [];
+    let postRecords: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use Airtable view (which is already filtered for the site)
@@ -25,7 +25,7 @@ export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewN
       console.log(`Using Airtable view "${viewName}" - fetching published blog posts from view`);
       
       try {
-        posts = await base(TABLES.BLOG_POSTS)
+        postRecords = await base(TABLES.BLOG_POSTS)
           .select({
             view: viewName,
             filterByFormula: `{Published} = TRUE()`, // Filter for published posts only
@@ -33,7 +33,7 @@ export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewN
           })
           .all();
         
-        console.log(`✅ Found ${posts.length} published blog posts in view "${viewName}"`);
+        console.log(`✅ Found ${postRecords.length} published blog posts in view "${viewName}"`);
       } catch (viewError) {
         console.error(`Error fetching from view "${viewName}":`, viewError);
         // Fall through to fallback method
@@ -41,14 +41,14 @@ export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewN
     }
     
     // Fallback: If no view or view failed, use filterByFormula
-    if (!viewName || posts.length === 0) {
+    if (!viewName || postRecords.length === 0) {
       if (!viewName) {
         console.log('Using fallback method with filterByFormula');
       } else {
         console.log('View returned no results, trying fallback method');
       }
       
-      posts = await base(TABLES.BLOG_POSTS)
+      postRecords = await base(TABLES.BLOG_POSTS)
         .select({
           filterByFormula: `AND(
             {Published} = TRUE(),
@@ -58,11 +58,11 @@ export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewN
         })
         .all();
       
-      console.log(`Found ${posts.length} blog posts via fallback`);
+      console.log(`Found ${postRecords.length} blog posts via fallback`);
     }
     
     // Map to BlogPost objects with IDs
-    const blogPosts = posts.map(post => ({
+    const blogPosts = postRecords.map(post => ({
       ...(post.fields as unknown as BlogPost),
       id: post.id
     }));
@@ -102,7 +102,7 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number, vi
       return [];
     }
     
-    let posts: any[] = [];
+    let postRecords: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use Airtable view (which is already filtered for the site)
@@ -110,7 +110,7 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number, vi
       console.log(`Using Airtable view "${viewName}" - fetching published listing posts from view`);
       
       try {
-        posts = await base(TABLES.LISTING_POSTS)
+        postRecords = await base(TABLES.LISTING_POSTS)
           .select({
             view: viewName,
             filterByFormula: `{Published} = TRUE()`, // Filter for published posts only
@@ -118,7 +118,7 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number, vi
           })
           .all();
         
-        console.log(`✅ Found ${posts.length} published listing posts in view "${viewName}"`);
+        console.log(`✅ Found ${postRecords.length} published listing posts in view "${viewName}"`);
       } catch (viewError) {
         console.error(`Error fetching from view "${viewName}":`, viewError);
         // Fall through to fallback method
@@ -126,14 +126,14 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number, vi
     }
     
     // Fallback: If no view or view failed, use filterByFormula
-    if (!viewName || posts.length === 0) {
+    if (!viewName || postRecords.length === 0) {
       if (!viewName) {
         console.log('Using fallback method with filterByFormula');
       } else {
         console.log('View returned no results, trying fallback method');
       }
       
-      posts = await base(TABLES.LISTING_POSTS)
+      postRecords = await base(TABLES.LISTING_POSTS)
         .select({
           filterByFormula: `AND(
             {Published} = TRUE(),
@@ -143,17 +143,20 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number, vi
         })
         .all();
       
-      console.log(`Found ${posts.length} listing posts via fallback`);
+      console.log(`Found ${postRecords.length} listing posts via fallback`);
     }
+    
+    // Map to ListingPost objects with IDs
+    let listingPosts = postRecords.map(post => post.fields as unknown as ListingPost);
     
     // Apply limit if specified
-    if (limit && posts.length > limit) {
-      posts = posts.slice(0, limit);
+    if (limit && listingPosts.length > limit) {
+      listingPosts = listingPosts.slice(0, limit);
     }
     
-    console.log(`Returning ${posts.length} listing posts for site ID: ${siteId}`);
+    console.log(`Returning ${listingPosts.length} listing posts for site ID: ${siteId}`);
     
-    return posts.map(post => post.fields as unknown as ListingPost);
+    return listingPosts;
   } catch (error) {
     console.error('Error fetching listing posts:', error);
     throw new AirtableError(
@@ -270,7 +273,7 @@ export async function getBlogPostBySlug(slug: string, siteId: string, viewName?:
       return null;
     }
     
-    let posts: any[] = [];
+    let posts: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
@@ -474,7 +477,7 @@ export async function getAuthorsBySiteId(siteId: string, viewName?: string): Pro
   try {
     console.log(`Fetching authors for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
-    let authors: any[] = [];
+    let authors: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
@@ -512,7 +515,7 @@ export async function getAuthorsBySiteId(siteId: string, viewName?: string): Pro
       });
     }
     
-    return authors;
+    return [...authors];
   } catch (error) {
     console.warn('Could not fetch authors by site (may not have permission):', error);
     return [];
@@ -786,7 +789,7 @@ export async function getBlogPostsByCategorySlug(categorySlug: string, siteId: s
     
     console.log(`Found category:`, { id: category.id, name: category.Name, slug: category.Slug });
     
-    let allPosts: any[] = [];
+    let allPosts: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use Airtable view (already filtered for site)
@@ -919,7 +922,7 @@ export async function getListingPostBySlug(slug: string, siteId: string, viewNam
       return null;
     }
     
-    let posts: any[] = [];
+    let posts: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
@@ -1119,7 +1122,7 @@ export async function getListingPostsByCategorySlug(categorySlug: string, siteId
     
     console.log(`Found category:`, { id: category.id, name: category.Name, slug: category.Slug });
     
-    let allPosts: any[] = [];
+    let allPosts: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use Airtable view (already filtered for site)
@@ -1220,7 +1223,7 @@ export async function getCombinedPostsByAuthorSlug(authorSlug: string, siteId: s
     return allPosts.slice(0, limit);
   }
 
-  return allPosts;
+  return [...allPosts];
 }
 
 /**
@@ -1251,7 +1254,7 @@ export async function getCombinedPostsByCategorySlug(categorySlug: string, siteI
     return allPosts.slice(0, limit);
   }
 
-  return allPosts;
+  return [...allPosts];
 }
 
 /**
@@ -1264,7 +1267,7 @@ export async function getCategoriesBySiteId(siteId: string, viewName?: string): 
   try {
     console.log(`Fetching categories assigned to site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
-    let categories: any[] = [];
+    let categories: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
@@ -1313,7 +1316,7 @@ export async function getCategoriesBySiteId(siteId: string, viewName?: string): 
     }
     
     // Sort by Priority field (1 on top, 2 below, etc.)
-    const siteCategories = categories.sort((a, b) => {
+    const siteCategories = [...categories].sort((a, b) => {
       const priorityA = (a as any).Priority || 999; // Default to 999 if no priority set
       const priorityB = (b as any).Priority || 999;
       return priorityA - priorityB;
@@ -1543,7 +1546,7 @@ export async function getRelatedBlogPosts(relatedBlogIds: string[], siteId: stri
       return [];
     }
     
-    let relatedPosts: any[] = [];
+    let relatedPosts: readonly any[] = [];
     
     if (viewName) {
       // NEW SYSTEM: Use ONLY the Airtable view (which is already filtered for the site)
