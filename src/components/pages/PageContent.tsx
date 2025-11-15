@@ -41,7 +41,7 @@ export default function PageContent({ page }: PageContentProps) {
     title: page['Header 2'],
     text: page['Content 2'],
     image: attachmentToSEOImage(
-      page['Featured image 2'][0],
+      page['Featured image 2']?.[0]!,
       page['Featured image 2 alt text'],
       page['Featured image 2 title']
     )
@@ -58,7 +58,7 @@ export default function PageContent({ page }: PageContentProps) {
     title: page['Header 3'],
     text: page['Content 3'],
     image: attachmentToSEOImage(
-      page['Featured image 3'][0],
+      page['Featured image 3']?.[0]!,
       page['Featured image 3 alt text'],
       page['Featured image 3 title']
     )
