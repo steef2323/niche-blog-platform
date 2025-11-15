@@ -38,8 +38,8 @@ export default function PageContent({ page }: PageContentProps) {
   });
 
   const infoSection1Data = hasHeader2 && hasContent2 && hasImage2 ? {
-    title: page['Header 2'],
-    text: page['Content 2'],
+    title: page['Header 2']!,
+    text: page['Content 2']!,
     image: attachmentToSEOImage(
       page['Featured image 2']?.[0]!,
       page['Featured image 2 alt text'],
@@ -55,8 +55,8 @@ export default function PageContent({ page }: PageContentProps) {
   const hasImage3 = page?.['Featured image 3']?.[0] && page['Featured image 3'][0].url;
 
   const infoSection2Data = hasHeader3 && hasContent3 && hasImage3 ? {
-    title: page['Header 3'],
-    text: page['Content 3'],
+    title: page['Header 3']!,
+    text: page['Content 3']!,
     image: attachmentToSEOImage(
       page['Featured image 3']?.[0]!,
       page['Featured image 3 alt text'],
@@ -66,8 +66,8 @@ export default function PageContent({ page }: PageContentProps) {
 
   // Prepare Review Component data - only render if both fields exist
   const reviewData = page?.['Review 1'] && page?.['Review reviewer 1'] ? {
-    reviewText: page['Review 1'],
-    reviewerName: page['Review reviewer 1']
+    reviewText: page['Review 1']!,
+    reviewerName: page['Review reviewer 1']!
   } : null;
 
   // Parse content if available
