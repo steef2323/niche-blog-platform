@@ -6,18 +6,23 @@ import { BlogPost, ListingPost, Site, Author, Category, Business, Page } from '@
  * @returns JSON-LD Organization schema
  */
 export function generateOrganizationSchema(site: Site) {
+  if (!site) {
+    console.error('generateOrganizationSchema: Missing site parameter');
+    return null;
+  }
+  
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": site.Name,
-    "url": site['Site URL'] || `https://${site.Domain}`,
+    "name": site.Name || "Organization",
+    "url": site['Site URL'] || `https://${site.Domain || 'example.com'}`,
     "logo": site['Site logo']?.[0]?.url ? {
       "@type": "ImageObject",
       "url": site['Site logo'][0].url,
       "width": site['Site logo'][0].width,
       "height": site['Site logo'][0].height
     } : undefined,
-    "description": site['Default meta description'] || `Welcome to ${site.Name}`,
+    "description": site['Default meta description'] || `Welcome to ${site.Name || 'our organization'}`,
     "sameAs": [], // Add social media URLs if available
     "contactPoint": {
       "@type": "ContactPoint",
@@ -32,12 +37,17 @@ export function generateOrganizationSchema(site: Site) {
  * @returns JSON-LD WebSite schema
  */
 export function generateWebSiteSchema(site: Site) {
+  if (!site) {
+    console.error('generateWebSiteSchema: Missing site parameter');
+    return null;
+  }
+  
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": site.Name,
-    "url": site['Site URL'] || `https://${site.Domain}`,
-    "description": site['Default meta description'] || `Welcome to ${site.Name}`,
+    "name": site.Name || "Website",
+    "url": site['Site URL'] || `https://${site.Domain || 'example.com'}`,
+    "description": site['Default meta description'] || `Welcome to ${site.Name || 'our website'}`,
     "publisher": {
       "@type": "Organization",
       "name": site.Name
@@ -46,7 +56,7 @@ export function generateWebSiteSchema(site: Site) {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": `${site['Site URL'] || `https://${site.Domain}`}/blog?search={search_term_string}`
+        "urlTemplate": `${site['Site URL'] || `https://${site.Domain || 'example.com'}`}/blog?search={search_term_string}`
       },
       "query-input": "required name=search_term_string"
     }
@@ -61,6 +71,11 @@ export function generateWebSiteSchema(site: Site) {
  * @returns JSON-LD Article schema
  */
 export function generateArticleSchema(post: BlogPost, site: Site, author?: Author) {
+  if (!post || !site) {
+    console.error('generateArticleSchema: Missing required parameters', { post: !!post, site: !!site });
+    return null;
+  }
+  
   const articleSchema: any = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -92,11 +107,11 @@ export function generateArticleSchema(post: BlogPost, site: Site, author?: Autho
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `${site['Site URL'] || `https://${site.Domain}`}/blog/${post.Slug}`
+      "@id": `${site['Site URL'] || `https://${site.Domain || 'example.com'}`}/blog/${post.Slug || 'untitled'}`
     },
     "articleSection": post.CategoryDetails?.Name || "Blog",
-    "keywords": post['Main keyword']?.map(k => typeof k === 'string' ? k : (k as any).Name).join(', ') || "",
-    "wordCount": post['Full article']?.split(' ').length || 0
+    "keywords": Array.isArray(post['Main keyword']) ? post['Main keyword'].map(k => typeof k === 'string' ? k : (k as any).Name).join(', ') : "",
+    "wordCount": post['Full article'] ? (typeof post['Full article'] === 'string' ? post['Full article'].split(' ').length : 0) : 0
   };
 
   // Add article body if available
@@ -114,21 +129,27 @@ export function generateArticleSchema(post: BlogPost, site: Site, author?: Autho
  * @returns JSON-LD LocalBusiness schema
  */
 export function generateLocalBusinessSchema(post: ListingPost, site: Site) {
-  // Get the first business from the BusinessDetails array
-  const business = post.BusinessDetails?.[0] as Business;
+  if (!post || !site) {
+    console.error('generateLocalBusinessSchema: Missing required parameters', { post: !!post, site: !!site });
+    return null;
+  }
   
-  return {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": business?.Competitor || post.Title || "Business Listing",
-    "description": post['Meta description'] || post.Excerpt || business?.Information || "",
-    "image": post['Featured image']?.[0]?.url ? {
-      "@type": "ImageObject",
-      "url": post['Featured image'][0].url,
-      "width": post['Featured image'][0].width,
-      "height": post['Featured image'][0].height
-    } : undefined,
-    "url": `${site['Site URL'] || `https://${site.Domain}`}/blog/${post.Slug}`,
+  try {
+    // Get the first business from the BusinessDetails array
+    const business = post.BusinessDetails?.[0] as Business;
+    
+    return {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": business?.Competitor || post.Title || "Business Listing",
+      "description": post['Meta description'] || post.Excerpt || business?.Information || "",
+      "image": post['Featured image']?.[0]?.url ? {
+        "@type": "ImageObject",
+        "url": post['Featured image'][0].url,
+        "width": post['Featured image'][0].width,
+        "height": post['Featured image'][0].height
+      } : undefined,
+      "url": `${site['Site URL'] || `https://${site.Domain || 'example.com'}`}/blog/${post.Slug || 'untitled'}`,
     "telephone": "", // Not available in current structure
     "email": "", // Not available in current structure
     "address": business?.Cities?.[0] ? {
@@ -144,7 +165,11 @@ export function generateLocalBusinessSchema(post: ListingPost, site: Site) {
     "areaServed": business?.Cities?.join(', ') || "",
     "hasMap": "", // Not available in current structure
     "sameAs": business?.Website ? [business.Website] : []
-  };
+    };
+  } catch (error) {
+    console.error('Error generating local business schema:', error);
+    return null;
+  }
 }
 
 /**
@@ -154,20 +179,34 @@ export function generateLocalBusinessSchema(post: ListingPost, site: Site) {
  * @returns JSON-LD BreadcrumbList schema
  */
 export function generateBreadcrumbSchema(breadcrumbs: Array<{label: string, href?: string}>, site: Site) {
-  const siteUrl = site['Site URL'] || `https://${site.Domain}`;
+  if (!site) {
+    console.error('generateBreadcrumbSchema: Missing site parameter');
+    return null;
+  }
   
-  const breadcrumbItems = breadcrumbs.map((crumb, index) => ({
-    "@type": "ListItem",
-    "position": index + 1,
-    "name": crumb.label,
-    "item": crumb.href ? `${siteUrl}${crumb.href}` : undefined
-  }));
+  if (!Array.isArray(breadcrumbs) || breadcrumbs.length === 0) {
+    return null;
+  }
+  
+  try {
+    const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
+    
+    const breadcrumbItems = breadcrumbs.map((crumb, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "name": crumb.label || `Item ${index + 1}`,
+      "item": crumb.href ? `${siteUrl}${crumb.href}` : undefined
+    }));
 
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": breadcrumbItems
-  };
+    return {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": breadcrumbItems
+    };
+  } catch (error) {
+    console.error('Error generating breadcrumb schema:', error);
+    return null;
+  }
 }
 
 /**
@@ -294,13 +333,30 @@ export function combineSchemas(schemas: any[]): any[] {
  * @returns Array of schema objects
  */
 export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Author, breadcrumbs?: Array<{label: string, href?: string}>) {
-  const schemas: any[] = [
-    generateWebSiteSchema(site),
-    generateArticleSchema(post, site, author)
-  ];
+  if (!post || !site) {
+    console.error('generateBlogPostSchemas: Missing required parameters', { post: !!post, site: !!site });
+    return [];
+  }
+  
+  const schemas: any[] = [];
+  
+  try {
+    const webSiteSchema = generateWebSiteSchema(site);
+    if (webSiteSchema) schemas.push(webSiteSchema);
+    
+    const articleSchema = generateArticleSchema(post, site, author);
+    if (articleSchema) schemas.push(articleSchema);
+  } catch (error) {
+    console.error('Error generating blog post schemas:', error);
+  }
 
   if (breadcrumbs && breadcrumbs.length > 0) {
-    schemas.push(generateBreadcrumbSchema(breadcrumbs, site));
+    try {
+      const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs, site);
+      if (breadcrumbSchema) schemas.push(breadcrumbSchema);
+    } catch (error) {
+      console.error('Error adding breadcrumb schema:', error);
+    }
   }
 
   return combineSchemas(schemas);
@@ -314,13 +370,30 @@ export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Aut
  * @returns Array of schema objects
  */
 export function generateListingPostSchemas(post: ListingPost, site: Site, breadcrumbs?: Array<{label: string, href?: string}>) {
-  const schemas: any[] = [
-    generateWebSiteSchema(site),
-    generateLocalBusinessSchema(post, site)
-  ];
+  if (!post || !site) {
+    console.error('generateListingPostSchemas: Missing required parameters', { post: !!post, site: !!site });
+    return [];
+  }
+  
+  const schemas: any[] = [];
+  
+  try {
+    const webSiteSchema = generateWebSiteSchema(site);
+    if (webSiteSchema) schemas.push(webSiteSchema);
+    
+    const localBusinessSchema = generateLocalBusinessSchema(post, site);
+    if (localBusinessSchema) schemas.push(localBusinessSchema);
+  } catch (error) {
+    console.error('Error generating listing post schemas:', error);
+  }
 
   if (breadcrumbs && breadcrumbs.length > 0) {
-    schemas.push(generateBreadcrumbSchema(breadcrumbs, site));
+    try {
+      const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs, site);
+      if (breadcrumbSchema) schemas.push(breadcrumbSchema);
+    } catch (error) {
+      console.error('Error adding breadcrumb schema:', error);
+    }
   }
 
   return combineSchemas(schemas);
@@ -408,7 +481,12 @@ export function generateBlogOverviewSchemas(
   
   // Add Breadcrumb schema if breadcrumbs are provided
   if (breadcrumbs && breadcrumbs.length > 0) {
-    schemas.push(generateBreadcrumbSchema(breadcrumbs, site));
+    try {
+      const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs, site);
+      if (breadcrumbSchema) schemas.push(breadcrumbSchema);
+    } catch (error) {
+      console.error('Error adding breadcrumb schema:', error);
+    }
   }
   
   return combineSchemas(schemas);
@@ -478,7 +556,12 @@ export function generateCategoryPageSchemas(
   
   // Add Breadcrumb schema if breadcrumbs are provided
   if (breadcrumbs && breadcrumbs.length > 0) {
-    schemas.push(generateBreadcrumbSchema(breadcrumbs, site));
+    try {
+      const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs, site);
+      if (breadcrumbSchema) schemas.push(breadcrumbSchema);
+    } catch (error) {
+      console.error('Error adding breadcrumb schema:', error);
+    }
   }
   
   return combineSchemas(schemas);
@@ -549,7 +632,12 @@ export function generateAuthorPageSchemas(
   
   // Add Breadcrumb schema if breadcrumbs are provided
   if (breadcrumbs && breadcrumbs.length > 0) {
-    schemas.push(generateBreadcrumbSchema(breadcrumbs, site));
+    try {
+      const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs, site);
+      if (breadcrumbSchema) schemas.push(breadcrumbSchema);
+    } catch (error) {
+      console.error('Error adding breadcrumb schema:', error);
+    }
   }
   
   return combineSchemas(schemas);

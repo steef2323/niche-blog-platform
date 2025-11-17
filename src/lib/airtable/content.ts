@@ -874,6 +874,12 @@ export async function getBusinessById(businessId: string): Promise<Business | nu
     const businessRecord = await base(TABLES.BUSINESSES).find(businessId);
     const business = { ...businessRecord.fields, id: businessRecord.id } as Business;
     
+    // Validate required field
+    if (!business.Competitor) {
+      console.warn(`Business with ID ${businessId} is missing required field "Competitor"`);
+      return null;
+    }
+    
     console.log(`Successfully fetched business: ${business.Competitor}`);
     return business;
   } catch (error) {
@@ -895,8 +901,14 @@ export async function getBusinessesByIds(businessIds: string[]): Promise<Busines
       businessIds.map(id => getBusinessById(id))
     );
     
-    // Filter out null results
-    const validBusinesses = businesses.filter((business): business is Business => business !== null);
+    // Filter out null results and businesses missing required fields
+    const validBusinesses = businesses.filter((business): business is Business => 
+      business !== null && !!business.Competitor
+    );
+    
+    if (validBusinesses.length < businesses.length) {
+      console.warn(`Filtered out ${businesses.length - validBusinesses.length} invalid businesses (missing required fields)`);
+    }
     
     console.log(`Successfully fetched ${validBusinesses.length} out of ${businessIds.length} businesses`);
     return validBusinesses;

@@ -59,24 +59,29 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
     // Generate schema markup based on post type
     let schemas = [];
-    if (blogPost) {
-      const breadcrumbItems = [
-        { label: 'Home', href: '/' },
-        { label: 'Blog', href: '/blog' },
-        ...(post.CategoryDetails ? [{ 
-          label: post.CategoryDetails.Name, 
-          href: `/blog/category/${post.CategoryDetails.Slug}` 
-        }] : []),
-        { label: displayTitle }
-      ];
-      schemas = generateBlogPostSchemas(blogPost, site, post.AuthorDetails, breadcrumbItems);
-    } else if (listingPost) {
-      const breadcrumbItems = [
-        { label: 'Home', href: '/' },
-        { label: 'Blog', href: '/blog' },
-        { label: displayTitle }
-      ];
-      schemas = generateListingPostSchemas(listingPost, site, breadcrumbItems);
+    try {
+      if (blogPost) {
+        const breadcrumbItems = [
+          { label: 'Home', href: '/' },
+          { label: 'Blog', href: '/blog' },
+          ...(post.CategoryDetails ? [{ 
+            label: post.CategoryDetails.Name, 
+            href: `/blog/category/${post.CategoryDetails.Slug}` 
+          }] : []),
+          { label: displayTitle }
+        ];
+        schemas = generateBlogPostSchemas(blogPost, site, post.AuthorDetails, breadcrumbItems) || [];
+      } else if (listingPost) {
+        const breadcrumbItems = [
+          { label: 'Home', href: '/' },
+          { label: 'Blog', href: '/blog' },
+          { label: displayTitle }
+        ];
+        schemas = generateListingPostSchemas(listingPost, site, breadcrumbItems) || [];
+      }
+    } catch (error) {
+      console.error('Error generating schemas:', error);
+      schemas = [];
     }
 
     return {
@@ -242,7 +247,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       const readingTime = calculateReadingTime(contentForReadingTime);
       
       // Render structured HTML content with backward compatibility
-      const htmlContent = renderStructuredHTML(blogPost);
+      let htmlContent = '';
+      try {
+        htmlContent = renderStructuredHTML(blogPost);
+      } catch (error) {
+        console.error('Error rendering structured HTML:', error);
+        htmlContent = '<p>Error loading content. Please try again later.</p>';
+      }
       
       // Check if we have structured content to insert form after Text2.2
       const sections = blogPost['H2.1'] && blogPost['Text2.1'] ? true : false;
@@ -367,7 +378,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   <div className="mb-8 relative">
                     <Image
                       src={blogPost['Featured image'][0].url}
-                      alt={displayTitle}
+                      alt={blogPost['Featured image alt text'] || displayTitle}
                       width={blogPost['Featured image'][0].width}
                       height={blogPost['Featured image'][0].height}
                       className="w-full h-auto rounded-lg shadow-lg"
@@ -427,7 +438,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         let content = '';
                         // Add introduction if available
                         if (blogPost.Introduction) {
-                          content += parseMarkdownToHtml(blogPost.Introduction) + '\n\n';
+                          try {
+                            const introContent = typeof blogPost.Introduction === 'string' ? parseMarkdownToHtml(blogPost.Introduction) : '';
+                            content += introContent + '\n\n';
+                          } catch (error) {
+                            console.error('Error parsing introduction:', error);
+                          }
                         }
                         // Add first two sections (up to Text2.2)
                         for (let i = 1; i <= 2; i++) {
@@ -437,15 +453,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                           const content_text = blogPost[textKey] as string;
                           
                           if (heading && content_text) {
-                            // Create slug-based ID for heading
-                            const headingId = heading
-                              .toLowerCase()
-                              .trim()
-                              .replace(/[^\w\s-]/g, '')
-                              .replace(/\s+/g, '-')
-                              .replace(/-+/g, '-')
-                              .replace(/^-|-$/g, '') || `section-${i}`;
-                            content += `<h2 id="${headingId}">${heading}</h2>\n${parseMarkdownToHtml(content_text)}\n\n`;
+                            try {
+                              // Create slug-based ID for heading
+                              const headingId = heading
+                                .toLowerCase()
+                                .trim()
+                                .replace(/[^\w\s-]/g, '')
+                                .replace(/\s+/g, '-')
+                                .replace(/-+/g, '-')
+                                .replace(/^-|-$/g, '') || `section-${i}`;
+                              const parsedContent = typeof content_text === 'string' ? parseMarkdownToHtml(content_text) : '';
+                              content += `<h2 id="${headingId}">${heading}</h2>\n${parsedContent}\n\n`;
+                            } catch (error) {
+                              console.error(`Error parsing content for section ${i}:`, error);
+                            }
                           }
                         }
                         return content;
@@ -482,20 +503,30 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                           const content_text = blogPost[textKey] as string;
                           
                           if (heading && content_text) {
-                            // Create slug-based ID for heading
-                            const headingId = heading
-                              .toLowerCase()
-                              .trim()
-                              .replace(/[^\w\s-]/g, '')
-                              .replace(/\s+/g, '-')
-                              .replace(/-+/g, '-')
-                              .replace(/^-|-$/g, '') || `section-${i}`;
-                            content += `<h2 id="${headingId}">${heading}</h2>\n${parseMarkdownToHtml(content_text)}\n\n`;
+                            try {
+                              // Create slug-based ID for heading
+                              const headingId = heading
+                                .toLowerCase()
+                                .trim()
+                                .replace(/[^\w\s-]/g, '')
+                                .replace(/\s+/g, '-')
+                                .replace(/-+/g, '-')
+                                .replace(/^-|-$/g, '') || `section-${i}`;
+                              const parsedContent = typeof content_text === 'string' ? parseMarkdownToHtml(content_text) : '';
+                              content += `<h2 id="${headingId}">${heading}</h2>\n${parsedContent}\n\n`;
+                            } catch (error) {
+                              console.error(`Error parsing content for section ${i}:`, error);
+                            }
                           }
                         }
                         // Add conclusion if available
                         if (blogPost.Conclusion) {
-                          content += `<h2 id="conclusion">Conclusion</h2>\n${parseMarkdownToHtml(blogPost.Conclusion)}\n\n`;
+                          try {
+                            const conclusionContent = typeof blogPost.Conclusion === 'string' ? parseMarkdownToHtml(blogPost.Conclusion) : '';
+                            content += `<h2 id="conclusion">Conclusion</h2>\n${conclusionContent}\n\n`;
+                          } catch (error) {
+                            console.error('Error parsing conclusion:', error);
+                          }
                         }
                         return content;
                       })()
@@ -693,7 +724,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   <div className="mb-8 relative">
                     <Image
                       src={listingPost['Featured image'][0].url}
-                      alt={listingPost.Title}
+                      alt={listingPost['Featured image alt text'] || listingPost.Title}
                       width={listingPost['Featured image'][0].width}
                       height={listingPost['Featured image'][0].height}
                       className="w-full h-auto rounded-lg shadow-lg"
@@ -745,8 +776,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     Featured Businesses
                   </h2>
                   <div className="space-y-8">
-                    {listingPost.BusinessDetails.map((business, index) => (
-                      <div key={business.id}>
+                    {listingPost.BusinessDetails
+                      .filter(business => business && business.Competitor) // Filter out invalid businesses
+                      .map((business, index) => (
+                      <div key={business.id || `business-${index}`}>
                         <BusinessCard business={business} rank={index + 1} />
                         
                         {/* Private Event Form between businesses */}
@@ -860,8 +893,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       Featured Businesses
                     </h3>
                     <div className="space-y-3">
-                      {listingPost.BusinessDetails.map((business, index) => (
-                        <div key={business.id} className="flex items-center gap-3">
+                      {listingPost.BusinessDetails
+                        .filter(business => business && business.Competitor) // Filter out invalid businesses
+                        .map((business, index) => (
+                        <div key={business.id || `business-${index}`} className="flex items-center gap-3">
                           <span 
                             className="flex-shrink-0 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
                             style={{

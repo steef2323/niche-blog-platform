@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Business } from '@/types/airtable';
@@ -8,6 +10,17 @@ interface BusinessCardProps {
 }
 
 export default function BusinessCard({ business, rank }: BusinessCardProps) {
+  // Validate required fields
+  if (!business) {
+    console.error('BusinessCard: Missing business prop');
+    return null;
+  }
+
+  if (!business.Competitor) {
+    console.error('BusinessCard: Missing required field "Competitor"', business);
+    return null;
+  }
+
   const businessImage = business.Image?.[0];
 
   return (

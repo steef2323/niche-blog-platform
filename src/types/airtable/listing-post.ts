@@ -8,6 +8,7 @@ export interface ListingPost extends BaseFields {
   Slug: string;
   Excerpt?: string;
   'Featured image'?: Attachment[];
+  'Featured image alt text'?: string;
   'Published date'?: string;
   'Last updated': string;
   Categories?: RecordLink[];

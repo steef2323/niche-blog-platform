@@ -39,6 +39,7 @@ export interface BlogPost extends BaseFields {
   
   // Media and images
   'Featured image'?: Attachment[];
+  'Featured image alt text'?: string;
   
   // Publishing and dates
   'Published date'?: string;

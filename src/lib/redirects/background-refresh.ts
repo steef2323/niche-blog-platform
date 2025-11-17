@@ -92,3 +92,4 @@ export async function initializeBackgroundRefresh(hosts: string[]): Promise<void
   console.log(`✅ Background redirect refresh initialized`);
 }
 
+
