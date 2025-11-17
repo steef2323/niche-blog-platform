@@ -92,7 +92,7 @@ export function generateArticleSchema(post: BlogPost, site: Site, author?: Autho
     "author": author ? {
       "@type": "Person",
       "name": author.Name,
-      "url": `${site['Site URL'] || `https://${site.Domain}`}/blog/author/${author.id || author.ID?.toString() || author.Name?.toLowerCase().replace(/\s+/g, '-')}`
+      "url": `${site['Site URL'] || `https://${site.Domain}`}/blog/author/${author.Slug || author.Name?.toLowerCase().replace(/\s+/g, '-')}`
     } : {
       "@type": "Organization",
       "name": site.Name
@@ -228,7 +228,7 @@ export function generatePersonSchema(author: Author, site: Site) {
       "width": author['Profile picture'][0].width,
       "height": author['Profile picture'][0].height
     } : undefined,
-    "url": `${site['Site URL'] || `https://${site.Domain}`}/blog/author/${author.Slug || author.id || author.ID?.toString() || author.Name?.toLowerCase().replace(/\s+/g, '-')}`,
+    "url": `${site['Site URL'] || `https://${site.Domain}`}/blog/author/${author.Slug || author.Name?.toLowerCase().replace(/\s+/g, '-')}`,
     "worksFor": {
       "@type": "Organization",
       "name": site.Name
@@ -580,7 +580,7 @@ export function generateAuthorPageSchema(
   posts?: Array<{id?: string, Slug: string, Title?: string, H1?: string}>
 ) {
   const siteUrl = site['Site URL'] || `https://${site.Domain}`;
-  const authorSlug = author.Slug || author.id || author.ID?.toString() || author.Name?.toLowerCase().replace(/\s+/g, '-');
+  const authorSlug = author.Slug || author.Name?.toLowerCase().replace(/\s+/g, '-');
   
   return {
     "@context": "https://schema.org",

@@ -118,8 +118,8 @@ export async function GET(request: NextRequest) {
 
     // Add author pages (only if author has a slug-like identifier)
     authors.forEach((author: Author) => {
-      // Use author ID as slug since Author type doesn't have a Slug field
-      const authorSlug = author.id || author.ID?.toString() || author.Name?.toLowerCase().replace(/\s+/g, '-');
+      // Use author Slug field first, then fallback to name-based slug
+      const authorSlug = author.Slug || author.Name?.toLowerCase().replace(/\s+/g, '-');
       if (authorSlug) {
         sitemapXml += `
   <url>
