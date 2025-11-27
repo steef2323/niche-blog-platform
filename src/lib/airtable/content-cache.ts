@@ -11,10 +11,13 @@ interface CacheEntry {
 /**
  * Simple in-memory cache for bulk content data
  * Reduces API calls from 6+ to near 0 for cached content
+ * 
+ * AGGRESSIVE CACHING: Content changes only 2x/week, so we cache for 12 hours
+ * This dramatically reduces API calls from 30k/month to <1000/month
  */
 class ContentCache {
   private cache = new Map<string, CacheEntry>();
-  private readonly ttl = 15 * 60 * 1000; // 15 minutes TTL
+  private readonly ttl = 12 * 60 * 60 * 1000; // 12 hours TTL (content changes ~2x/week)
 
   /**
    * Set cache entry with current timestamp

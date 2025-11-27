@@ -12,8 +12,9 @@ interface RedirectCacheEntry {
 // Cache storage: Map<siteId, RedirectCacheEntry>
 const redirectCache = new Map<string, RedirectCacheEntry>();
 
-// Default TTL: 15 minutes (900,000 ms)
-const DEFAULT_TTL = 15 * 60 * 1000;
+// Default TTL: 4 hours (content changes rarely, redirects even less frequently)
+// This reduces API calls significantly while still keeping redirects up-to-date
+const DEFAULT_TTL = 4 * 60 * 60 * 1000;
 
 /**
  * Get redirect URL from cache for a given site and slug
@@ -109,5 +110,9 @@ export function getCacheStats(): {
     sites,
   };
 }
+
+
+
+
 
 

@@ -9,8 +9,9 @@ import { getSiteConfig } from '@/lib/site-detection';
 // Store interval IDs for cleanup
 const refreshIntervals = new Map<string, NodeJS.Timeout>();
 
-// Default refresh interval: 15 minutes
-const REFRESH_INTERVAL = 15 * 60 * 1000;
+// Default refresh interval: 4 hours (content changes ~2x/week, redirects even less)
+// This dramatically reduces background API calls while keeping redirects reasonably fresh
+const REFRESH_INTERVAL = 4 * 60 * 60 * 1000;
 
 /**
  * Start background refresh for a specific site
@@ -91,5 +92,9 @@ export async function initializeBackgroundRefresh(hosts: string[]): Promise<void
   
   console.log(`✅ Background redirect refresh initialized`);
 }
+
+
+
+
 
 

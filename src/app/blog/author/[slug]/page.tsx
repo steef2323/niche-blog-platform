@@ -16,6 +16,9 @@ interface AuthorPageProps {
   };
 }
 
+// Enable ISR with 12-hour revalidation (content changes ~2x/week)
+export const revalidate = 12 * 60 * 60; // 12 hours in seconds
+
 export async function generateMetadata({ params }: AuthorPageProps): Promise<Metadata> {
   const headersList = headers();
   const host = headersList.get('host') || '';

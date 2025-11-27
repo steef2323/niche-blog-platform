@@ -178,7 +178,7 @@ export function generateLocalBusinessSchema(post: ListingPost, site: Site) {
  * @param site - Site data from Airtable
  * @returns JSON-LD BreadcrumbList schema
  */
-export function generateBreadcrumbSchema(breadcrumbs: Array<{label: string, href?: string}>, site: Site) {
+export function generateBreadcrumbSchema(breadcrumbs: Array<{label: string, href?: string, fullLabel?: string}>, site: Site) {
   if (!site) {
     console.error('generateBreadcrumbSchema: Missing site parameter');
     return null;
@@ -194,7 +194,7 @@ export function generateBreadcrumbSchema(breadcrumbs: Array<{label: string, href
     const breadcrumbItems = breadcrumbs.map((crumb, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "name": crumb.label || `Item ${index + 1}`,
+      "name": crumb.fullLabel || crumb.label || `Item ${index + 1}`, // Use fullLabel for SEO if available
       "item": crumb.href ? `${siteUrl}${crumb.href}` : undefined
     }));
 
@@ -332,7 +332,7 @@ export function combineSchemas(schemas: any[]): any[] {
  * @param breadcrumbs - Breadcrumb items (optional)
  * @returns Array of schema objects
  */
-export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Author, breadcrumbs?: Array<{label: string, href?: string}>) {
+export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Author, breadcrumbs?: Array<{label: string, href?: string, fullLabel?: string}>) {
   if (!post || !site) {
     console.error('generateBlogPostSchemas: Missing required parameters', { post: !!post, site: !!site });
     return [];
@@ -369,7 +369,7 @@ export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Aut
  * @param breadcrumbs - Breadcrumb items (optional)
  * @returns Array of schema objects
  */
-export function generateListingPostSchemas(post: ListingPost, site: Site, breadcrumbs?: Array<{label: string, href?: string}>) {
+export function generateListingPostSchemas(post: ListingPost, site: Site, breadcrumbs?: Array<{label: string, href?: string, fullLabel?: string}>) {
   if (!post || !site) {
     console.error('generateListingPostSchemas: Missing required parameters', { post: !!post, site: !!site });
     return [];

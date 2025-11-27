@@ -13,6 +13,10 @@ import CategoryBlogSection from '@/components/blog/CategoryBlogSection';
 // Type for posts with type indicator
 type PostWithType = (BlogPost & { type: 'blog' }) | (ListingPost & { type: 'listing' });
 
+// Enable ISR with 12-hour revalidation (content changes ~2x/week)
+// This dramatically reduces API calls by caching pages at the Next.js level
+export const revalidate = 12 * 60 * 60; // 12 hours in seconds
+
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = headers();
   const host = headersList.get('host') || '';

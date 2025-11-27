@@ -49,6 +49,7 @@ export const TABLES = {
   AUTHORS: 'Authors',
   CATEGORIES: 'Categories',
   BUSINESSES: 'Businesses',
+  LOCATIONS: 'Locations',
   PRIVATE_EVENT_REQUESTS: 'Private Event Requests',
 } as const;
 

@@ -20,4 +20,5 @@ export interface Business extends BaseFields {
   'What they don\'t do well'?: string;
   'Link to good ads'?: string;
   'Listing posts'?: RecordLink[];
+  Location?: RecordLink[]; // Link to Location record(s)
 } 

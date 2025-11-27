@@ -1,5 +1,6 @@
-import { BlogPost, ListingPost, Page, Business } from '@/types/airtable';
+import { BlogPost, ListingPost, Page, Business, Location } from '@/types/airtable';
 import base, { TABLES, AirtableError } from './config';
+import contentCache from './content-cache';
 
 /**
  * Get blog posts for a specific site, optionally using an Airtable view
@@ -10,7 +11,31 @@ import base, { TABLES, AirtableError } from './config';
  */
 export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewName?: string): Promise<BlogPost[]> {
   try {
-    console.log(`Fetching blog posts for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
+    // CACHE CHECK: Try bulk cache first to avoid API calls
+    const bulkData = contentCache.get('bulk-content');
+    if (bulkData) {
+      const siteBlogPosts = bulkData.blogPosts
+        .filter(post => {
+          const siteField = post.Site;
+          return Array.isArray(siteField) && siteField.includes(siteId as any);
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a['Published date'] || '').getTime();
+          const dateB = new Date(b['Published date'] || '').getTime();
+          return dateB - dateA; // Most recent first
+        });
+      
+      const limitedPosts = limit && siteBlogPosts.length > limit
+        ? siteBlogPosts.slice(0, limit)
+        : siteBlogPosts;
+      
+      if (limitedPosts.length > 0) {
+        console.log(`✅ Cache hit: Returning ${limitedPosts.length} blog posts for site ${siteId} from bulk cache`);
+        return limitedPosts as BlogPost[];
+      }
+    }
+    
+    console.log(`📡 Cache miss: Fetching blog posts for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch blog posts');
@@ -95,7 +120,31 @@ export async function getBlogPostsBySiteId(siteId: string, limit?: number, viewN
  */
 export async function getListingPostsBySiteId(siteId: string, limit?: number, viewName?: string): Promise<ListingPost[]> {
   try {
-    console.log(`Fetching listing posts for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
+    // CACHE CHECK: Try bulk cache first to avoid API calls
+    const bulkData = contentCache.get('bulk-content');
+    if (bulkData) {
+      const siteListingPosts = bulkData.listingPosts
+        .filter(post => {
+          const siteField = post.Site;
+          return Array.isArray(siteField) && siteField.includes(siteId as any);
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a['Published date'] || '').getTime();
+          const dateB = new Date(b['Published date'] || '').getTime();
+          return dateB - dateA; // Most recent first
+        });
+      
+      const limitedPosts = limit && siteListingPosts.length > limit
+        ? siteListingPosts.slice(0, limit)
+        : siteListingPosts;
+      
+      if (limitedPosts.length > 0) {
+        console.log(`✅ Cache hit: Returning ${limitedPosts.length} listing posts for site ${siteId} from bulk cache`);
+        return limitedPosts as ListingPost[];
+      }
+    }
+    
+    console.log(`📡 Cache miss: Fetching listing posts for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch listing posts');
@@ -176,7 +225,22 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number, vi
  */
 export async function getHomepageContent(siteId: string, viewName?: string): Promise<Page | null> {
   try {
-    console.log(`Fetching homepage content for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
+    // CACHE CHECK: Try bulk cache first to avoid API calls
+    const bulkData = contentCache.get('bulk-content');
+    if (bulkData) {
+      const sitePages = bulkData.pages.filter(page => {
+        const siteField = page.Site;
+        return Array.isArray(siteField) && siteField.includes(siteId as any);
+      });
+      
+      const homepage = sitePages.find(page => page.Page === 'Home');
+      if (homepage) {
+        console.log(`✅ Cache hit: Returning homepage for site ${siteId} from bulk cache`);
+        return homepage as Page;
+      }
+    }
+    
+    console.log(`📡 Cache miss: Fetching homepage content for site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
     
     if (!siteId) {
       console.error('Site ID is required to fetch homepage content');
@@ -874,13 +938,18 @@ export async function getBusinessById(businessId: string): Promise<Business | nu
     const businessRecord = await base(TABLES.BUSINESSES).find(businessId);
     const business = { ...businessRecord.fields, id: businessRecord.id } as Business;
     
-    // Validate required field
-    if (!business.Competitor) {
-      console.warn(`Business with ID ${businessId} is missing required field "Competitor"`);
-      return null;
+    // Log business data for debugging
+    console.log(`Business ${businessId} fields:`, Object.keys(businessRecord.fields));
+    console.log(`Business ${businessId} Competitor field:`, business.Competitor);
+    
+    // Don't filter out businesses - they might not have Competitor but still have other useful data
+    // The Competitor field might be optional or named differently
+    if (business.Competitor) {
+      console.log(`Successfully fetched business: ${business.Competitor}`);
+    } else {
+      console.log(`Business ${businessId} fetched (no Competitor field, but may have other data)`);
     }
     
-    console.log(`Successfully fetched business: ${business.Competitor}`);
     return business;
   } catch (error) {
     console.warn(`Could not fetch business with ID ${businessId}:`, error);
@@ -901,19 +970,65 @@ export async function getBusinessesByIds(businessIds: string[]): Promise<Busines
       businessIds.map(id => getBusinessById(id))
     );
     
-    // Filter out null results and businesses missing required fields
+    // Filter out only null results - don't filter by Competitor field as it might be optional
     const validBusinesses = businesses.filter((business): business is Business => 
-      business !== null && !!business.Competitor
+      business !== null
     );
     
     if (validBusinesses.length < businesses.length) {
-      console.warn(`Filtered out ${businesses.length - validBusinesses.length} invalid businesses (missing required fields)`);
+      console.warn(`Filtered out ${businesses.length - validBusinesses.length} null businesses`);
     }
     
     console.log(`Successfully fetched ${validBusinesses.length} out of ${businessIds.length} businesses`);
     return validBusinesses;
   } catch (error) {
     console.error('Error fetching businesses:', error);
+    return [];
+  }
+}
+
+/**
+ * Get a single location by ID
+ * @param locationId The Airtable record ID of the location
+ * @returns Location object with ID included
+ */
+export async function getLocationById(locationId: string): Promise<Location | null> {
+  try {
+    console.log(`Fetching location with ID: ${locationId}`);
+    
+    const locationRecord = await base(TABLES.LOCATIONS).find(locationId);
+    const location: Location = { ...locationRecord.fields, id: locationRecord.id } as Location;
+    
+    console.log(`Successfully fetched location: ${location.id}`);
+    return location;
+  } catch (error) {
+    console.warn(`Could not fetch location with ID ${locationId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get locations by their IDs
+ * @param locationIds Array of Airtable record IDs
+ * @returns Array of Location objects
+ */
+export async function getLocationsByIds(locationIds: string[]): Promise<Location[]> {
+  try {
+    console.log(`Fetching ${locationIds.length} locations`);
+    
+    const locations = await Promise.all(
+      locationIds.map(id => getLocationById(id))
+    );
+    
+    // Filter out null results
+    const validLocations = locations.filter((location): location is Location => 
+      location !== null
+    );
+    
+    console.log(`Successfully fetched ${validLocations.length} out of ${locationIds.length} locations`);
+    return validLocations;
+  } catch (error) {
+    console.error('Error fetching locations:', error);
     return [];
   }
 }
@@ -1002,11 +1117,35 @@ export async function getListingPostBySlug(slug: string, siteId: string, viewNam
     // Post already retrieved above
     const listingPost = { ...post.fields, id: post.id } as ListingPost;
     
-    // Fetch business details if available
+    // Fetch location details directly from Locations table
+    // IMPORTANT: The "Businesses" field in ListingPost is actually a linked record field to Locations table, not Businesses table!
     if (listingPost.Businesses && Array.isArray(listingPost.Businesses) && listingPost.Businesses.length > 0) {
-      console.log(`Fetching business details for ${listingPost.Businesses.length} businesses`);
-      const businessIds = listingPost.Businesses.map(b => typeof b === 'string' ? b : b.id);
-      listingPost.BusinessDetails = await getBusinessesByIds(businessIds);
+      console.log(`Fetching ${listingPost.Businesses.length} locations directly from Locations table`);
+      const locationIds = listingPost.Businesses.map(b => typeof b === 'string' ? b : b.id);
+      
+      // Fetch locations directly by their IDs (they are Location record IDs, not Business IDs)
+      const locationPromises = locationIds.map(async (locationId, index) => {
+        try {
+          const location = await getLocationById(locationId);
+          if (location) {
+            console.log(`  ✅ Fetched Location ${index + 1}: ${location.id}`);
+            return location;
+          } else {
+            console.log(`  ⚠️ Location ${index + 1} not found: ${locationId}`);
+            return null;
+          }
+        } catch (error) {
+          console.warn(`  Error fetching Location ${index + 1} (${locationId}):`, error);
+          return null;
+        }
+      });
+      
+      const locations = await Promise.all(locationPromises);
+      const validLocations = locations.filter((l): l is Location => l !== null);
+      console.log(`✅ Fetched ${validLocations.length} locations out of ${locationIds.length} location IDs`);
+      (listingPost as any).LocationDetails = locations;
+    } else {
+      (listingPost as any).LocationDetails = [];
     }
     
     // Fetch author information if available
@@ -1022,16 +1161,24 @@ export async function getListingPostBySlug(slug: string, siteId: string, viewNam
       }
     }
     
-    // Fetch category information if available
+    // Fetch category information if available - fetch ALL categories, not just the first one
     if (listingPost.Categories && Array.isArray(listingPost.Categories) && listingPost.Categories.length > 0) {
       try {
-        const categoryId = typeof listingPost.Categories[0] === 'string' ? listingPost.Categories[0] : listingPost.Categories[0].id;
-        const categoryRecord = await base(TABLES.CATEGORIES).find(categoryId);
-        listingPost.CategoryDetails = { ...categoryRecord.fields, id: categoryRecord.id };
-        console.log('Successfully fetched category details for listing post');
+        // Fetch all categories in parallel
+        const categoryPromises = listingPost.Categories.map(async (categoryLink) => {
+          const categoryId = typeof categoryLink === 'string' ? categoryLink : categoryLink.id;
+          const categoryRecord = await base(TABLES.CATEGORIES).find(categoryId);
+          return { ...categoryRecord.fields, id: categoryRecord.id };
+        });
+        
+        const categories = await Promise.all(categoryPromises);
+        listingPost.CategoryDetails = categories[0]; // Keep first for backward compatibility
+        listingPost.AllCategoryDetails = categories; // Store all categories
+        console.log(`Successfully fetched ${categories.length} category details for listing post`);
       } catch (error) {
         console.warn('Could not fetch category details for listing post:', error);
         listingPost.CategoryDetails = { Name: 'General', Slug: 'general' };
+        listingPost.AllCategoryDetails = [];
       }
     }
     

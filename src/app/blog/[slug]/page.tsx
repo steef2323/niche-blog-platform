@@ -15,9 +15,19 @@ import {
 } from '@/lib/utils/structured-content';
 import { generateBlogPostSchemas, generateListingPostSchemas } from '@/lib/utils/schema';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import { 
+  CurrencyEuroIcon, 
+  LinkIcon, 
+  UserIcon, 
+  GlobeAltIcon, 
+  CalendarDaysIcon, 
+  UserGroupIcon,
+  MapPinIcon,
+  MapIcon,
+  BuildingOfficeIcon
+} from '@heroicons/react/24/outline';
 import TableOfContents from '@/components/blog/TableOfContents';
 import PrivateEventForm from '@/components/ui/PrivateEventForm';
-import BusinessCard from '@/components/blog/BusinessCard';
 import LazyRelatedBlogs from '@/components/blog/LazyRelatedBlogs';
 import Link from 'next/link';
 import { BlogPost, ListingPost } from '@/types/airtable';
@@ -27,6 +37,10 @@ interface BlogPostPageProps {
     slug: string;
   };
 }
+
+// Enable ISR with 12-hour revalidation (content changes ~2x/week)
+// This dramatically reduces API calls by caching pages at the Next.js level
+export const revalidate = 12 * 60 * 60; // 12 hours in seconds
 
 type PostData = {
   post: BlogPost | ListingPost;
@@ -72,10 +86,25 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
         ];
         schemas = generateBlogPostSchemas(blogPost, site, post.AuthorDetails, breadcrumbItems) || [];
       } else if (listingPost) {
+        // Helper function to truncate title for breadcrumb (mobile-friendly)
+        const truncateBreadcrumbTitle = (title: string, maxLength: number = 25): string => {
+          if (title.length <= maxLength) return title;
+          // Find the last space before maxLength to avoid cutting words
+          const truncated = title.substring(0, maxLength);
+          const lastSpace = truncated.lastIndexOf(' ');
+          if (lastSpace > 0) {
+            return title.substring(0, lastSpace) + '...';
+          }
+          return truncated + '...';
+        };
+        
         const breadcrumbItems = [
           { label: 'Home', href: '/' },
           { label: 'Blog', href: '/blog' },
-          { label: displayTitle }
+          { 
+            label: truncateBreadcrumbTitle(displayTitle), // Truncated for mobile
+            fullLabel: displayTitle // Full title for desktop and SEO
+          }
         ];
         schemas = generateListingPostSchemas(listingPost, site, breadcrumbItems) || [];
       }
@@ -630,6 +659,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       // Listing post layout
       const listingPost = post as ListingPost;
       
+      // Helper function to extract value from GeneratedContent fields
+      const getContentValue = (content: string | { state?: string; value?: string; isStale?: boolean } | undefined): string => {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        return content.value || '';
+      };
+      
       // Fetch homepage content for private event form props using views if available
       let homePage = null;
       try {
@@ -638,7 +674,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         console.error('Error fetching homepage content:', error);
       }
 
+      // Helper function to truncate title for breadcrumb (mobile-friendly)
+      const truncateBreadcrumbTitle = (title: string, maxLength: number = 25): string => {
+        if (title.length <= maxLength) return title;
+        // Find the last space before maxLength to avoid cutting words
+        const truncated = title.substring(0, maxLength);
+        const lastSpace = truncated.lastIndexOf(' ');
+        if (lastSpace > 0) {
+          return title.substring(0, lastSpace) + '...';
+        }
+        return truncated + '...';
+      };
+
       // Build breadcrumbs for listing posts using Title field
+      // Use fullLabel for desktop/SEO, label for mobile display
       const breadcrumbItems = [
         { label: 'Home', href: '/' },
         { label: 'Blog', href: '/blog' },
@@ -646,8 +695,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           label: post.CategoryDetails.Name, 
           href: `/blog/category/${post.CategoryDetails.Slug}` 
         }] : []),
-        { label: listingPost.Title }
+        { 
+          label: truncateBreadcrumbTitle(listingPost.Title), // Truncated for mobile
+          fullLabel: listingPost.Title // Full title for desktop and SEO
+        }
       ];
+      
+      // Get featured image or fallback to first business image
+      const featuredImage = listingPost['Featured image']?.[0] 
+        || listingPost['Image (from Business) (from Businesses)']?.[0];
 
       return (
         <article className="site-container py-8">
@@ -659,11 +715,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <div className="lg:col-span-8">
               {/* Hero Section */}
               <header className="mb-8">
-                {/* Category Badge */}
-                {listingPost.CategoryDetails && (
-                  <div className="mb-4">
+                {/* Category Tags - Show all categories */}
+                {listingPost.AllCategoryDetails && listingPost.AllCategoryDetails.length > 0 && (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {listingPost.AllCategoryDetails.map((category: any, index: number) => (
                     <Link
-                      href={`/blog/category/${listingPost.CategoryDetails.Slug}`}
+                        key={category.id || index}
+                        href={`/blog/category/${category.Slug}`}
                       className="inline-block px-3 py-1 text-sm font-medium rounded-full transition-opacity hover:opacity-80"
                       style={{ 
                         backgroundColor: 'var(--accent-color)',
@@ -671,8 +729,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         fontFamily: 'var(--font-body)'
                       }}
                     >
-                      {listingPost.CategoryDetails.Name}
+                        {category.Name}
                     </Link>
+                    ))}
                   </div>
                 )}
 
@@ -716,17 +775,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   {publishDate && (
                     <div>{publishDate}</div>
                   )}
-                  <div>{listingPost.BusinessDetails?.length || 0} Business{listingPost.BusinessDetails?.length !== 1 ? 'es' : ''}</div>
                 </div>
 
-                {/* Featured Image */}
-                {listingPost['Featured image']?.[0] && (
+                {/* Featured Image - use Featured image or fallback to first business image */}
+                {featuredImage && (
                   <div className="mb-8 relative">
                     <Image
-                      src={listingPost['Featured image'][0].url}
+                      src={featuredImage.url}
                       alt={listingPost['Featured image alt text'] || listingPost.Title}
-                      width={listingPost['Featured image'][0].width}
-                      height={listingPost['Featured image'][0].height}
+                      width={featuredImage.width}
+                      height={featuredImage.height}
                       className="w-full h-auto rounded-lg shadow-lg"
                       priority
                     />
@@ -761,29 +819,297 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     {listingPost.Excerpt}
                   </div>
                 )}
+
+                {/* Mobile Table of Contents - Collapsible */}
+                {(() => {
+                  // Build TOC items from Header 1-5
+                  const tocItems: Array<{ id: string; text: string }> = [];
+                  for (let i = 1; i <= 5; i++) {
+                    const header = listingPost[`Header ${i}` as keyof ListingPost] as string | undefined;
+                    if (header) {
+                      const id = `listicle-item-${i}`;
+                      tocItems.push({ id, text: header });
+                    }
+                  }
+                  
+                  if (tocItems.length === 0) return null;
+                  
+                  // Create HTML content string for TableOfContents component
+                  // Wrap in data-blog-content div so TOC can find the headings
+                  const tocContent = `<div data-blog-content>${tocItems.map(({ id, text }) => `<h2 id="${id}">${text}</h2>`).join('')}</div>`;
+                  
+                  return (
+                    <div className="lg:hidden mb-8">
+                      <TableOfContents content={tocContent} collapsible />
+                    </div>
+                  );
+                })()}
               </header>
 
-              {/* Business Listings */}
-              {listingPost.BusinessDetails && listingPost.BusinessDetails.length > 0 && (
+              {/* Listicle Items - Using Header 1-5 and Listicle paragraph 1-5 */}
                 <section className="mb-12">
-                  <h2 
-                    className="text-2xl font-bold mb-8"
+                {[1, 2, 3, 4, 5].map((index) => {
+                  const header = listingPost[`Header ${index}` as keyof ListingPost] as string | undefined;
+                  const paragraph = listingPost[`Listicle paragraph ${index}` as keyof ListingPost] as string | { state?: string; value?: string; isStale?: boolean } | undefined;
+                  const businessImage = listingPost['Image (from Business) (from Businesses)']?.[index - 1]; // 0-indexed array
+                  const business = listingPost.BusinessDetails?.[index - 1]; // Get corresponding business for additional info
+                  const location = listingPost.LocationDetails?.[index - 1]; // Get corresponding location for additional info
+                  
+                  // Skip if both header and paragraph are empty
+                  const paragraphText = getContentValue(paragraph);
+                  if (!header && !paragraphText) return null;
+                  
+                  // Get location data from lookup fields (if available)
+                  const addresses = listingPost['Address (from Location) (from Businesses)'] || [];
+                  const googleMapsLinks = listingPost['Google maps link (from Location) (from Businesses)'] || [];
+                  const cityWebsitePages = listingPost['City website page (from Location) (from Businesses)'] || [];
+                  const address = addresses[index - 1];
+                  const googleMapsLink = googleMapsLinks[index - 1];
+                  const cityWebsitePage = cityWebsitePages[index - 1];
+                  
+                  // Get business lookup fields
+                  const groupSizes = listingPost['Group size (maximum) (from Business)'] || [];
+                  const artInstructors = listingPost['Art instructor (from Business)'] || [];
+                  const languages = listingPost['Language  (from Business)'] || [];
+                  const privateEvents = listingPost['Private event possible? (from Business)'] || [];
+                  const groupSize = groupSizes[index - 1];
+                  const artInstructor = artInstructors[index - 1];
+                  const language = languages[index - 1];
+                  const privateEvent = privateEvents[index - 1];
+                  
+                  return (
+                    <div key={`listicle-item-${index}`} id={`listicle-item-${index}`} className="mb-12 scroll-mt-24">
+                      {/* Title - wrapped in data-blog-content for TOC tracking */}
+                      <div data-blog-content>
+                        {header && (
+                          <h2 
+                            id={`listicle-item-${index}`}
+                            className="text-3xl font-bold mb-6 scroll-mt-24"
                     style={{ 
                       color: 'var(--text-color)',
                       fontFamily: 'var(--font-heading)'
                     }}
                   >
-                    Featured Businesses
+                            {index}. {header}
                   </h2>
-                  <div className="space-y-8">
-                    {listingPost.BusinessDetails
-                      .filter(business => business && business.Competitor) // Filter out invalid businesses
-                      .map((business, index) => (
-                      <div key={business.id || `business-${index}`}>
-                        <BusinessCard business={business} rank={index + 1} />
-                        
-                        {/* Private Event Form between businesses */}
-                        {showPrivateEventForm && index === Math.floor(listingPost.BusinessDetails!.length / 2) - 1 && (
+                        )}
+                      </div>
+                      
+                      {/* Business Image */}
+                      {businessImage && (
+                        <div className="mb-6">
+                          <Image
+                            src={businessImage.url}
+                            alt={header || `Business ${index}`}
+                            width={businessImage.width || 800}
+                            height={businessImage.height || 600}
+                            className="w-full h-auto rounded-lg shadow-md"
+                            loading="lazy"
+                            quality={85}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Paragraph Content */}
+                      {paragraphText && (
+                        <div 
+                          className="prose prose-lg max-w-none mb-6"
+                          style={{ 
+                            color: 'var(--text-color)',
+                            fontFamily: 'var(--font-body)'
+                          }}
+                        >
+                          <p className="text-lg leading-relaxed whitespace-pre-line">
+                            {paragraphText}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Business Information Overview with Icons - Using Location data or Business lookup fields */}
+                      {(location || groupSize || artInstructor || language || privateEvent) && (
+                        <div 
+                          className="mt-6 p-6 rounded-lg"
+                          style={{ 
+                            backgroundColor: 'var(--card-bg)',
+                            border: '1px solid var(--border-color)',
+                            color: 'var(--card-text)'
+                          }}
+                        >
+                          <div className="space-y-3">
+                            {/* Price - from Location */}
+                            {location?.Price && (
+                              <div className="flex items-center gap-3">
+                                <CurrencyEuroIcon 
+                                  className="h-5 w-5 flex-shrink-0" 
+                                  style={{ color: 'var(--primary-color)' }}
+                                />
+                                <span 
+                                  className="text-base"
+                                  style={{ color: 'var(--text-color)' }}
+                                >
+                                  <span className="font-semibold">€{location.Price}</span>
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Website - from Location */}
+                            {location?.Website && (
+                              <div className="flex items-center gap-3">
+                                <LinkIcon 
+                                  className="h-5 w-5 flex-shrink-0" 
+                                  style={{ color: 'var(--primary-color)' }}
+                                />
+                                <Link
+                                  href={location.Website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-base font-medium hover:underline"
+                                  style={{ color: 'var(--primary-color)' }}
+                                >
+                                  {location.Website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                                </Link>
+                              </div>
+                            )}
+                            
+                            {/* Art Instructor - from Location lookup field (from Business) */}
+                            {(() => {
+                              const artInstructorValue = location?.['Art instructor'] || location?.['Art instructor (from Business)']?.[0] || artInstructor;
+                              if (!artInstructorValue) return null;
+                              return (
+                                <div className="flex items-center gap-3">
+                                  <UserIcon 
+                                    className="h-5 w-5 flex-shrink-0" 
+                                    style={{ color: 'var(--primary-color)' }}
+                                  />
+                                  <span 
+                                    className="text-base"
+                                    style={{ color: 'var(--text-color)' }}
+                                  >
+                                    Art instructor: {artInstructorValue}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Language - from Location lookup field (from Business) */}
+                            {(() => {
+                              const langValue = location?.['Language '] || location?.['Language  (from Business)']?.[0] || language;
+                              if (!langValue || (Array.isArray(langValue) && langValue.length === 0)) return null;
+                              return (
+                                <div className="flex items-center gap-3">
+                                  <GlobeAltIcon 
+                                    className="h-5 w-5 flex-shrink-0" 
+                                    style={{ color: 'var(--primary-color)' }}
+                                  />
+                                  <span 
+                                    className="text-base"
+                                    style={{ color: 'var(--text-color)' }}
+                                  >
+                                    {Array.isArray(langValue) ? langValue.join(', ') : langValue}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Private Event Possible - from Location lookup field (from Business) */}
+                            {(() => {
+                              const privateEventValue = location?.['Private event possible?'] || location?.['Private event possible? (from Business)']?.[0] || privateEvent;
+                              if (!privateEventValue) return null;
+                              return (
+                                <div className="flex items-center gap-3">
+                                  <CalendarDaysIcon 
+                                    className="h-5 w-5 flex-shrink-0" 
+                                    style={{ color: 'var(--primary-color)' }}
+                                  />
+                                  <span 
+                                    className="text-base"
+                                    style={{ color: 'var(--text-color)' }}
+                                  >
+                                    Private event: {privateEventValue}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Max Group Size - from Location lookup field (from Business) */}
+                            {(() => {
+                              const groupSizeValue = location?.['Group size (maximum)'] || location?.['Group size (maximum) (from Business)']?.[0] || groupSize;
+                              if (!groupSizeValue) return null;
+                              return (
+                                <div className="flex items-center gap-3">
+                                  <UserGroupIcon 
+                                    className="h-5 w-5 flex-shrink-0" 
+                                    style={{ color: 'var(--primary-color)' }}
+                                  />
+                                  <span 
+                                    className="text-base"
+                                    style={{ color: 'var(--text-color)' }}
+                                  >
+                                    Max {groupSizeValue} people
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Address - from Location */}
+                            {location?.Address && (
+                              <div className="flex items-center gap-3">
+                                <MapPinIcon 
+                                  className="h-5 w-5 flex-shrink-0" 
+                                  style={{ color: 'var(--primary-color)' }}
+                                />
+                                <span 
+                                  className="text-base"
+                                  style={{ color: 'var(--text-color)' }}
+                                >
+                                  {location.Address}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Google Maps Link - from Location */}
+                            {location?.['Google maps link'] && (
+                              <div className="flex items-center gap-3">
+                                <MapIcon 
+                                  className="h-5 w-5 flex-shrink-0" 
+                                  style={{ color: 'var(--primary-color)' }}
+                                />
+                                <Link
+                                  href={location['Google maps link']}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-base font-medium hover:underline"
+                                  style={{ color: 'var(--primary-color)' }}
+                                >
+                                  View on Google Maps
+                                </Link>
+                              </div>
+                            )}
+                            
+                            {/* City Website Page - from Location */}
+                            {location?.['City website page'] && (
+                              <div className="flex items-center gap-3">
+                                <BuildingOfficeIcon 
+                                  className="h-5 w-5 flex-shrink-0" 
+                                  style={{ color: 'var(--primary-color)' }}
+                                />
+                                <Link
+                                  href={location['City website page']}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-base font-medium hover:underline"
+                                  style={{ color: 'var(--primary-color)' }}
+                                >
+                                  City Website
+                                </Link>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Private Event Form between listicle items */}
+                      {showPrivateEventForm && index === 3 && (
                           <div className="my-12 p-6 rounded-lg" style={{ backgroundColor: 'var(--accent-color)' }}>
                             <h3 
                               className="text-xl font-semibold mb-4"
@@ -813,13 +1139,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                           </div>
                         )}
                       </div>
-                    ))}
-                  </div>
+                  );
+                })}
                 </section>
-              )}
 
               {/* Conclusion */}
-              {listingPost.Conclusion && (
+              {getContentValue(listingPost.Conclusion) && (
                 <section className="mb-12">
                   <h2 
                     className="text-2xl font-bold mb-6"
@@ -837,8 +1162,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       fontFamily: 'var(--font-body)'
                     }}
                   >
-                    <p className="text-lg leading-relaxed">
-                      {listingPost.Conclusion}
+                    <p className="text-lg leading-relaxed whitespace-pre-line">
+                      {getContentValue(listingPost.Conclusion)}
                     </p>
                   </div>
                 </section>
@@ -849,6 +1174,27 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             {/* Sidebar - Hidden on mobile */}
             <aside className="hidden lg:block lg:col-span-4 mt-12 lg:mt-0">
               <div className="lg:sticky lg:top-8 space-y-6">
+                {/* Table of Contents for Listicle - Desktop Sidebar */}
+                {(() => {
+                  // Build TOC items from Header 1-5
+                  const tocItems: Array<{ id: string; text: string }> = [];
+                  for (let i = 1; i <= 5; i++) {
+                    const header = listingPost[`Header ${i}` as keyof ListingPost] as string | undefined;
+                    if (header) {
+                      const id = `listicle-item-${i}`;
+                      tocItems.push({ id, text: header });
+                    }
+                  }
+                  
+                  if (tocItems.length === 0) return null;
+                  
+                  // Create HTML content string for TableOfContents component
+                  // Wrap in data-blog-content div so TOC can find the headings
+                  const tocContent = `<div data-blog-content>${tocItems.map(({ id, text }) => `<h2 id="${id}">${text}</h2>`).join('')}</div>`;
+                  
+                  return <TableOfContents content={tocContent} />;
+                })()}
+
                 {/* Private Event Form Button in Sidebar */}
                 {showPrivateEventForm && (
                   <div className="rounded-lg p-6 shadow-sm border" style={{ backgroundColor: 'var(--accent-color)', borderColor: 'var(--border-color)' }}>

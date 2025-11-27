@@ -4,6 +4,10 @@ import { getSiteConfig } from '@/lib/site-detection';
 import { generateHomepageSchemas } from '@/lib/utils/schema';
 import Homepage from '@/components/homepage/Homepage';
 
+// Enable ISR with 12-hour revalidation (content changes ~2x/week)
+// This dramatically reduces API calls by caching pages at the Next.js level
+export const revalidate = 12 * 60 * 60; // 12 hours in seconds
+
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = headers();
   const host = headersList.get('host') || '';

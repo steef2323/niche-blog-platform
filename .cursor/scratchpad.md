@@ -4,6 +4,11 @@
 
 The user requested detailed implementation strategy for SEO optimizations, specifically asking what can be hardcoded vs. what needs to be dynamic from Airtable. This analysis will provide a comprehensive implementation plan for achieving high search engine rankings.
 
+**NEW REQUEST**: The user wants to set up automated blog creation with automatic internal linking. Blogs should be created fully automatically based on just a few variables, and the generated text should contain relevant internal links to other articles. This requires:
+1. Airtable field structure for automated content generation
+2. Automated internal link insertion based on keywords/topics
+3. Integration with existing `[LINK: text: slug]` pattern system
+
 ## Key Challenges and Analysis
 
 ### Implementation Strategy Overview
@@ -600,6 +605,251 @@ Sitemap: {DYNAMIC_SITE_URL}/sitemap.xml
 3. Are there specific Airtable fields we should prioritize for dynamic content?
 4. Should we implement local SEO features for business listings first?
 
+## Automated Blog Creation with Internal Links
+
+### Background
+The user wants blogs to be created fully automatically based on a few variables, with automatic insertion of relevant internal links throughout the content.
+
+### Current System
+- Existing `[LINK: text: slug]` pattern is already supported in markdown processing
+- Pattern converts to proper markdown links: `[LINK: link text: article-slug]` → `[link text](/blog/article-slug)`
+- Works in all content fields: Introduction, Text2.1-2.3, Conclusion, Full article
+
+### Recommended Airtable Setup
+
+#### Option 1: Keyword-Based Auto-Linking (RECOMMENDED)
+**New Fields in Blog Posts Table:**
+
+1. **"Link Keywords"** (Long text field)
+   - Format: One keyword-to-slug mapping per line
+   - Example:
+     ```
+     sip and paint: sip-and-paint-workshop
+     private event: private-event-planning
+     team building: team-building-activities
+     workshop: sip-and-paint-workshop
+     ```
+   - Purpose: Defines which keywords should link to which articles
+
+2. **"Auto Link Density"** (Number field, default: 2)
+   - Controls how many times per 1000 words to insert links
+   - Default: 2 links per 1000 words (SEO best practice)
+
+3. **"Link Context"** (Single select: "Natural", "Forced", "Smart")
+   - Natural: Only link when keyword appears naturally
+   - Forced: Insert links even if keyword doesn't appear
+   - Smart: Use AI/NLP to find best insertion points
+
+#### Option 2: Category-Based Auto-Linking (SIMPLER)
+**Use Existing Fields:**
+
+1. **"Categories"** (Linked records - already exists)
+   - Automatically link to other articles in same category
+   - Use "Related blogs" field to prioritize specific articles
+
+2. **"Related blogs"** (Linked records - already exists)
+   - Manually select articles that should be linked
+   - System automatically inserts links when keywords from those articles appear
+
+#### Option 3: Hybrid Approach (BEST FOR AUTOMATION)
+**Combination of both:**
+
+1. **"Link Keywords"** field for explicit keyword mapping
+2. **"Related blogs"** field for article relationships
+3. **"Categories"** field for category-based linking
+4. **"Auto Link Mode"** (Single select: "Keywords Only", "Related Only", "Both", "Smart")
+
+### Implementation Approach
+
+#### Phase 1: Airtable Structure Setup
+1. Add new fields to Blog Posts table:
+   - "Link Keywords" (Long text)
+   - "Auto Link Density" (Number, default: 2)
+   - "Link Context" (Single select: Natural/Forced/Smart)
+   - "Auto Link Mode" (Single select: Keywords/Related/Both/Smart)
+
+2. Create "Link Mapping" table (optional, for centralized management):
+   - Fields: Keyword, Target Article (Linked record), Priority, Context
+   - Allows managing all link mappings in one place
+
+#### Phase 2: Auto-Linking Logic Implementation
+1. Create utility function: `/src/lib/utils/auto-linking.ts`
+   - Function: `insertInternalLinks(content: string, post: BlogPost, allPosts: BlogPost[]): string`
+   - Logic:
+     - Parse "Link Keywords" field
+     - Find keywords in content
+     - Insert `[LINK: keyword: slug]` patterns
+     - Respect "Auto Link Density" setting
+     - Avoid duplicate links in same paragraph
+     - Prioritize first occurrence of keyword
+
+2. Integration points:
+   - During content generation (if using AI/external service)
+   - Post-processing hook after content is created
+   - On-the-fly during rendering (less efficient)
+
+#### Phase 3: Content Generation Integration
+1. If using external AI service (OpenAI, etc.):
+   - Pass "Link Keywords" as context
+   - Instruct AI to include `[LINK: text: slug]` patterns
+   - Post-process to validate and add missing links
+
+2. If using Airtable automation:
+   - Create automation that triggers on content update
+   - Call API endpoint to process links
+   - Update content fields with processed text
+
+### API Endpoint for Auto-Linking
+
+**Endpoint**: `/api/blog/auto-link`
+**Method**: POST
+**Purpose**: Process blog post content and insert internal links
+
+**Request Body**:
+```json
+{
+  "postId": "rec123",
+  "content": "Original content text...",
+  "linkKeywords": "sip and paint: sip-and-paint-workshop\nworkshop: workshop-guide",
+  "mode": "keywords",
+  "density": 2
+}
+```
+
+**Response**:
+```json
+{
+  "processedContent": "Content with [LINK: patterns] inserted...",
+  "linksInserted": 3,
+  "keywordsMatched": ["sip and paint", "workshop"]
+}
+```
+
+### Airtable Automation Flow
+
+1. **Trigger**: When "Full article" or "Text2.x" fields are updated
+2. **Action**: Call webhook to `/api/blog/auto-link`
+3. **Update**: Replace content field with processed version containing links
+
+### Best Practices
+
+1. **Keyword Selection**:
+   - Use natural phrases, not single words
+   - Match how users actually search
+   - Example: "sip and paint workshop" not just "workshop"
+
+2. **Link Density**:
+   - 2-3 internal links per 1000 words (SEO best practice)
+   - Don't over-link (hurts readability)
+   - Space links throughout article, not clustered
+
+3. **Anchor Text Variety**:
+   - Use different variations of keywords
+   - Example: "sip and paint", "sip & paint workshop", "paint and sip event"
+
+4. **Relevance**:
+   - Only link to truly related articles
+   - Use "Related blogs" field to maintain relationships
+   - Category-based linking ensures topical relevance
+
+### Task Breakdown
+
+#### Task A.1: Airtable Field Setup
+**Priority**: HIGH
+**Estimated Time**: 1 hour
+
+**Subtasks**:
+- [ ] Add "Link Keywords" field to Blog Posts table
+- [ ] Add "Auto Link Density" field (Number, default: 2)
+- [ ] Add "Link Context" field (Single select)
+- [ ] Add "Auto Link Mode" field (Single select)
+- [ ] Document field usage in Airtable
+
+**Success Criteria**:
+- All fields added and configured
+- Default values set appropriately
+- Fields visible in Airtable interface
+
+#### Task A.2: Auto-Linking Utility Function
+**Priority**: HIGH
+**Estimated Time**: 4-5 hours
+
+**Subtasks**:
+- [ ] Create `/src/lib/utils/auto-linking.ts`
+- [ ] Implement keyword parsing from "Link Keywords" field
+- [ ] Implement content scanning for keywords
+- [ ] Implement `[LINK: text: slug]` pattern insertion
+- [ ] Respect "Auto Link Density" setting
+- [ ] Avoid duplicate links in same paragraph
+- [ ] Handle case-insensitive matching
+- [ ] Support "Related blogs" field for article-based linking
+- [ ] Support category-based linking
+- [ ] Add unit tests for link insertion logic
+
+**Success Criteria**:
+- Function correctly inserts links based on keywords
+- Respects density settings
+- No duplicate links in same paragraph
+- Handles edge cases (no keywords, empty content, etc.)
+
+#### Task A.3: API Endpoint for Auto-Linking
+**Priority**: MEDIUM
+**Estimated Time**: 2-3 hours
+
+**Subtasks**:
+- [ ] Create `/app/api/blog/auto-link/route.ts`
+- [ ] Implement POST handler
+- [ ] Validate request body
+- [ ] Call auto-linking utility function
+- [ ] Return processed content and statistics
+- [ ] Add error handling
+- [ ] Add rate limiting (if needed)
+
+**Success Criteria**:
+- API endpoint accepts content and returns processed version
+- Returns statistics (links inserted, keywords matched)
+- Proper error handling for invalid requests
+
+#### Task A.4: Airtable Automation Setup
+**Priority**: MEDIUM
+**Estimated Time**: 2-3 hours
+
+**Subtasks**:
+- [ ] Create Airtable automation trigger (field update)
+- [ ] Configure webhook to call API endpoint
+- [ ] Set up field update action to save processed content
+- [ ] Test automation with sample blog post
+- [ ] Document automation workflow
+
+**Success Criteria**:
+- Automation triggers on content field updates
+- Successfully calls API and updates content
+- Works reliably without manual intervention
+
+#### Task A.5: Integration with Content Generation
+**Priority**: LOW (if using external AI)
+**Estimated Time**: 3-4 hours
+
+**Subtasks**:
+- [ ] Identify content generation source (AI service, template, etc.)
+- [ ] Integrate auto-linking into generation pipeline
+- [ ] Pass "Link Keywords" to content generator
+- [ ] Post-process generated content with auto-linking
+- [ ] Test end-to-end flow
+
+**Success Criteria**:
+- Content generation includes internal links
+- Links are relevant and properly formatted
+- No manual intervention needed
+
+### Questions for User
+
+1. **Content Generation Method**: How are blogs currently being created automatically? (AI service, Airtable automation, external tool, etc.)
+2. **Link Strategy**: Do you prefer keyword-based, category-based, or hybrid approach?
+3. **Link Density**: How many internal links per article? (Default: 2 per 1000 words)
+4. **Manual Override**: Should content creators be able to manually add/remove links, or fully automated?
+5. **Link Validation**: Should we validate that linked articles exist and are published before inserting links?
+
 ## Lessons
 
 1. **Task Prioritization**: Critical tasks (robots.txt, sitemap.xml) should be implemented first
@@ -610,3 +860,26 @@ Sitemap: {DYNAMIC_SITE_URL}/sitemap.xml
 6. **Testing Strategy**: Each task includes testing and validation requirements
 7. **Error Handling**: Proper error handling is included in critical tasks
 8. **Monitoring**: Success criteria include monitoring and validation steps
+9. **Internal Linking**: Automated internal linking improves SEO and user experience when done correctly
+10. **Link Density**: 2-3 internal links per 1000 words is SEO best practice - avoid over-linking
+11. **Field Name Changes**: When Airtable field names change, update TypeScript interfaces and all code references to match the new field names
+
+## Current Issue: Listicle Pages Not Loading
+
+**Problem**: Listicle pages don't load - likely due to field name changes in the Airtable Listing Posts table.
+
+**Current Fields Used in Code**:
+- `Businesses` (RecordLink[]) - Links to Business records
+- `Conclusion` (string) - Conclusion content for the listicle
+- `Title`, `Slug`, `Excerpt`, `Published`, `Published date`
+- `Author`, `Categories`, `Featured image`, etc.
+
+**Business Fields Expected**:
+- `Competitor` (required) - Business name
+- `Price`, `Information`, `Image`, `Cities`, etc.
+
+**Action Needed**: 
+1. Identify which fields have changed in Airtable
+2. Update `src/types/airtable/listing-post.ts` with new field names
+3. Update all code references to use new field names
+4. Test listicle page rendering
