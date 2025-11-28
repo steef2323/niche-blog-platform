@@ -1209,6 +1209,7 @@ async function populateFeaturedImagesFromLocations(listingPosts: ListingPost[]):
     console.log(`Fetching first location images for ${postsNeedingLocationImage.length} listing posts without featured images`);
     const locationPromises = postsNeedingLocationImage.map(async (post) => {
       try {
+        if (!post.Businesses?.[0]) return;
         const locationId = typeof post.Businesses[0] === 'string' ? post.Businesses[0] : post.Businesses[0].id;
         const location = await getLocationById(locationId);
         if (location?.Image?.[0]) {

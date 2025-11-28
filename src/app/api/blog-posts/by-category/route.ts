@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getBlogPostsByCategoryExcludingPopular } from '@/lib/airtable/content';
 import base, { TABLES } from '@/lib/airtable/config';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

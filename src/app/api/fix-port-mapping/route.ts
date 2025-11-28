@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import base, { TABLES } from '@/lib/airtable/config';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // Update the site mappings to fix the port assignments
