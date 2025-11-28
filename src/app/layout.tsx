@@ -9,6 +9,32 @@ import { GoogleTagManagerScript, GoogleTagManagerNoscript } from '@/components/c
 import GoogleFonts from '@/components/common/GoogleFonts';
 import { getFaviconPath } from '@/lib/utils/asset-paths';
 
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = headers();
+  const host = headersList.get('host') || '';
+  
+  try {
+    const siteConfig = await getSiteConfig(host);
+    const site = siteConfig?.site || null;
+    const faviconPath = site ? getFaviconPath(site.Domain || host) : '/favicon.ico';
+    
+    return {
+      icons: {
+        icon: faviconPath,
+        shortcut: faviconPath,
+        apple: faviconPath,
+      },
+    };
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+    return {
+      icons: {
+        icon: '/favicon.ico',
+      },
+    };
+  }
+}
+
 export default async function RootLayout({
   children,
 }: {
@@ -25,13 +51,11 @@ export default async function RootLayout({
     console.log('✅ Site config fetched:', siteConfig ? 'success' : 'not found');
 
     const site = siteConfig?.site || null;
-    const faviconPath = site ? getFaviconPath(site.Domain || host) : '/favicon.ico';
     const siteLanguage = site?.Language?.toLowerCase() || 'en';
 
     return (
       <html lang={siteLanguage}>
         <head>
-          <link rel="icon" href={faviconPath} />
           <GoogleTagManagerScript gtmId={site?.['Google Tag Manager ID']} />
         </head>
         <body>
