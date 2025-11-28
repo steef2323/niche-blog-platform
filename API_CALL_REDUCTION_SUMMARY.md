@@ -95,3 +95,4 @@ If you need even more reduction:
 - The 12-hour cache is safe because content changes only 2x/week
 - If content needs to be updated immediately, you can manually clear the cache via API endpoint (if implemented)
 
+

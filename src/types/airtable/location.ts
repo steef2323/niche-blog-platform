@@ -1,12 +1,14 @@
-import { BaseFields, RecordLink } from './common';
+import { Attachment, BaseFields, RecordLink } from './common';
 
 export interface Location extends BaseFields {
   ID?: number;
+  Name?: string;
   Address?: string;
   'Google maps link'?: string;
   'City website page'?: string;
   Price?: number;
   Website?: string;
+  Image?: Attachment[];
   'Art instructor'?: string;
   'Language '?: string[]; // Note the space in the field name
   'Private event possible?'?: string;

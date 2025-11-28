@@ -363,6 +363,100 @@ export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Aut
 }
 
 /**
+ * Generate Article schema with ItemList for listicle posts
+ * @param post - Listing post data
+ * @param site - Site data
+ * @param author - Author data (optional)
+ * @returns JSON-LD Article schema with ItemList
+ */
+export function generateListicleArticleSchema(post: ListingPost, site: Site, author?: any) {
+  if (!post || !site) {
+    return null;
+  }
+
+  try {
+    const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
+    const postUrl = `${siteUrl}/blog/${post.Slug || 'untitled'}`;
+    
+    // Build ItemList from listicle items (Header 1-5)
+    const listItems: any[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const header = post[`Header ${i}` as keyof ListingPost] as string | undefined;
+      if (header) {
+        listItems.push({
+          "@type": "ListItem",
+          "position": i,
+          "name": header,
+          "item": {
+            "@type": "Article",
+            "@id": `${postUrl}#listicle-item-${i}`,
+            "name": header
+          }
+        });
+      }
+    }
+
+    // Get featured image with fallback logic
+    const firstLocation = post.LocationDetails?.[0];
+    const firstLocationImage = firstLocation?.Image?.[0];
+    const featuredImage = post['Featured image']?.[0] 
+      || firstLocationImage
+      || post['Image (from Business) (from Businesses)']?.[0];
+
+    const articleSchema: any = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": post.Title || "Untitled Listicle",
+      "description": post['Meta description'] || post.Excerpt || "",
+      "image": featuredImage ? {
+        "@type": "ImageObject",
+        "url": featuredImage.url,
+        "width": featuredImage.width,
+        "height": featuredImage.height
+      } : undefined,
+      "datePublished": post['Published date'] || new Date().toISOString(),
+      "dateModified": post['Last updated'] || post['Published date'] || new Date().toISOString(),
+      "author": author ? {
+        "@type": "Person",
+        "name": author.Name,
+        "url": `${siteUrl}/blog/author/${author.Slug || author.Name?.toLowerCase().replace(/\s+/g, '-')}`
+      } : {
+        "@type": "Organization",
+        "name": site.Name
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": site.Name,
+        "logo": site['Site logo']?.[0]?.url ? {
+          "@type": "ImageObject",
+          "url": site['Site logo'][0].url
+        } : undefined
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": postUrl
+      },
+      "articleSection": post.CategoryDetails?.Name || "Blog",
+      "keywords": Array.isArray(post.Tags) ? post.Tags.join(', ') : (post.Tags || ""),
+    };
+
+    // Add ItemList as mainEntity if we have list items
+    if (listItems.length > 0) {
+      articleSchema.mainEntity = {
+        "@type": "ItemList",
+        "numberOfItems": listItems.length,
+        "itemListElement": listItems
+      };
+    }
+
+    return articleSchema;
+  } catch (error) {
+    console.error('Error generating listicle article schema:', error);
+    return null;
+  }
+}
+
+/**
  * Generate schema markup for a listing post page
  * @param post - Listing post data
  * @param site - Site data
@@ -380,6 +474,10 @@ export function generateListingPostSchemas(post: ListingPost, site: Site, breadc
   try {
     const webSiteSchema = generateWebSiteSchema(site);
     if (webSiteSchema) schemas.push(webSiteSchema);
+    
+    // Add Article schema with ItemList for listicle SEO
+    const articleSchema = generateListicleArticleSchema(post, site, post.AuthorDetails);
+    if (articleSchema) schemas.push(articleSchema);
     
     const localBusinessSchema = generateLocalBusinessSchema(post, site);
     if (localBusinessSchema) schemas.push(localBusinessSchema);

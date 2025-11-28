@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSite } from '@/contexts/site';
+import { useSite, useSitePages } from '@/contexts/site';
 import { Category, Page } from '@/types/airtable';
 import { getLogoPath } from '@/lib/utils/asset-paths';
 
@@ -13,8 +13,8 @@ interface FooterProps {
 
 export default function Footer({ className = '' }: FooterProps) {
   const { site } = useSite();
+  const pages = useSitePages(); // Use hook to get pages from context
   const [categories, setCategories] = useState<Category[]>([]);
-  const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,21 +22,13 @@ export default function Footer({ className = '' }: FooterProps) {
 
     const fetchFooterData = async () => {
       try {
-        // Fetch categories and pages for footer navigation
-        const [categoriesRes, pagesRes] = await Promise.all([
-          fetch(`/api/categories?siteId=${site.id}`),
-          // We'll get pages from the site context since they're already loaded
-          Promise.resolve(site.Pages || [])
-        ]);
+        // Fetch categories for footer navigation
+        const categoriesRes = await fetch(`/api/categories?siteId=${site.id}`);
 
         if (categoriesRes.ok) {
           const categoriesData = await categoriesRes.json();
           setCategories(categoriesData);
         }
-
-        // Filter and prepare pages data
-        const pagesData = Array.isArray(pagesRes) ? pagesRes : [];
-        setPages(pagesData as Page[]);
       } catch (error) {
         console.error('Error fetching footer data:', error);
       } finally {
@@ -45,7 +37,7 @@ export default function Footer({ className = '' }: FooterProps) {
     };
 
     fetchFooterData();
-  }, [site?.id, site?.Pages]);
+  }, [site?.id]);
 
   if (!site || loading) {
     return null;
@@ -120,17 +112,60 @@ export default function Footer({ className = '' }: FooterProps) {
                 </Link>
               </li>
               
-              {/* Other pages */}
+              {/* Other pages - including Work with us and Sip and Paint Amsterdam */}
               {pages
                 .filter(page => {
-                  // Filter out home pages and ensure published pages
-                  return (
-                    page.Published && 
-                    page.Slug && 
-                    page.Title && 
-                    page.Slug.toLowerCase() !== 'home' &&
-                    page.Page !== 'Home'
-                  );
+                  if (!page.Published || !page.Slug || !page.Title) return false;
+                  
+                  const slugLower = page.Slug?.toLowerCase() || '';
+                  const titleLower = page.Title?.toLowerCase() || '';
+                  
+                  // Exclude home pages
+                  if (slugLower === 'home' || page.Page === 'Home') return false;
+                  
+                  // Always include Work with us (check various possible formats)
+                  const isWorkWithUs = slugLower.includes('work') && slugLower.includes('us') ||
+                                       titleLower.includes('work') && titleLower.includes('us');
+                  
+                  // Always include Sip and Paint Amsterdam (check various possible formats)
+                  const isSipAndPaintAmsterdam = (slugLower.includes('sip') && slugLower.includes('paint') && slugLower.includes('amsterdam')) ||
+                                                 (titleLower.includes('sip') && titleLower.includes('paint') && titleLower.includes('amsterdam'));
+                  
+                  if (isWorkWithUs || isSipAndPaintAmsterdam) {
+                    return true;
+                  }
+                  
+                  // Exclude Amsterdam page (but not Sip and Paint Amsterdam)
+                  if (slugLower === 'amsterdam' && !titleLower.includes('sip') && !titleLower.includes('paint')) {
+                    return false;
+                  }
+                  
+                  // Include all other published pages
+                  return true;
+                })
+                .sort((a, b) => {
+                  // Sort: Work with us first, then Sip and Paint Amsterdam, then alphabetically
+                  const aSlug = a.Slug?.toLowerCase() || '';
+                  const aTitle = a.Title?.toLowerCase() || '';
+                  const bSlug = b.Slug?.toLowerCase() || '';
+                  const bTitle = b.Title?.toLowerCase() || '';
+                  
+                  const aIsWorkWithUs = (aSlug.includes('work') && aSlug.includes('us')) ||
+                                       (aTitle.includes('work') && aTitle.includes('us'));
+                  const aIsSipAndPaint = (aSlug.includes('sip') && aSlug.includes('paint') && aSlug.includes('amsterdam')) ||
+                                        (aTitle.includes('sip') && aTitle.includes('paint') && aTitle.includes('amsterdam'));
+                  const bIsWorkWithUs = (bSlug.includes('work') && bSlug.includes('us')) ||
+                                       (bTitle.includes('work') && bTitle.includes('us'));
+                  const bIsSipAndPaint = (bSlug.includes('sip') && bSlug.includes('paint') && bSlug.includes('amsterdam')) ||
+                                        (bTitle.includes('sip') && bTitle.includes('paint') && bTitle.includes('amsterdam'));
+                  
+                  if (aIsWorkWithUs && !bIsWorkWithUs && !bIsSipAndPaint) return -1;
+                  if (bIsWorkWithUs && !aIsWorkWithUs && !aIsSipAndPaint) return 1;
+                  if (aIsSipAndPaint && !bIsSipAndPaint && !bIsWorkWithUs) return -1;
+                  if (bIsSipAndPaint && !aIsSipAndPaint && !aIsWorkWithUs) return 1;
+                  
+                  // Alphabetical for others
+                  return (a.Title || '').localeCompare(b.Title || '');
                 })
                 .map((page) => (
                   <li key={page.id || page.Slug}>
@@ -139,7 +174,7 @@ export default function Footer({ className = '' }: FooterProps) {
                       className="text-sm hover:opacity-80 transition-opacity"
                       style={{ color: 'var(--text-color)' }}
                     >
-                      {page.Title}
+                      {page.Title === 'Blog overview' ? 'Blog' : page.Title}
                     </Link>
                   </li>
                 ))}

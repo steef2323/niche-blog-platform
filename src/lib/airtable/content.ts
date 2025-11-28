@@ -196,12 +196,15 @@ export async function getListingPostsBySiteId(siteId: string, limit?: number, vi
     }
     
     // Map to ListingPost objects with IDs
-    let listingPosts = postRecords.map(post => post.fields as unknown as ListingPost);
+    let listingPosts = postRecords.map(post => ({ ...post.fields, id: post.id } as unknown as ListingPost));
     
     // Apply limit if specified
     if (limit && listingPosts.length > limit) {
       listingPosts = listingPosts.slice(0, limit);
     }
+    
+    // For posts without Featured image, fetch first location image and use it as featured image
+    await populateFeaturedImagesFromLocations(listingPosts);
     
     console.log(`Returning ${listingPosts.length} listing posts for site ID: ${siteId}`);
     
@@ -1197,6 +1200,31 @@ export async function getListingPostBySlug(slug: string, siteId: string, viewNam
 }
 
 /**
+ * Helper function to populate featured images from first location image for listing posts
+ * @param listingPosts Array of listing posts to process
+ */
+async function populateFeaturedImagesFromLocations(listingPosts: ListingPost[]): Promise<void> {
+  const postsNeedingLocationImage = listingPosts.filter(post => !post['Featured image']?.[0] && post.Businesses?.[0]);
+  if (postsNeedingLocationImage.length > 0) {
+    console.log(`Fetching first location images for ${postsNeedingLocationImage.length} listing posts without featured images`);
+    const locationPromises = postsNeedingLocationImage.map(async (post) => {
+      try {
+        const locationId = typeof post.Businesses[0] === 'string' ? post.Businesses[0] : post.Businesses[0].id;
+        const location = await getLocationById(locationId);
+        if (location?.Image?.[0]) {
+          // Set the first location image as the featured image
+          (post as any)['Featured image'] = location.Image;
+          (post as any)['Featured image alt text'] = location.Name || location.Address || post.Title;
+        }
+      } catch (error) {
+        console.warn(`Error fetching location image for post ${post.Slug}:`, error);
+      }
+    });
+    await Promise.all(locationPromises);
+  }
+}
+
+/**
  * Get listing posts by author slug
  * @param authorSlug The slug of the author
  * @param siteId The ID of the site
@@ -1249,7 +1277,12 @@ export async function getListingPostsByAuthorSlug(authorSlug: string, siteId: st
       posts = posts.slice(0, limit);
     }
     
-    return posts.map(post => post.fields as unknown as ListingPost);
+    const listingPosts = posts.map(post => ({ ...post.fields, id: post.id } as unknown as ListingPost));
+    
+    // For posts without Featured image, fetch first location image and use it as featured image
+    await populateFeaturedImagesFromLocations(listingPosts);
+    
+    return listingPosts;
   } catch (error) {
     console.error('Error fetching listing posts by author:', error);
     throw new AirtableError(
@@ -1342,7 +1375,12 @@ export async function getListingPostsByCategorySlug(categorySlug: string, siteId
       posts = posts.slice(0, limit);
     }
     
-    return posts.map(post => post.fields as unknown as ListingPost);
+    const listingPosts = posts.map(post => ({ ...post.fields, id: post.id } as unknown as ListingPost));
+    
+    // For posts without Featured image, fetch first location image and use it as featured image
+    await populateFeaturedImagesFromLocations(listingPosts);
+    
+    return listingPosts;
   } catch (error) {
     console.error('Error fetching listing posts by category:', error);
     throw new AirtableError(

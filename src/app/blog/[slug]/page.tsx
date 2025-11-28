@@ -10,6 +10,7 @@ import {
   getBlogContent, 
   renderStructuredHTML, 
   getContentForReadingTime,
+  getListingPostContentForReadingTime,
   getBlogTitle,
   getBlogExcerpt 
 } from '@/lib/utils/structured-content';
@@ -113,22 +114,50 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       schemas = [];
     }
 
+    // Get featured image with same logic as component: Featured image, then first location image, then first business image
+    let featuredImageUrl: string | undefined;
+    if (post['Featured image']?.[0]?.url) {
+      featuredImageUrl = post['Featured image'][0].url;
+    } else if (listingPost) {
+      const firstLocation = listingPost.LocationDetails?.[0];
+      if (firstLocation?.Image?.[0]?.url) {
+        featuredImageUrl = firstLocation.Image[0].url;
+      } else if (listingPost['Image (from Business) (from Businesses)']?.[0]?.url) {
+        featuredImageUrl = listingPost['Image (from Business) (from Businesses)'][0].url;
+      }
+    }
+
+    // Build canonical URL
+    const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
+    const canonicalUrl = `${siteUrl}/blog/${params.slug}`;
+
+    // Get keywords for meta tag
+    const keywords = Array.isArray(post.Tags) ? post.Tags.join(', ') : (post.Tags || '');
+
     return {
       title: displayTitle,
       description: displayDescription,
+      keywords: keywords || undefined,
+      alternates: {
+        canonical: canonicalUrl,
+      },
       openGraph: {
         title: displayTitle,
         description: displayDescription,
-        images: post['Featured image']?.[0]?.url ? [post['Featured image'][0].url] : [],
+        url: canonicalUrl,
+        images: featuredImageUrl ? [featuredImageUrl] : [],
         type: 'article',
         publishedTime: post['Published date'],
+        modifiedTime: post['Last updated'] || post['Published date'],
         authors: post.AuthorDetails?.Name ? [post.AuthorDetails.Name] : [],
+        section: post.CategoryDetails?.Name || 'Blog',
+        tags: Array.isArray(post.Tags) ? post.Tags : (post.Tags ? [post.Tags] : []),
       },
       twitter: {
         card: 'summary_large_image',
         title: displayTitle,
         description: displayDescription,
-        images: post['Featured image']?.[0]?.url ? [post['Featured image'][0].url] : [],
+        images: featuredImageUrl ? [featuredImageUrl] : [],
       },
       other: {
         // Add JSON-LD schema markup
@@ -701,9 +730,18 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         }
       ];
       
-      // Get featured image or fallback to first business image
+      // Get featured image: use Featured image, then first location image, then first business image
+      const firstLocation = listingPost.LocationDetails?.[0];
+      const firstLocationImage = firstLocation?.Image?.[0];
       const featuredImage = listingPost['Featured image']?.[0] 
+        || firstLocationImage
         || listingPost['Image (from Business) (from Businesses)']?.[0];
+      
+      // Get featured image alt text: use Featured image alt text, then location name, then post title
+      const featuredImageAltText = listingPost['Featured image alt text'] 
+        || firstLocation?.Name 
+        || firstLocation?.Address 
+        || listingPost.Title;
 
       return (
         <article className="site-container py-8">
@@ -775,35 +813,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   {publishDate && (
                     <div>{publishDate}</div>
                   )}
+                  {(() => {
+                    const contentForReadingTime = getListingPostContentForReadingTime(listingPost);
+                    const readingTime = contentForReadingTime ? calculateReadingTime(contentForReadingTime) : null;
+                    return readingTime ? <div>{formatReadingTime(readingTime)}</div> : null;
+                  })()}
                 </div>
 
-                {/* Featured Image - use Featured image or fallback to first business image */}
-                {featuredImage && (
-                  <div className="mb-8 relative">
-                    <Image
-                      src={featuredImage.url}
-                      alt={listingPost['Featured image alt text'] || listingPost.Title}
-                      width={featuredImage.width}
-                      height={featuredImage.height}
-                      className="w-full h-auto rounded-lg shadow-lg"
-                      priority
-                    />
-                    {/* Category Badge on Image */}
-                    {listingPost.CategoryDetails && (
-                      <div className="absolute top-4 left-4">
-                        <span 
-                          className="inline-block px-3 py-1 text-sm font-medium rounded-full"
-                          style={{ 
-                            backgroundColor: 'var(--accent-color)',
-                            color: 'var(--text-color)'
-                          }}
-                        >
-                          {listingPost.CategoryDetails.Name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* Excerpt */}
                 {listingPost.Excerpt && (
@@ -846,14 +862,287 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 })()}
               </header>
 
+              {/* Business Comparison Table */}
+              {(() => {
+                // Collect all businesses/locations with their data
+                const comparisonData: Array<{
+                  name: string;
+                  price?: number;
+                  language?: string | string[];
+                  groupSize?: number;
+                  artInstructor?: string;
+                  privateEvent?: string;
+                  address?: string;
+                  googleMapsLink?: string;
+                  website?: string;
+                }> = [];
+
+                // Get all locations/businesses from the listicle
+                for (let i = 0; i < 5; i++) {
+                  const header = listingPost[`Header ${i + 1}` as keyof ListingPost] as string | undefined;
+                  const location = listingPost.LocationDetails?.[i];
+                  const business = listingPost.BusinessDetails?.[i];
+                  
+                  // Skip if no header (no item at this index)
+                  if (!header) continue;
+
+                  // Get comparison fields
+                  const price = location?.Price;
+                  // Get all languages - location.Language is already an array, or get from listingPost which is array of arrays
+                  let langValue = location?.['Language '];
+                  if (!langValue || (Array.isArray(langValue) && langValue.length === 0)) {
+                    // Try from location lookup field (from Business) - this might be an array
+                    const locationLangFromBusiness = location?.['Language  (from Business)'];
+                    if (locationLangFromBusiness && Array.isArray(locationLangFromBusiness) && locationLangFromBusiness.length > 0) {
+                      langValue = locationLangFromBusiness;
+                    } else {
+                      // Get from listingPost - this is an array of arrays, so [i] gives us the array for this business
+                      const listingLangArray = listingPost['Language  (from Business)']?.[i];
+                      if (listingLangArray && Array.isArray(listingLangArray)) {
+                        langValue = listingLangArray;
+                      }
+                    }
+                  }
+                  const language = Array.isArray(langValue) ? langValue.join(', ') : langValue;
+                  const groupSize = location?.['Group size (maximum)'] || 
+                                   location?.['Group size (maximum) (from Business)']?.[0] || 
+                                   listingPost['Group size (maximum) (from Business)']?.[i];
+                  const artInstructor = location?.['Art instructor'] || 
+                                       location?.['Art instructor (from Business)']?.[0] || 
+                                       listingPost['Art instructor (from Business)']?.[i];
+                  const privateEvent = location?.['Private event possible?'] || 
+                                      location?.['Private event possible? (from Business)']?.[0] || 
+                                      listingPost['Private event possible? (from Business)']?.[i];
+                  const address = location?.Address || listingPost['Address (from Location) (from Businesses)']?.[i];
+                  const googleMapsLink = location?.['Google maps link'] || 
+                                        listingPost['Google maps link (from Location) (from Businesses)']?.[i];
+                  const website = location?.Website;
+
+                  comparisonData.push({
+                    name: header,
+                    price,
+                    language,
+                    groupSize,
+                    artInstructor,
+                    privateEvent,
+                    address,
+                    googleMapsLink,
+                    website
+                  });
+                }
+
+                // Don't show table if no comparison data
+                if (comparisonData.length === 0) return null;
+
+                return (
+                  <section className="mb-12" aria-label="Business comparison table">
+                    <div className="overflow-x-auto">
+                      <table 
+                        className="w-full border-collapse rounded-lg overflow-hidden" 
+                        style={{ border: '1px solid var(--border-color)' }}
+                        itemScope 
+                        itemType="https://schema.org/Table"
+                      >
+                        <thead>
+                          <tr style={{ backgroundColor: 'var(--secondary-color)' }}>
+                            <th 
+                              className="p-4 text-left font-semibold"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-heading)',
+                                borderBottom: '2px solid var(--border-color)'
+                              }}
+                            >
+                              Business
+                            </th>
+                            {comparisonData.map((item, idx) => (
+                              <th 
+                                key={idx}
+                                className="p-4 text-left font-semibold"
+                                style={{ 
+                                  color: 'var(--text-color)',
+                                  fontFamily: 'var(--font-heading)',
+                                  borderBottom: '2px solid var(--border-color)',
+                                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none'
+                                }}
+                              >
+                                {item.name}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {/* Price Row */}
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td 
+                              className="p-4 font-medium"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                backgroundColor: 'var(--card-bg)'
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <CurrencyEuroIcon className="h-5 w-5" style={{ color: 'var(--secondary-color)' }} />
+                                <span>Price</span>
+                              </div>
+                            </td>
+                            {comparisonData.map((item, idx) => (
+                              <td 
+                                key={idx}
+                                className="p-4"
+                                style={{ 
+                                  color: 'var(--text-color)',
+                                  fontFamily: 'var(--font-body)',
+                                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none'
+                                }}
+                              >
+                                {item.price ? `€${item.price}` : '-'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          {/* Language Row */}
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td 
+                              className="p-4 font-medium"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                backgroundColor: 'var(--card-bg)'
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <GlobeAltIcon className="h-5 w-5" style={{ color: 'var(--secondary-color)' }} />
+                                <span>Language</span>
+                              </div>
+                            </td>
+                            {comparisonData.map((item, idx) => (
+                              <td 
+                                key={idx}
+                                className="p-4"
+                                style={{ 
+                                  color: 'var(--text-color)',
+                                  fontFamily: 'var(--font-body)',
+                                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none'
+                                }}
+                              >
+                                {item.language || '-'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          {/* Group Size Row */}
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td 
+                              className="p-4 font-medium"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                backgroundColor: 'var(--card-bg)'
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <UserGroupIcon className="h-5 w-5" style={{ color: 'var(--secondary-color)' }} />
+                                <span>Max Group Size</span>
+                              </div>
+                            </td>
+                            {comparisonData.map((item, idx) => (
+                              <td 
+                                key={idx}
+                                className="p-4"
+                                style={{ 
+                                  color: 'var(--text-color)',
+                                  fontFamily: 'var(--font-body)',
+                                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none'
+                                }}
+                              >
+                                {item.groupSize ? `Max ${item.groupSize} people` : '-'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          {/* Art Instructor Row */}
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td 
+                              className="p-4 font-medium"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                backgroundColor: 'var(--card-bg)'
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <UserIcon className="h-5 w-5" style={{ color: 'var(--secondary-color)' }} />
+                                <span>Art Instructor</span>
+                              </div>
+                            </td>
+                            {comparisonData.map((item, idx) => (
+                              <td 
+                                key={idx}
+                                className="p-4"
+                                style={{ 
+                                  color: 'var(--text-color)',
+                                  fontFamily: 'var(--font-body)',
+                                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none'
+                                }}
+                              >
+                                {item.artInstructor || '-'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          {/* Private Event Row */}
+                          <tr>
+                            <td 
+                              className="p-4 font-medium"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                backgroundColor: 'var(--card-bg)'
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <CalendarDaysIcon className="h-5 w-5" style={{ color: 'var(--secondary-color)' }} />
+                                <span>Private event option</span>
+                              </div>
+                            </td>
+                            {comparisonData.map((item, idx) => (
+                              <td 
+                                key={idx}
+                                className="p-4"
+                                style={{ 
+                                  color: 'var(--text-color)',
+                                  fontFamily: 'var(--font-body)',
+                                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none'
+                                }}
+                              >
+                                {item.privateEvent || '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                );
+              })()}
+
               {/* Listicle Items - Using Header 1-5 and Listicle paragraph 1-5 */}
                 <section className="mb-12">
                 {[1, 2, 3, 4, 5].map((index) => {
                   const header = listingPost[`Header ${index}` as keyof ListingPost] as string | undefined;
                   const paragraph = listingPost[`Listicle paragraph ${index}` as keyof ListingPost] as string | { state?: string; value?: string; isStale?: boolean } | undefined;
-                  const businessImage = listingPost['Image (from Business) (from Businesses)']?.[index - 1]; // 0-indexed array
                   const business = listingPost.BusinessDetails?.[index - 1]; // Get corresponding business for additional info
                   const location = listingPost.LocationDetails?.[index - 1]; // Get corresponding location for additional info
+                  
+                  // Get image: use location.Image first, then fallback to business image
+                  const locationImage = location?.Image?.[0];
+                  const businessImage = listingPost['Image (from Business) (from Businesses)']?.[index - 1]; // 0-indexed array
+                  const itemImage = locationImage || businessImage;
+                  
+                  // Get alt text: use location name, fallback to address, then header
+                  const imageAltText = location?.Name || location?.Address || header || `Business ${index}`;
                   
                   // Skip if both header and paragraph are empty
                   const paragraphText = getContentValue(paragraph);
@@ -895,17 +1184,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         )}
                       </div>
                       
-                      {/* Business Image */}
-                      {businessImage && (
-                        <div className="mb-6">
+                      {/* Business Image - from Location.Image first, then fallback to Business image */}
+                      {itemImage && (
+                        <div className="mb-6 aspect-[4/3] relative overflow-hidden rounded-lg shadow-md">
                           <Image
-                            src={businessImage.url}
-                            alt={header || `Business ${index}`}
-                            width={businessImage.width || 800}
-                            height={businessImage.height || 600}
-                            className="w-full h-auto rounded-lg shadow-md"
+                            src={itemImage.url}
+                            alt={imageAltText}
+                            fill
+                            className="object-cover"
                             loading="lazy"
                             quality={85}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 800px"
                           />
                         </div>
                       )}
@@ -935,13 +1224,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                             color: 'var(--card-text)'
                           }}
                         >
-                          <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {/* Price - from Location */}
                             {location?.Price && (
                               <div className="flex items-center gap-3">
                                 <CurrencyEuroIcon 
                                   className="h-5 w-5 flex-shrink-0" 
-                                  style={{ color: 'var(--primary-color)' }}
+                                  style={{ color: 'var(--secondary-color)' }}
                                 />
                                 <span 
                                   className="text-base"
@@ -952,80 +1241,38 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                               </div>
                             )}
                             
-                            {/* Website - from Location */}
-                            {location?.Website && (
-                              <div className="flex items-center gap-3">
-                                <LinkIcon 
-                                  className="h-5 w-5 flex-shrink-0" 
-                                  style={{ color: 'var(--primary-color)' }}
-                                />
-                                <Link
-                                  href={location.Website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-base font-medium hover:underline"
-                                  style={{ color: 'var(--primary-color)' }}
-                                >
-                                  {location.Website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                                </Link>
-                              </div>
-                            )}
-                            
-                            {/* Art Instructor - from Location lookup field (from Business) */}
-                            {(() => {
-                              const artInstructorValue = location?.['Art instructor'] || location?.['Art instructor (from Business)']?.[0] || artInstructor;
-                              if (!artInstructorValue) return null;
-                              return (
-                                <div className="flex items-center gap-3">
-                                  <UserIcon 
-                                    className="h-5 w-5 flex-shrink-0" 
-                                    style={{ color: 'var(--primary-color)' }}
-                                  />
-                                  <span 
-                                    className="text-base"
-                                    style={{ color: 'var(--text-color)' }}
-                                  >
-                                    Art instructor: {artInstructorValue}
-                                  </span>
-                                </div>
-                              );
-                            })()}
-                            
                             {/* Language - from Location lookup field (from Business) */}
                             {(() => {
-                              const langValue = location?.['Language '] || location?.['Language  (from Business)']?.[0] || language;
+                              // Get all languages - location.Language is already an array, or get from listingPost which is array of arrays
+                              let langValue = location?.['Language '];
+                              if (!langValue || (Array.isArray(langValue) && langValue.length === 0)) {
+                                // Try from location lookup field (from Business) - this might be an array
+                                const locationLangFromBusiness = location?.['Language  (from Business)'];
+                                if (locationLangFromBusiness && Array.isArray(locationLangFromBusiness) && locationLangFromBusiness.length > 0) {
+                                  langValue = locationLangFromBusiness;
+                                } else {
+                                  // Get from listingPost - this is an array of arrays, so [index - 1] gives us the array for this business
+                                  const listingLangArray = listingPost['Language  (from Business)']?.[index - 1];
+                                  if (listingLangArray && Array.isArray(listingLangArray)) {
+                                    langValue = listingLangArray;
+                                  } else if (language) {
+                                    // Fallback to the language variable from the loop
+                                    langValue = language;
+                                  }
+                                }
+                              }
                               if (!langValue || (Array.isArray(langValue) && langValue.length === 0)) return null;
                               return (
                                 <div className="flex items-center gap-3">
                                   <GlobeAltIcon 
                                     className="h-5 w-5 flex-shrink-0" 
-                                    style={{ color: 'var(--primary-color)' }}
+                                    style={{ color: 'var(--secondary-color)' }}
                                   />
                                   <span 
                                     className="text-base"
                                     style={{ color: 'var(--text-color)' }}
                                   >
                                     {Array.isArray(langValue) ? langValue.join(', ') : langValue}
-                                  </span>
-                                </div>
-                              );
-                            })()}
-                            
-                            {/* Private Event Possible - from Location lookup field (from Business) */}
-                            {(() => {
-                              const privateEventValue = location?.['Private event possible?'] || location?.['Private event possible? (from Business)']?.[0] || privateEvent;
-                              if (!privateEventValue) return null;
-                              return (
-                                <div className="flex items-center gap-3">
-                                  <CalendarDaysIcon 
-                                    className="h-5 w-5 flex-shrink-0" 
-                                    style={{ color: 'var(--primary-color)' }}
-                                  />
-                                  <span 
-                                    className="text-base"
-                                    style={{ color: 'var(--text-color)' }}
-                                  >
-                                    Private event: {privateEventValue}
                                   </span>
                                 </div>
                               );
@@ -1039,7 +1286,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 <div className="flex items-center gap-3">
                                   <UserGroupIcon 
                                     className="h-5 w-5 flex-shrink-0" 
-                                    style={{ color: 'var(--primary-color)' }}
+                                    style={{ color: 'var(--secondary-color)' }}
                                   />
                                   <span 
                                     className="text-base"
@@ -1051,56 +1298,91 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                               );
                             })()}
                             
-                            {/* Address - from Location */}
+                            {/* Art Instructor - from Location lookup field (from Business) */}
+                            {(() => {
+                              const artInstructorValue = location?.['Art instructor'] || location?.['Art instructor (from Business)']?.[0] || artInstructor;
+                              if (!artInstructorValue) return null;
+                              return (
+                                <div className="flex items-center gap-3">
+                                  <UserIcon 
+                                    className="h-5 w-5 flex-shrink-0" 
+                                    style={{ color: 'var(--secondary-color)' }}
+                                  />
+                                  <span 
+                                    className="text-base"
+                                    style={{ color: 'var(--text-color)' }}
+                                  >
+                                    Art instructor: {artInstructorValue}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Private Event Possible - from Location lookup field (from Business) */}
+                            {(() => {
+                              const privateEventValue = location?.['Private event possible?'] || location?.['Private event possible? (from Business)']?.[0] || privateEvent;
+                              if (!privateEventValue) return null;
+                              return (
+                                <div className="flex items-center gap-3">
+                                  <CalendarDaysIcon 
+                                    className="h-5 w-5 flex-shrink-0" 
+                                    style={{ color: 'var(--secondary-color)' }}
+                                  />
+                                  <span 
+                                    className="text-base"
+                                    style={{ color: 'var(--text-color)' }}
+                                  >
+                                    Private event: {privateEventValue}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Address - from Location with optional Google Maps link */}
                             {location?.Address && (
                               <div className="flex items-center gap-3">
                                 <MapPinIcon 
                                   className="h-5 w-5 flex-shrink-0" 
-                                  style={{ color: 'var(--primary-color)' }}
+                                  style={{ color: 'var(--secondary-color)' }}
                                 />
                                 <span 
                                   className="text-base"
                                   style={{ color: 'var(--text-color)' }}
                                 >
                                   {location.Address}
+                                  {location?.['Google maps link'] && (
+                                    <>
+                                      {' '}
+                                      <Link
+                                        href={location['Google maps link']}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-medium hover:underline"
+                                        style={{ color: 'var(--text-color)' }}
+                                      >
+                                        (maps)
+                                      </Link>
+                                    </>
+                                  )}
                                 </span>
                               </div>
                             )}
                             
-                            {/* Google Maps Link - from Location */}
-                            {location?.['Google maps link'] && (
+                            {/* Website - from Location */}
+                            {location?.Website && (
                               <div className="flex items-center gap-3">
-                                <MapIcon 
+                                <LinkIcon 
                                   className="h-5 w-5 flex-shrink-0" 
-                                  style={{ color: 'var(--primary-color)' }}
+                                  style={{ color: 'var(--secondary-color)' }}
                                 />
                                 <Link
-                                  href={location['Google maps link']}
+                                  href={location.Website}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-base font-medium hover:underline"
-                                  style={{ color: 'var(--primary-color)' }}
+                                  style={{ color: 'var(--text-color)' }}
                                 >
-                                  View on Google Maps
-                                </Link>
-                              </div>
-                            )}
-                            
-                            {/* City Website Page - from Location */}
-                            {location?.['City website page'] && (
-                              <div className="flex items-center gap-3">
-                                <BuildingOfficeIcon 
-                                  className="h-5 w-5 flex-shrink-0" 
-                                  style={{ color: 'var(--primary-color)' }}
-                                />
-                                <Link
-                                  href={location['City website page']}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-base font-medium hover:underline"
-                                  style={{ color: 'var(--primary-color)' }}
-                                >
-                                  City Website
+                                  Website
                                 </Link>
                               </div>
                             )}

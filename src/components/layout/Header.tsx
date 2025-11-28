@@ -121,13 +121,19 @@ export default function Header({ className = '' }: HeaderProps) {
                 
                 const page = pageLink as unknown as Page;
                 
-                // Filter out home pages and unpublished pages
+                // Filter out home pages, unpublished pages, and Amsterdam page
+                const slugLower = page.Slug?.toLowerCase() || '';
+                const titleLower = page.Title?.toLowerCase() || '';
+                
                 return (
                   page.Published && 
                   page.Slug && 
                   page.Title && 
                   page.Slug.toLowerCase() !== 'home' &&
-                  page.Page !== 'Home'
+                  page.Page !== 'Home' &&
+                  slugLower !== 'amsterdam' &&
+                  titleLower !== 'amsterdam' &&
+                  !titleLower.includes('sip and paint amsterdam')
                 );
               })
               .map((pageLink) => {
@@ -148,7 +154,7 @@ export default function Header({ className = '' }: HeaderProps) {
                       fontFamily: 'var(--font-body)'
                     }}
                   >
-                    {page.Title}
+                    {page.Title === 'Blog overview' ? 'Blog' : page.Title}
                   </Link>
                 );
               })}
@@ -201,13 +207,19 @@ export default function Header({ className = '' }: HeaderProps) {
                   
                   const page = pageLink as unknown as Page;
                   
-                  // Filter out home pages and unpublished pages
+                  // Filter out home pages, unpublished pages, and Amsterdam page
+                  const slugLower = page.Slug?.toLowerCase() || '';
+                  const titleLower = page.Title?.toLowerCase() || '';
+                  
                   return (
                     page.Published && 
                     page.Slug && 
                     page.Title && 
                     page.Slug.toLowerCase() !== 'home' &&
-                    page.Page !== 'Home'
+                    page.Page !== 'Home' &&
+                    slugLower !== 'amsterdam' &&
+                    titleLower !== 'amsterdam' &&
+                    !titleLower.includes('sip and paint amsterdam')
                   );
                 })
                 .map((pageLink) => {
@@ -227,7 +239,7 @@ export default function Header({ className = '' }: HeaderProps) {
                       }}
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      {page.Title}
+                      {page.Title === 'Blog overview' ? 'Blog' : page.Title}
                     </Link>
                   );
                 })}

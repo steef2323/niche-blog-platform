@@ -135,6 +135,45 @@ export function getContentForReadingTime(post: BlogPost): string {
 }
 
 /**
+ * Get content for reading time calculation for listing posts
+ * Combines excerpt, all listicle paragraphs, and conclusion
+ */
+export function getListingPostContentForReadingTime(post: any): string {
+  const parts: string[] = [];
+  
+  // Add excerpt
+  if (post.Excerpt) {
+    parts.push(typeof post.Excerpt === 'string' ? post.Excerpt : (post.Excerpt.value || ''));
+  }
+  
+  // Add all listicle paragraphs (1-5)
+  for (let i = 1; i <= 5; i++) {
+    const paragraph = post[`Listicle paragraph ${i}`];
+    if (paragraph) {
+      const text = typeof paragraph === 'string' ? paragraph : (paragraph.value || '');
+      if (text) parts.push(text);
+    }
+  }
+  
+  // Add conclusion
+  if (post.Conclusion) {
+    const conclusion = typeof post.Conclusion === 'string' ? post.Conclusion : (post.Conclusion.value || '');
+    if (conclusion) parts.push(conclusion);
+  }
+  
+  const combined = parts.join(' ');
+  
+  // Strip markdown for more accurate word count
+  return combined
+    .replace(/#+\s/g, '') // Remove heading markers
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markers
+    .replace(/\*(.*?)\*/g, '$1') // Remove italic markers
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove link markup, keep text
+    .replace(/\n+/g, ' ') // Replace newlines with spaces
+    .trim();
+}
+
+/**
  * Generate table of contents from structured content
  * Returns headings from both H1 and structured H2 sections
  */
