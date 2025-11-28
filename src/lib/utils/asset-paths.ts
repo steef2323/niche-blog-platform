@@ -90,7 +90,7 @@ export function getLogoPath(domain: string, airtableUrl?: string): string {
  * 1. Local file in /public/favicons/{domain}.{ext} (always preferred)
  * 2. Default favicon
  * 
- * NOTE: We construct the path for the most common extension (.ico, then .png).
+ * NOTE: We construct the path for the most preferred extension (.webp, then .ico, .png, .svg).
  * The browser will handle 404s gracefully if the file doesn't exist.
  * 
  * @param domain - The domain (e.g., 'sipandpaints.nl')
@@ -100,7 +100,7 @@ export function getFaviconPath(domain: string): string {
   const normalized = normalizeDomain(domain);
   
   // 1. Always prefer local file first
-  // Try .ico first (most common), then .png, .svg, .webp
+  // Try .webp first (most modern), then .ico, .png, .svg
   // The browser will handle 404s gracefully
   const localFavicon = getLikelyFilePath(
     `favicons/${normalized}`,
