@@ -25,7 +25,8 @@ import {
   UserGroupIcon,
   MapPinIcon,
   MapIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import TableOfContents from '@/components/blog/TableOfContents';
 import PrivateEventForm from '@/components/ui/PrivateEventForm';
@@ -872,6 +873,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   groupSize?: number;
                   artInstructor?: string;
                   privateEvent?: string;
+                  drinksIncluded?: string | string[];
                   address?: string;
                   googleMapsLink?: string;
                   website?: string;
@@ -913,6 +915,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   const privateEvent = location?.['Private event possible?'] || 
                                       location?.['Private event possible? (from Business)']?.[0] || 
                                       listingPost['Private event possible? (from Business)']?.[i];
+                  const drinksIncluded = location?.['Drinks included (from Business)'];
+                  const drinksIncludedValue = Array.isArray(drinksIncluded) ? drinksIncluded.join(', ') : drinksIncluded;
                   const address = location?.Address || listingPost['Address (from Location) (from Businesses)']?.[i];
                   const googleMapsLink = location?.['Google maps link'] || 
                                         listingPost['Google maps link (from Location) (from Businesses)']?.[i];
@@ -925,6 +929,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     groupSize,
                     artInstructor,
                     privateEvent,
+                    drinksIncluded: drinksIncludedValue,
                     address,
                     googleMapsLink,
                     website
@@ -1093,7 +1098,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                           </tr>
 
                           {/* Private Event Row */}
-                          <tr>
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                             <td 
                               className="p-4 font-medium"
                               style={{ 
@@ -1118,6 +1123,36 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 }}
                               >
                                 {item.privateEvent || '-'}
+                              </td>
+                            ))}
+                          </tr>
+
+                          {/* Drinks Included Row */}
+                          <tr>
+                            <td 
+                              className="p-4 font-medium"
+                              style={{ 
+                                color: 'var(--text-color)',
+                                fontFamily: 'var(--font-body)',
+                                backgroundColor: 'var(--card-bg)'
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <BeakerIcon className="h-5 w-5" style={{ color: 'var(--secondary-color)' }} />
+                                <span>Drinks included</span>
+                              </div>
+                            </td>
+                            {comparisonData.map((item, idx) => (
+                              <td 
+                                key={idx}
+                                className="p-4"
+                                style={{ 
+                                  color: 'var(--text-color)',
+                                  fontFamily: 'var(--font-body)',
+                                  borderLeft: idx > 0 ? '1px solid var(--border-color)' : 'none'
+                                }}
+                              >
+                                {item.drinksIncluded || '-'}
                               </td>
                             ))}
                           </tr>
@@ -1333,6 +1368,27 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                     style={{ color: 'var(--text-color)' }}
                                   >
                                     Private event: {privateEventValue}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                            
+                            {/* Drinks Included - from Location lookup field (from Business) */}
+                            {(() => {
+                              const drinksIncluded = location?.['Drinks included (from Business)'];
+                              if (!drinksIncluded || (Array.isArray(drinksIncluded) && drinksIncluded.length === 0)) return null;
+                              const drinksIncludedValue = Array.isArray(drinksIncluded) ? drinksIncluded.join(', ') : drinksIncluded;
+                              return (
+                                <div className="flex items-center gap-3">
+                                  <BeakerIcon 
+                                    className="h-5 w-5 flex-shrink-0" 
+                                    style={{ color: 'var(--secondary-color)' }}
+                                  />
+                                  <span 
+                                    className="text-base"
+                                    style={{ color: 'var(--text-color)' }}
+                                  >
+                                    Drinks included: {drinksIncludedValue}
                                   </span>
                                 </div>
                               );

@@ -46,6 +46,7 @@ export interface ListingPost extends BaseFields {
   'Art instructor (from Business)'?: string[];
   'Language  (from Business)'?: string[][]; // Array of arrays (each business has array of languages)
   'Private event possible? (from Business)'?: string[];
+  'Drinks included (from Business)'?: string[];
   
   // Redirect fields
   'Redirect status'?: string; // e.g., "Redirect", "No redirect"

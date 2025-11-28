@@ -20,5 +20,6 @@ export interface Location extends BaseFields {
   'Art instructor (from Business)'?: string[];
   'Language  (from Business)'?: string[]; // Note double space - flat array of languages
   'Private event possible? (from Business)'?: string[];
+  'Drinks included (from Business)'?: string[];
 }
 
