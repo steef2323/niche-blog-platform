@@ -825,16 +825,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 {/* Excerpt */}
                 {listingPost.Excerpt && (
                   <div 
-                    className="text-xl leading-relaxed mb-8 border-l-4 pl-6"
+                    className="text-xl leading-relaxed mb-8 border-l-4 pl-6 prose prose-xl max-w-none prose-a:text-[var(--text-color)] prose-a:underline hover:prose-a:opacity-80"
                     style={{ 
                       color: 'var(--text-color)',
                       borderColor: 'var(--text-color)',
                       fontFamily: 'var(--font-body)',
                       opacity: 0.8
                     }}
-                  >
-                    {listingPost.Excerpt}
-                  </div>
+                    dangerouslySetInnerHTML={{ 
+                      __html: parseMarkdownToHtml(listingPost.Excerpt) 
+                    }}
+                  />
                 )}
 
                 {/* Mobile Table of Contents - Collapsible */}
@@ -1237,16 +1238,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       {/* Paragraph Content */}
                       {paragraphText && (
                         <div 
-                          className="prose prose-lg max-w-none mb-6"
+                          className="prose prose-lg max-w-none mb-6 prose-a:text-[var(--text-color)] prose-a:underline hover:prose-a:opacity-80"
                           style={{ 
                             color: 'var(--text-color)',
                             fontFamily: 'var(--font-body)'
                           }}
-                        >
-                          <p className="text-lg leading-relaxed whitespace-pre-line">
-                            {paragraphText}
-                          </p>
-                        </div>
+                          dangerouslySetInnerHTML={{ 
+                            __html: parseMarkdownToHtml(paragraphText) 
+                          }}
+                        />
                       )}
                       
                       {/* Business Information Overview with Icons - Using Location data or Business lookup fields */}
@@ -1494,16 +1494,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     Conclusion
                   </h2>
                   <div 
-                    className="prose prose-lg max-w-none prose-headings:font-bold prose-p:leading-relaxed"
+                    className="prose prose-lg max-w-none prose-headings:font-bold prose-p:leading-relaxed prose-a:text-[var(--text-color)] prose-a:underline hover:prose-a:opacity-80"
                     style={{ 
                       color: 'var(--text-color)',
                       fontFamily: 'var(--font-body)'
                     }}
-                  >
-                    <p className="text-lg leading-relaxed whitespace-pre-line">
-                      {getContentValue(listingPost.Conclusion)}
-                    </p>
-                  </div>
+                    dangerouslySetInnerHTML={{ 
+                      __html: parseMarkdownToHtml(getContentValue(listingPost.Conclusion) || '') 
+                    }}
+                  />
                 </section>
               )}
 

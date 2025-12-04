@@ -72,3 +72,5 @@ Your current in-memory cache is **perfect** for:
 Only add Redis when you scale to multiple instances and need shared cache.
 
 
+
+

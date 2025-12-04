@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { Metadata } from 'next';
 import { getSiteConfig } from '@/lib/site-detection';
 import { generateHomepageSchemas } from '@/lib/utils/schema';
+import { buildCanonicalUrl } from '@/lib/utils/canonical-url';
 import Homepage from '@/components/homepage/Homepage';
 
 // Enable ISR with 12-hour revalidation (content changes ~2x/week)
@@ -28,9 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
     const metaTitle = homePage?.['Meta title'] || site['Default meta title'] || site.Name || 'Home';
     const metaDescription = homePage?.['Meta description'] || site['Default meta description'] || `Welcome to ${site.Name}`;
     
-    // Build canonical URL
-    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
-    const canonicalUrl = siteUrl;
+    // Build canonical URL - ensure it's normalized and has trailing slash for homepage
+    // This ensures consistency and matches what Google expects
+    const canonicalUrl = buildCanonicalUrl(site['Site URL'], site.Domain, '');
 
     // Generate schema markup for homepage (includes review if present)
     const schemas = generateHomepageSchemas(site, homePage || undefined);
