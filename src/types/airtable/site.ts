@@ -50,4 +50,8 @@ export interface Site extends BaseFields {
   
   // Footer content
   'Footer text'?: string;
+  
+  // Contact information
+  Instagram?: string;
+  'Email contact'?: string;
 } 

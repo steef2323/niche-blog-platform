@@ -7,6 +7,7 @@ import { getSiteConfig } from '@/lib/site-detection';
 import BaseLayout from '@/components/layout/BaseLayout';
 import { GoogleTagManagerScript, GoogleTagManagerNoscript } from '@/components/common/GoogleTagManager';
 import GoogleFonts from '@/components/common/GoogleFonts';
+import PageViewTracker from '@/components/common/PageViewTracker';
 import { getFaviconPath } from '@/lib/utils/asset-paths';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -52,6 +53,15 @@ export default async function RootLayout({
 
     const site = siteConfig?.site || null;
     const siteLanguage = site?.Language?.toLowerCase() || 'en';
+    const gtmId = site?.['Google Tag Manager ID'];
+
+    // Log GTM ID retrieval for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 GTM ID from Airtable:', gtmId || 'NOT FOUND');
+      if (!gtmId) {
+        console.warn('⚠️ GTM ID is missing - check Airtable "Google Tag Manager ID" field for site:', site?.Domain || host);
+      }
+    }
 
     return (
       <html lang={siteLanguage}>
@@ -65,13 +75,14 @@ export default async function RootLayout({
           <link rel="dns-prefetch" href="https://v5.airtableusercontent.com" />
           <link rel="dns-prefetch" href="https://dl.airtable.com" />
           
-          <GoogleTagManagerScript gtmId={site?.['Google Tag Manager ID']} />
+          <GoogleTagManagerScript gtmId={gtmId} />
         </head>
         <body>
-          <GoogleTagManagerNoscript gtmId={site?.['Google Tag Manager ID']} />
+          <GoogleTagManagerNoscript gtmId={gtmId} />
           <SiteProvider siteConfig={siteConfig}>
             <ThemeProvider site={site}>
               <GoogleFonts />
+              <PageViewTracker />
               <BaseLayout>
               {children}
               </BaseLayout>

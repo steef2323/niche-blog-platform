@@ -56,6 +56,10 @@ export interface StaticSiteConfig {
   // Footer content
   footerText?: string;
   
+  // Contact information
+  instagram?: string;
+  emailContact?: string;
+  
   // Airtable view names (stable, pre-filtered views)
   // These views should be pre-configured in Airtable to filter by site
   // All tables now have site-specific views available
@@ -284,15 +288,66 @@ export async function getStaticSiteConfigFromAirtable(domain: string): Promise<S
       // ✅ Footer text fetched
       footerText: fields['Footer text'] || undefined,
       
+      // ✅ Contact information fetched
+      instagram: fields['Instagram'] || undefined,
+      emailContact: fields['Email contact'] || undefined,
+      
       // Get Airtable view names from site-config.ts helper (fallback)
       // In production, you should configure these views in Airtable and store them here
       airtableViews: (await import('@/lib/site-config')).getAirtableViewsForDomain(domain),
       
       // ✅ Analytics IDs fetched
-      analytics: {
-        googleAnalyticsId: fields['Google analytics ID'] || undefined,
-        googleTagManagerId: fields['Google Tag Manager ID'] || undefined, // ✅ Fetched
-      },
+      // Helper function to find field by multiple possible names
+      analytics: (() => {
+        // Try multiple possible field name variations
+        const findField = (possibleNames: string[]): string | undefined => {
+          for (const name of possibleNames) {
+            const value = fields[name];
+            if (value !== undefined && value !== null && value !== '') {
+              return typeof value === 'string' ? value.trim() : String(value).trim();
+            }
+          }
+          return undefined;
+        };
+        
+        const gtmId = findField([
+          'Google Tag Manager ID',
+          'Google Tag Manager',
+          'GTM ID',
+          'GTM',
+          'Tag Manager ID',
+        ]);
+        
+        const gaId = findField([
+          'Google analytics ID',
+          'Google Analytics ID',
+          'GA ID',
+          'Google Analytics',
+        ]);
+        
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development') {
+          const allGoogleFields = Object.keys(fields).filter(k => 
+            k.toLowerCase().includes('google') || 
+            k.toLowerCase().includes('tag') || 
+            k.toLowerCase().includes('manager') ||
+            k.toLowerCase().includes('analytics') ||
+            k.toLowerCase().includes('gtm')
+          );
+          
+          console.log('🔍 Analytics fields from Airtable:', {
+            'GTM ID found': gtmId || 'NOT FOUND',
+            'GA ID found': gaId || 'NOT FOUND',
+            'All Google-related fields': allGoogleFields,
+            'GTM field values': allGoogleFields.map(k => ({ field: k, value: fields[k] }))
+          });
+        }
+        
+        return {
+          googleAnalyticsId: gaId || undefined,
+          googleTagManagerId: gtmId || undefined,
+        };
+      })(),
     };
     
     // Cache the config
@@ -340,22 +395,52 @@ export async function getStaticSiteConfig(
   const normalized = normalizeDomain(domain);
   
   // First try hardcoded configs (if any exist)
+  let hardcodedConfig: StaticSiteConfig | undefined;
   if (staticSiteConfigs[normalized]) {
-    console.log(`📝 Using hardcoded static config for: ${normalized}`);
-    return staticSiteConfigs[normalized];
-  }
-  
-  // Then try matching by localDomain (for development)
-  for (const config of Object.values(staticSiteConfigs)) {
-    if (config.localDomain && normalizeDomain(config.localDomain) === normalized) {
-      console.log(`📝 Using hardcoded static config (via localDomain) for: ${normalized}`);
-      return config;
+    hardcodedConfig = staticSiteConfigs[normalized];
+  } else {
+    // Then try matching by localDomain (for development)
+    for (const config of Object.values(staticSiteConfigs)) {
+      if (config.localDomain && normalizeDomain(config.localDomain) === normalized) {
+        hardcodedConfig = config;
+        break;
+      }
     }
   }
   
-  // Fall back to Airtable if enabled
+  // Always fetch from Airtable to get dynamic fields (Instagram, Email contact, Footer text)
+  // Merge with hardcoded config, with Airtable taking precedence
   if (useAirtable) {
-    return await getStaticSiteConfigFromAirtable(domain);
+    const airtableConfig = await getStaticSiteConfigFromAirtable(domain);
+    
+    if (airtableConfig) {
+      // If we have a hardcoded config, merge them (Airtable takes precedence for dynamic fields)
+      if (hardcodedConfig) {
+        console.log(`📝 Merging hardcoded static config with Airtable data for: ${normalized}`);
+        return {
+          ...hardcodedConfig,
+          // Override with Airtable data for dynamic fields
+          footerText: airtableConfig.footerText ?? hardcodedConfig.footerText,
+          instagram: airtableConfig.instagram ?? hardcodedConfig.instagram,
+          emailContact: airtableConfig.emailContact ?? hardcodedConfig.emailContact,
+          // Also update siteId and siteName from Airtable if available
+          siteId: airtableConfig.siteId || hardcodedConfig.siteId,
+          siteName: airtableConfig.siteName || hardcodedConfig.siteName,
+          // Merge analytics (Airtable takes precedence)
+          analytics: {
+            googleAnalyticsId: airtableConfig.analytics?.googleAnalyticsId ?? hardcodedConfig.analytics?.googleAnalyticsId,
+            googleTagManagerId: airtableConfig.analytics?.googleTagManagerId ?? hardcodedConfig.analytics?.googleTagManagerId,
+          },
+        };
+      }
+      return airtableConfig;
+    }
+  }
+  
+  // Fall back to hardcoded config if Airtable fetch failed or disabled
+  if (hardcodedConfig) {
+    console.log(`📝 Using hardcoded static config for: ${normalized}`);
+    return hardcodedConfig;
   }
   
   return null;

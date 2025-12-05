@@ -99,10 +99,24 @@ export async function getSiteConfig(domain: string): Promise<SiteConfig | null> 
       // Footer text from static config
       'Footer text': staticConfig.footerText,
       
-      // Analytics from static config
-      'Google analytics ID': staticConfig.analytics?.googleAnalyticsId,
-      'Google Tag Manager ID': staticConfig.analytics?.googleTagManagerId,
+      // Contact information from static config
+      Instagram: staticConfig.instagram,
+      'Email contact': staticConfig.emailContact,
+      
+      // Analytics from static config (only include if defined to avoid "$undefined" serialization)
+      ...(staticConfig.analytics?.googleAnalyticsId && { 'Google analytics ID': staticConfig.analytics.googleAnalyticsId }),
+      ...(staticConfig.analytics?.googleTagManagerId && { 'Google Tag Manager ID': staticConfig.analytics.googleTagManagerId }),
     } as Site;
+    
+    // Debug: Log analytics values in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Analytics in site-detection.ts:', {
+        'staticConfig.analytics': staticConfig.analytics,
+        'googleTagManagerId': staticConfig.analytics?.googleTagManagerId,
+        'site Google Tag Manager ID': site['Google Tag Manager ID'],
+        'will be included': !!staticConfig.analytics?.googleTagManagerId
+      });
+    }
 
     const endTime = Date.now();
     const fetchTime = endTime - startTime;
@@ -112,7 +126,8 @@ export async function getSiteConfig(domain: string): Promise<SiteConfig | null> 
       features: features.length,
       hasHomepage: !!homepageContent,
       colors: '✅ From static config (cached)',
-      logo: '✅ From static config (local/Airtable)'
+      logo: '✅ From static config (local/Airtable)',
+      gtmId: site['Google Tag Manager ID'] || 'NOT SET'
     });
 
     // Step 4: Get Airtable view names for this domain

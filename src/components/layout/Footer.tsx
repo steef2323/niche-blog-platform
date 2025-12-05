@@ -39,6 +39,17 @@ export default function Footer({ className = '' }: FooterProps) {
     fetchFooterData();
   }, [site?.id]);
 
+  // Debug: Log contact info to verify data is being fetched
+  useEffect(() => {
+    if (site) {
+      console.log('Footer - Site contact info:', {
+        instagram: site.Instagram,
+        email: site['Email contact'],
+        footerText: site['Footer text']
+      });
+    }
+  }, [site]);
+
   if (!site || loading) {
     return null;
   }
@@ -50,9 +61,9 @@ export default function Footer({ className = '' }: FooterProps) {
     >
       
       <div className="site-container py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Column 1: Blog Categories & Blog Overview (25%) */}
-          <div className="md:col-span-1">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          {/* Column 1: Contact Us - Mobile: 1 column, Desktop: 1 column */}
+          <div className="col-span-1 md:col-span-1">
             <h3 
               className="text-lg font-semibold mb-4"
               style={{ 
@@ -60,37 +71,66 @@ export default function Footer({ className = '' }: FooterProps) {
                 fontFamily: 'var(--font-heading)'
               }}
             >
-              Blog
+              Contact us
             </h3>
-            <ul className="space-y-2">
-              {/* Blog overview link at the top */}
-              <li>
-                <Link 
-                  href="/blog"
-                  className="text-sm hover:opacity-80 transition-opacity"
+            <div className="flex gap-4">
+              {/* Instagram Link */}
+              {site.Instagram ? (
+                <a
+                  href={site.Instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity"
+                  aria-label="Instagram"
                   style={{ color: 'var(--text-color)' }}
                 >
-                  All Articles
-                </Link>
-              </li>
-              
-              {/* Blog category links */}
-              {categories.map((category) => (
-                <li key={category.id}>
-                  <Link 
-                    href={`/blog/category/${category.Slug}`}
-                    className="text-sm hover:opacity-80 transition-opacity"
-                    style={{ color: 'var(--text-color)' }}
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
                   >
-                    {category.Name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                  </svg>
+                </a>
+              ) : null}
+              
+              {/* Email Link */}
+              {site['Email contact'] ? (
+                <a
+                  href={`mailto:${site['Email contact']}`}
+                  className="hover:opacity-80 transition-opacity"
+                  aria-label="Email"
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="m2 7 8.97 5.7a1.94 1.94 0 0 0 2.06 0L22 7"/>
+                  </svg>
+                </a>
+              ) : null}
+            </div>
           </div>
 
-          {/* Column 2: All Pages including Home (25%) */}
-          <div className="md:col-span-1">
+          {/* Column 2: Pages - Mobile: 1 column (next to Contact us), Desktop: 1 column */}
+          <div className="col-span-1 md:col-span-1">
             <h3 
               className="text-lg font-semibold mb-4"
               style={{ 
@@ -192,8 +232,46 @@ export default function Footer({ className = '' }: FooterProps) {
             </ul>
           </div>
 
-          {/* Column 3: Logo and Footer Text (50%) */}
-          <div className="md:col-span-2">
+          {/* Column 3: Blog Categories & Blog Overview - Mobile: 1 column (under Contact Us), Desktop: 1 column */}
+          <div className="col-span-1 md:col-span-1">
+            <h3 
+              className="text-lg font-semibold mb-4"
+              style={{ 
+                color: 'var(--text-color)',
+                fontFamily: 'var(--font-heading)'
+              }}
+            >
+              Blog
+            </h3>
+            <ul className="space-y-2">
+              {/* Blog overview link at the top */}
+              <li>
+                <Link 
+                  href="/blog"
+                  className="text-sm hover:opacity-80 transition-opacity"
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  All Articles
+                </Link>
+              </li>
+              
+              {/* Blog category links */}
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link 
+                    href={`/blog/category/${category.Slug}`}
+                    className="text-sm hover:opacity-80 transition-opacity"
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    {category.Name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 4: Logo and Footer Text - Mobile: full width, Desktop: 2 columns */}
+          <div className="col-span-2 md:col-span-2">
             {/* Site Logo */}
             <div className="mb-6">
               {(() => {
