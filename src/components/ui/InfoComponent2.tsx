@@ -63,7 +63,7 @@ export default function InfoComponent2({ title, text, image, className = '' }: I
         <div className="w-full">
           <Image
             src={image.src}
-            alt={image.alt}
+            alt={image.alt || image.title || title || 'Content image'}
             title={image.title}
             width={image.width || 800}
             height={image.height || 500}
@@ -115,7 +115,7 @@ export default function InfoComponent2({ title, text, image, className = '' }: I
           <div className="flex-1">
             <Image
               src={image.src}
-              alt={image.alt}
+              alt={image.alt || image.title || title || 'Content image'}
               title={image.title}
               width={image.width || 800}
               height={image.height || 500}

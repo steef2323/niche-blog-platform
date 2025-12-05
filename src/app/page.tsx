@@ -38,6 +38,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
     // Get Open Graph image from homepage featured image or site logo
     const ogImage = homePage?.['Featured image']?.[0]?.url || site['Site logo']?.[0]?.url;
+    
+    // Get hero image for LCP preload optimization
+    const heroImage = homePage?.['Featured image']?.[0]?.url;
 
     return {
       title: metaTitle,
@@ -63,7 +66,11 @@ export async function generateMetadata(): Promise<Metadata> {
         ...schemas.reduce((acc, schema, index) => {
           acc[`json-ld-${index}`] = JSON.stringify(schema);
           return acc;
-        }, {} as Record<string, string>)
+        }, {} as Record<string, string>),
+        // Performance: Preload LCP (hero) image for faster initial paint
+        ...(heroImage && {
+          'preload-hero-image': `<link rel="preload" as="image" href="${heroImage}" fetchpriority="high" />`
+        })
       }
     };
   } catch (error) {

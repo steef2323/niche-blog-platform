@@ -7,7 +7,8 @@ import {
   getCategoriesBySiteId,
   getAuthorsBySiteId
 } from '@/lib/airtable/content';
-import { BlogPost, ListingPost, Author, Category } from '@/types/airtable';
+import { getPagesBySiteId } from '@/lib/airtable/sites';
+import { BlogPost, ListingPost, Author, Category, Page } from '@/types/airtable';
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,11 +51,12 @@ export async function GET(request: NextRequest) {
     const airtableViews = siteConfig.airtableViews;
     
     // Fetch all content for the site using views if available
-    const [blogPosts, listingPosts, categories, authors] = await Promise.all([
+    const [blogPosts, listingPosts, categories, authors, pages] = await Promise.all([
       getBlogPostsBySiteId(siteId, undefined, airtableViews?.blogPosts),
       getListingPostsBySiteId(siteId, undefined, airtableViews?.listingPosts),
       getCategoriesBySiteId(siteId, airtableViews?.categories),
-      getAuthorsBySiteId(siteId, airtableViews?.authors)
+      getAuthorsBySiteId(siteId, airtableViews?.authors),
+      getPagesBySiteId(siteId, airtableViews?.pages)
     ]);
 
     // Build the sitemap XML
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
     <loc>${siteUrl}/blog/${post.Slug}</loc>
     <lastmod>${new Date(lastmod).toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>`;
     });
 
@@ -127,6 +129,26 @@ export async function GET(request: NextRequest) {
     <lastmod>${new Date().toISOString()}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+  </url>`;
+      }
+    });
+
+    // Add static pages (excluding homepage which is already included)
+    pages.forEach((page: Page) => {
+      // Skip homepage as it's already added above
+      if (page.Page === 'Home') {
+        return;
+      }
+      
+      // Only include pages with slugs
+      if (page.Slug) {
+        const lastmod = page['Last updated'] || new Date().toISOString();
+        sitemapXml += `
+  <url>
+    <loc>${siteUrl}/${page.Slug}</loc>
+    <lastmod>${new Date(lastmod).toISOString()}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
   </url>`;
       }
     });

@@ -45,11 +45,38 @@ export async function middleware(request: NextRequest) {
   // Continue with normal request
   const response = NextResponse.next();
 
-  // Basic security headers
+  // Security headers
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Content Security Policy (CSP) for enhanced security
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https: blob:; " +
+    "connect-src 'self' https://www.googletagmanager.com; " +
+    "frame-src 'self' https://www.googletagmanager.com;"
+  );
+  
+  // Performance: Cache-Control headers for static assets
+  if (pathname.startsWith('/_next/static/')) {
+    // Static assets from Next.js build (immutable)
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (pathname.startsWith('/_next/image/')) {
+    // Optimized images from Next.js Image component
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (pathname.match(/\.(jpg|jpeg|png|gif|webp|avif|svg|ico)$/)) {
+    // Static images in public folder
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (pathname.startsWith('/api/')) {
+    // API routes: no cache by default (can be overridden per route)
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
+  }
 
   return response;
 }

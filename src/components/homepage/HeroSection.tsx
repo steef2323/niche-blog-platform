@@ -34,7 +34,7 @@ export default function HeroSection({ homePage }: HeroSectionProps) {
           <div className="relative w-full max-w-[1140px] h-full rounded-xl overflow-hidden">
             <Image
               src={featuredImage.url}
-              alt={title || 'Hero image'}
+              alt={title || 'Homepage hero image'}
               fill
               className="object-cover"
               priority // Hero image: always preload for LCP

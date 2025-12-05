@@ -56,6 +56,15 @@ export default async function RootLayout({
     return (
       <html lang={siteLanguage}>
         <head>
+          {/* Performance: Preconnect to external domains for faster resource loading */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link rel="preconnect" href="https://www.googletagmanager.com" />
+          
+          {/* Performance: DNS prefetch for image CDN domains */}
+          <link rel="dns-prefetch" href="https://v5.airtableusercontent.com" />
+          <link rel="dns-prefetch" href="https://dl.airtable.com" />
+          
           <GoogleTagManagerScript gtmId={site?.['Google Tag Manager ID']} />
         </head>
         <body>

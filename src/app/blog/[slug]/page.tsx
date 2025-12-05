@@ -437,7 +437,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   <div className="mb-8 relative">
                     <Image
                       src={blogPost['Featured image'][0].url}
-                      alt={blogPost['Featured image alt text'] || displayTitle}
+                      alt={blogPost['Featured image alt text'] || displayTitle || 'Blog post image'}
                       width={blogPost['Featured image'][0].width}
                       height={blogPost['Featured image'][0].height}
                       className="w-full h-auto rounded-lg shadow-lg"
