@@ -17,7 +17,8 @@ function processLinkPatterns(content: string): string {
   // Also handle optional markdown formatting: **[LINK: text: slug]**
   
   // First, handle cases with ** before and/or after: **[LINK: text: slug]** or [LINK: text: slug]**
-  let processed = content.replace(/(\*\*)?\[LINK:\s*([^\]]+)\](?:\*\*)?/g, 
+  // Case-insensitive to support [LINK:, [Link:, [link:, etc.
+  let processed = content.replace(/(\*\*)?\[LINK:\s*([^\]]+)\](?:\*\*)?/gi, 
     (match, formatBefore, linkContent) => {
       // Check if there's closing ** by checking if match ends with ]**
       const hasClosingFormat = match.endsWith(']**');
