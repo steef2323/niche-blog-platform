@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useSite, useSitePages, useSiteFeatures } from '@/contexts/site';
 import { Feature, Page } from '@/types/airtable';
 import { getLogoPath, getLogoPathFallbacks } from '@/lib/utils/asset-paths';
+import { getLanguageText } from '@/lib/utils/language-text';
 
 interface HeaderProps {
   className?: string;
@@ -54,6 +55,9 @@ export default function Header({ className = '' }: HeaderProps) {
   };
 
   if (!site) return null;
+
+  // Get language-specific text
+  const languageText = getLanguageText(site.Language);
 
   return (
     <header 
@@ -145,19 +149,12 @@ export default function Header({ className = '' }: HeaderProps) {
                 
                 const page = pageLink as unknown as Page;
                 
-                // Filter out home pages, unpublished pages, and Amsterdam page
-                const slugLower = page.Slug?.toLowerCase() || '';
-                const titleLower = page.Title?.toLowerCase() || '';
-                
+                // Only show pages that are published, have required fields, and have Header checkbox checked
                 return (
                   page.Published && 
                   page.Slug && 
                   page.Title && 
-                  page.Slug.toLowerCase() !== 'home' &&
-                  page.Page !== 'Home' &&
-                  slugLower !== 'amsterdam' &&
-                  titleLower !== 'amsterdam' &&
-                  !titleLower.includes('sip and paint amsterdam')
+                  page.Header === true // Only show pages with Header checkbox checked
                 );
               })
               .map((pageLink) => {
@@ -189,10 +186,10 @@ export default function Header({ className = '' }: HeaderProps) {
             {/* Private Event Form Button - Far right, only shown if feature is enabled */}
             {hasPrivateEventForm && (
               <Link 
-                href="/private-event-form"
+                href={languageText.privateEventFormUrl}
                 className="btn-secondary hidden md:inline-flex"
               >
-                Book private event
+                {languageText.privateEventButton}
               </Link>
             )}
 
@@ -231,19 +228,12 @@ export default function Header({ className = '' }: HeaderProps) {
                   
                   const page = pageLink as unknown as Page;
                   
-                  // Filter out home pages, unpublished pages, and Amsterdam page
-                  const slugLower = page.Slug?.toLowerCase() || '';
-                  const titleLower = page.Title?.toLowerCase() || '';
-                  
+                  // Only show pages that are published, have required fields, and have Header checkbox checked
                   return (
                     page.Published && 
                     page.Slug && 
                     page.Title && 
-                    page.Slug.toLowerCase() !== 'home' &&
-                    page.Page !== 'Home' &&
-                    slugLower !== 'amsterdam' &&
-                    titleLower !== 'amsterdam' &&
-                    !titleLower.includes('sip and paint amsterdam')
+                    page.Header === true // Only show pages with Header checkbox checked
                   );
                 })
                 .map((pageLink) => {
@@ -271,11 +261,11 @@ export default function Header({ className = '' }: HeaderProps) {
               {/* Mobile Private Event Form Button */}
               {hasPrivateEventForm && (
                 <Link 
-                  href="/private-event-form"
+                  href={languageText.privateEventFormUrl}
                   className="btn-secondary mt-2 w-full justify-center"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Book private event
+                  {languageText.privateEventButton}
                 </Link>
               )}
             </nav>

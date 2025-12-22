@@ -78,6 +78,23 @@ export interface StaticSiteConfig {
     googleAnalyticsId?: string;
     googleTagManagerId?: string;
   };
+  
+  // Language-specific text for UI elements
+  languageText?: {
+    // Header button text
+    privateEventButton?: string;
+    
+    // Footer section headings
+    contactUs?: string;
+    pages?: string;
+    blog?: string;
+    allArticles?: string;
+    home?: string;
+    sitemap?: string;
+  };
+  
+  // Site language from Airtable
+  language?: string;
 }
 
 /**
@@ -278,6 +295,7 @@ export async function getStaticSiteConfigFromAirtable(domain: string): Promise<S
       localDomain: fields['Local domain'] || undefined, // ✅ Fetched
       siteId: siteId,
       siteName: fields.Name || undefined, // ✅ Fetched
+      language: fields.Language || undefined, // ✅ Fetched Language field
       
       colors: {
         primary: fields['Primary color'] || '#000000',
@@ -308,6 +326,22 @@ export async function getStaticSiteConfigFromAirtable(domain: string): Promise<S
       // Get Airtable view names from site-config.ts helper (fallback)
       // In production, you should configure these views in Airtable and store them here
       airtableViews: (await import('@/lib/site-config')).getAirtableViewsForDomain(domain),
+      
+      // ✅ Language-specific text
+      languageText: (() => {
+        const language = (fields.Language || '').toLowerCase();
+        const isDutch = language === 'dutch' || language === 'nl' || language === 'nederlands';
+        
+        return {
+          privateEventButton: isDutch ? 'Boek evenement' : 'Book private event',
+          contactUs: isDutch ? 'Contact ons' : 'Contact us',
+          pages: isDutch ? 'Pagina\'s' : 'Pages',
+          blog: 'Blog', // Same in both languages
+          allArticles: isDutch ? 'Alle artikelen' : 'All Articles',
+          home: 'Home', // Same in both languages
+          sitemap: 'Sitemap' // Same in both languages
+        };
+      })(),
       
       // ✅ Analytics IDs fetched
       // Helper function to find field by multiple possible names
@@ -439,6 +473,10 @@ export async function getStaticSiteConfig(
           // Also update siteId and siteName from Airtable if available
           siteId: airtableConfig.siteId || hardcodedConfig.siteId,
           siteName: airtableConfig.siteName || hardcodedConfig.siteName,
+          // Merge language (Airtable takes precedence)
+          language: airtableConfig.language ?? hardcodedConfig.language,
+          // Merge language text (Airtable takes precedence)
+          languageText: airtableConfig.languageText ?? hardcodedConfig.languageText,
           // Merge analytics (Airtable takes precedence)
           analytics: {
             googleAnalyticsId: airtableConfig.analytics?.googleAnalyticsId ?? hardcodedConfig.analytics?.googleAnalyticsId,

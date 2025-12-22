@@ -24,11 +24,29 @@ interface FormData {
 
 export default function PrivateEventForm({ 
   className = '', 
-  title = 'Ready to Book Your Private Event?',
-  subtitle = 'Contact us to discuss your special occasion and create an unforgettable experience.',
+  title,
+  subtitle,
   successMessage,
   language = 'en'
 }: PrivateEventFormProps) {
+  
+  // Default titles based on language
+  const defaultTitles = {
+    en: {
+      title: 'Ready to Book Your Private Event?',
+      subtitle: 'Contact us to discuss your special occasion and create an unforgettable experience.'
+    },
+    nl: {
+      title: 'Klaar om uw privé evenement te boeken?',
+      subtitle: 'Neem contact met ons op om uw speciale gelegenheid te bespreken en een onvergetelijke ervaring te creëren.'
+    }
+  };
+  
+  const langKey = (language?.toLowerCase() === 'dutch' || language?.toLowerCase() === 'nl' || language?.toLowerCase() === 'nederlands') ? 'nl' : 'en';
+  const defaults = defaultTitles[langKey as keyof typeof defaultTitles];
+  
+  const displayTitle = title || defaults.title;
+  const displaySubtitle = subtitle || defaults.subtitle;
   
   // Multi-language support
   const translations = {
@@ -365,10 +383,10 @@ export default function PrivateEventForm({
         className="text-2xl font-bold mb-4 text-center"
         style={{ fontFamily: 'var(--font-heading)' }}
       >
-        {title}
+        {displayTitle}
       </h3>
       <p className="text-center mb-6 opacity-90">
-        {subtitle}
+        {displaySubtitle}
       </p>
 
       {error && (

@@ -53,4 +53,7 @@ export interface Page extends BaseFields {
   // SEO fields
   'Meta title'?: string;
   'Meta description'?: string;
+  
+  // Navigation fields
+  Header?: boolean; // Checkbox field - when checked, page appears in header navigation
 } 

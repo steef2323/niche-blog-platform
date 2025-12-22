@@ -147,6 +147,12 @@ export function parseMarkdownToHtml(content: string): string {
     // Parse markdown to HTML
     let html = marked(content) as string;
     
+    // Post-process to ensure any remaining **text** patterns are converted to <strong> tags
+    // This is a safety net to catch edge cases where marked might not have converted them
+    // Handles **text with spaces**, **text with special chars!**, etc.
+    // Uses non-greedy matching to handle multiple bold sections in the same content
+    html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+    
     // Add IDs to headings for table of contents
     let headingCounter = { h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 };
     

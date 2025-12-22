@@ -103,6 +103,9 @@ export async function getSiteConfig(domain: string): Promise<SiteConfig | null> 
       Instagram: staticConfig.instagram,
       'Email contact': staticConfig.emailContact,
       
+      // Language from static config
+      ...(staticConfig.language && { Language: staticConfig.language }),
+      
       // Analytics from static config (only include if defined to avoid "$undefined" serialization)
       ...(staticConfig.analytics?.googleAnalyticsId && { 'Google analytics ID': staticConfig.analytics.googleAnalyticsId }),
       ...(staticConfig.analytics?.googleTagManagerId && { 'Google Tag Manager ID': staticConfig.analytics.googleTagManagerId }),

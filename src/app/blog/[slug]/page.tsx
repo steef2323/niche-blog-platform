@@ -6,6 +6,7 @@ import { getSiteConfig } from '@/lib/site-detection';
 import { getBlogPostBySlug, getListingPostBySlug, getRelatedBlogPosts, getHomepageContent, getBlogPostsBySiteId } from '@/lib/airtable/content';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { parseMarkdownToHtml } from '@/lib/utils/markdown';
+import { getLanguageText } from '@/lib/utils/language-text';
 import { 
   getBlogContent, 
   renderStructuredHTML, 
@@ -273,6 +274,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     // Check if Private event form feature is enabled
     const privateEventFeature = features.find(f => f.Name === 'Private event form');
     const showPrivateEventForm = !!privateEventFeature;
+
+    // Get language-specific text
+    const languageText = getLanguageText(site?.Language);
 
     // Format publish date
     const publishDate = post['Published date'] 
@@ -650,10 +654,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
                     </p>
                     <Link 
-                      href="/private-event-form"
+                      href={languageText.privateEventFormUrl}
                       className="btn-secondary w-full justify-center"
                     >
-                      Book private event
+                      {languageText.privateEventButton}
                     </Link>
                   </div>
                 )}
@@ -1469,10 +1473,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                               {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
                             </p>
                             <Link 
-                              href="/private-event-form"
+                              href={languageText.privateEventFormUrl}
                               className="btn-secondary"
                             >
-                              Book private event
+                              {languageText.privateEventButton}
                             </Link>
                           </div>
                         )}
@@ -1555,10 +1559,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
                     </p>
                     <Link 
-                      href="/private-event-form"
+                      href={languageText.privateEventFormUrl}
                       className="btn-secondary w-full justify-center"
                     >
-                      Book private event
+                      {languageText.privateEventButton}
                     </Link>
                   </div>
                 )}
@@ -1642,10 +1646,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 Contact us to discuss your special occasion and create an unforgettable experience.
               </p>
               <Link 
-                href="/private-event-form"
+                href={languageText.privateEventFormUrl}
                 className="btn-secondary"
               >
-                Book private event
+                {languageText.privateEventButton}
               </Link>
             </div>
           )}

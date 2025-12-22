@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useSite, useSitePages } from '@/contexts/site';
 import { Category, Page } from '@/types/airtable';
 import { getLogoPath, getLogoPathFallbacks } from '@/lib/utils/asset-paths';
+import { getLanguageText } from '@/lib/utils/language-text';
 
 interface FooterProps {
   className?: string;
@@ -60,6 +61,9 @@ export default function Footer({ className = '' }: FooterProps) {
     return null;
   }
 
+  // Get language-specific text
+  const languageText = getLanguageText(site.Language);
+
   return (
     <footer 
       className={className}
@@ -77,7 +81,7 @@ export default function Footer({ className = '' }: FooterProps) {
                 fontFamily: 'var(--font-heading)'
               }}
             >
-              Contact us
+              {languageText.contactUs}
             </h3>
             <div className="flex gap-4">
               {/* Instagram Link */}
@@ -144,7 +148,7 @@ export default function Footer({ className = '' }: FooterProps) {
                 fontFamily: 'var(--font-heading)'
               }}
             >
-              Pages
+              {languageText.pages}
             </h3>
             <ul className="space-y-2">
               {/* Home page link at the top */}
@@ -154,7 +158,7 @@ export default function Footer({ className = '' }: FooterProps) {
                   className="text-sm hover:opacity-80 transition-opacity"
                   style={{ color: 'var(--text-color)' }}
                 >
-                  Home
+                  {languageText.home}
                 </Link>
               </li>
               
@@ -232,7 +236,7 @@ export default function Footer({ className = '' }: FooterProps) {
                   className="text-sm hover:opacity-80 transition-opacity"
                   style={{ color: 'var(--text-color)' }}
                 >
-                  Sitemap
+                  {languageText.sitemap}
                 </Link>
               </li>
             </ul>
@@ -247,7 +251,7 @@ export default function Footer({ className = '' }: FooterProps) {
                 fontFamily: 'var(--font-heading)'
               }}
             >
-              Blog
+              {languageText.blog}
             </h3>
             <ul className="space-y-2">
               {/* Blog overview link at the top */}
@@ -257,7 +261,7 @@ export default function Footer({ className = '' }: FooterProps) {
                   className="text-sm hover:opacity-80 transition-opacity"
                   style={{ color: 'var(--text-color)' }}
                 >
-                  All Articles
+                  {languageText.allArticles}
                 </Link>
               </li>
               
