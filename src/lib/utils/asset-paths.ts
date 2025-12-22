@@ -52,8 +52,9 @@ function getLikelyFilePath(
  * 2. Airtable URL (if provided)
  * 3. Default fallback
  * 
- * NOTE: We construct the path for the most common extension (.webp, then .png).
- * Next.js Image component will handle 404s gracefully if the file doesn't exist.
+ * NOTE: Returns the first extension that likely exists. Since we can't check
+ * file existence client-side, we return the most common extension first.
+ * The Header component will handle fallbacks using onError handler.
  * 
  * @param domain - The domain (e.g., 'sipandpaints.nl')
  * @param airtableUrl - Optional Airtable attachment URL
@@ -81,6 +82,18 @@ export function getLogoPath(domain: string, airtableUrl?: string): string {
   
   // 3. Default fallback
   return '/logos/default-logo.png';
+}
+
+/**
+ * Get all possible logo paths for a domain in order of preference
+ * Used for fallback logic when the first path fails
+ * 
+ * @param domain - The domain (e.g., 'sipandpaints.nl')
+ * @returns Array of possible logo paths in order of preference
+ */
+export function getLogoPathFallbacks(domain: string): string[] {
+  const normalized = normalizeDomain(domain);
+  return IMAGE_EXTENSIONS.map(ext => `/logos/${normalized}${ext}`);
 }
 
 /**

@@ -32,7 +32,8 @@ const siteCache = new Map<string, CacheEntry>();
 /**
  * Normalize a domain for consistent matching
  * Removes protocol, www, and trailing slashes
- * In development, preserves port numbers for site detection
+ * In development, preserves port numbers for port-based site detection
+ * In production, removes port numbers and uses actual domain
  */
 export function normalizeDomain(domain: string): string {
   const isDev = process.env.NODE_ENV === 'development';
@@ -43,7 +44,7 @@ export function normalizeDomain(domain: string): string {
     .replace(/^www\./, '')
     .replace(/\/$/, '');
     
-  // In production, remove port numbers
+  // In production, remove port numbers (use actual domain)
   // In development, keep them for port-based site detection
   if (!isDev) {
     normalized = normalized.replace(/:\d+$/, '');
@@ -53,18 +54,27 @@ export function normalizeDomain(domain: string): string {
 }
 
 /**
- * Map port numbers to site identifiers for local development
+ * Map port numbers to actual site domains
+ * ONLY works in development - in production, use actual URL/domain
  */
 function getPortBasedSiteId(domain: string): string | null {
+  // Only use port-based detection in development
+  const isDev = process.env.NODE_ENV === 'development';
+  if (!isDev) {
+    return null;
+  }
+  
   const portMatch = domain.match(/:(\d+)$/);
   if (!portMatch) return null;
   
   const port = portMatch[1];
+  // Map ports to actual site domains (development only)
   const portToSiteMap: Record<string, string> = {
-    '3000': 'localhost:3000', // Site 1
+    '3000': 'sipandpaints.nl', // Site 1
     '3001': 'localhost:3001', // Site 2
-    '3002': 'localhost:3002', // Site 3 (future)
-    '3003': 'localhost:3003', // Site 4 (future)
+    '3002': 'sipandpaintamsterdam.nl', // Amsterdam site
+    '3003': 'localhost:3003', // Site 4
+    '3004': 'sipenpaints.nl', // sipenpaints.nl on port 3004 (development only)
   };
   
   return portToSiteMap[port] || null;
@@ -115,7 +125,7 @@ export async function testConnection() {
 
 /**
  * Get a site by its domain, with caching
- * In development, also checks the Local domain field and supports port-based detection
+ * Checks the Local domain field and supports port-based detection (works in both dev and production)
  */
 export async function getSiteByDomain(domain: string): Promise<Site | null> {
   ensureServerSide();
@@ -136,14 +146,15 @@ export async function getSiteByDomain(domain: string): Promise<Site | null> {
     if (isDev) {
       const portBasedSiteId = getPortBasedSiteId(domain);
       if (portBasedSiteId) {
-        // Use the port-based site identifier as the local domain
-        filterFormula = `OR({Domain} = "${normalizedDomain}", {Local domain} = "${portBasedSiteId}")`;
-        console.log('Using port-based site detection for:', portBasedSiteId);
+        // Map port to actual domain - check both the mapped domain and local domain
+        filterFormula = `OR({Domain} = "${portBasedSiteId}", {Domain} = "${normalizedDomain}", {Local domain} = "${portBasedSiteId}", {Local domain} = "${normalizedDomain}")`;
+        console.log('Using port-based site detection for:', portBasedSiteId, 'from port:', domain);
       } else {
         // Fallback to original local domain logic
-      filterFormula = `OR({Domain} = "${normalizedDomain}", {Local domain} = "${normalizedDomain}")`;
+        filterFormula = `OR({Domain} = "${normalizedDomain}", {Local domain} = "${normalizedDomain}")`;
       }
     }
+    // In production, use actual domain only (no port-based detection)
 
     console.log('Fetching site with filter:', filterFormula);
 
@@ -178,17 +189,25 @@ export async function getSiteByDomain(domain: string): Promise<Site | null> {
         
         console.log(`Found ${allSites.length} total sites for manual filtering`);
         
-                 // Filter manually
-         const portBasedSiteIdForFilter = isDev ? getPortBasedSiteId(domain) : null;
-         sites = allSites.filter(site => {
-           const fields = site.fields as any;
-           const siteDomain = fields.Domain;
-           const siteLocalDomain = fields['Local domain'];
-           
-           return siteDomain === normalizedDomain || 
-                  siteLocalDomain === normalizedDomain ||
-                  (isDev && portBasedSiteIdForFilter && siteLocalDomain === portBasedSiteIdForFilter);
-         });
+        // Filter manually - port-based detection only in development
+        const portBasedSiteIdForFilter = getPortBasedSiteId(domain);
+        sites = allSites.filter(site => {
+          const fields = site.fields as any;
+          const siteDomain = fields.Domain;
+          const siteLocalDomain = fields['Local domain'];
+          
+          // Check if domain matches
+          if (siteDomain === normalizedDomain || siteLocalDomain === normalizedDomain) {
+            return true;
+          }
+          
+          // Check if port maps to this site's domain (development only)
+          if (portBasedSiteIdForFilter) {
+            return siteDomain === portBasedSiteIdForFilter || siteLocalDomain === portBasedSiteIdForFilter;
+          }
+          
+          return false;
+        });
         
         console.log(`Manually filtered to ${sites.length} matching sites`);
       } catch (fallbackError) {

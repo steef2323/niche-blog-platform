@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSite, useSitePages, useSiteFeatures } from '@/contexts/site';
 import { Feature, Page } from '@/types/airtable';
-import { getLogoPath } from '@/lib/utils/asset-paths';
+import { getLogoPath, getLogoPathFallbacks } from '@/lib/utils/asset-paths';
 
 interface HeaderProps {
   className?: string;
@@ -20,6 +20,7 @@ export default function Header({ className = '' }: HeaderProps) {
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [logoErrorCount, setLogoErrorCount] = useState(0);
   
   // Check if private event form feature is enabled
   const hasPrivateEventForm = features.some(
@@ -31,6 +32,11 @@ export default function Header({ className = '' }: HeaderProps) {
       return false;
     }
   );
+
+  // Reset logo error count when site changes
+  useEffect(() => {
+    setLogoErrorCount(0);
+  }, [site?.Domain]);
 
   // Handle scroll event for potential header styling changes
   useEffect(() => {
@@ -72,10 +78,19 @@ export default function Header({ className = '' }: HeaderProps) {
           <div className="flex-shrink-0">
             {(() => {
               // Use getLogoPath to prefer local files over Airtable URLs
-              const logoUrl = getLogoPath(
-                site.Domain || '',
-                site['Site logo']?.[0]?.url
-              );
+              const fallbacks = getLogoPathFallbacks(site.Domain || '');
+              const airtableUrl = site['Site logo']?.[0]?.url;
+              
+              // Try fallbacks first, then Airtable URL, then default
+              let logoUrl: string;
+              if (fallbacks.length > logoErrorCount) {
+                logoUrl = fallbacks[logoErrorCount];
+              } else if (airtableUrl) {
+                logoUrl = airtableUrl;
+              } else {
+                logoUrl = getLogoPath(site.Domain || '', airtableUrl);
+              }
+              
               const logoAlt = site['Site logo alt text'] || site.Name || 'Site Logo';
               const logoTitle = site['Site logo title'] || site.Name || 'Site Logo';
               
@@ -91,6 +106,15 @@ export default function Header({ className = '' }: HeaderProps) {
                       className="h-12 w-auto"
                       priority // Logo: always preload for LCP
                       quality={100} // High quality for crisp logos
+                      onError={() => {
+                        // Try next fallback if current one fails
+                        if (logoErrorCount < fallbacks.length - 1) {
+                          setLogoErrorCount(prev => prev + 1);
+                        } else if (airtableUrl && logoUrl !== airtableUrl) {
+                          // If all fallbacks failed, try Airtable URL
+                          setLogoErrorCount(fallbacks.length);
+                        }
+                      }}
                       // Next.js automatically serves WebP/AVIF if supported
                     />
                   </Link>

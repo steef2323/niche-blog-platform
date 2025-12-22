@@ -156,18 +156,28 @@ const STATIC_CONFIG_CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days (aggre
 const staticConfigCache = new Map<string, StaticConfigCacheEntry>();
 
 /**
- * Get port-based site identifier for local development
+ * Get port-based site identifier (development only)
+ * Maps ports to actual site domains
+ * In production, returns null - use actual URL/domain instead
  */
 function getPortBasedSiteId(domain: string): string | null {
+  // Only use port-based detection in development
+  const isDev = process.env.NODE_ENV === 'development';
+  if (!isDev) {
+    return null;
+  }
+  
   const portMatch = domain.match(/:(\d+)$/);
   if (!portMatch) return null;
   
   const port = portMatch[1];
+  // Map ports to actual site domains (development only)
   const portToSiteMap: Record<string, string> = {
-    '3000': 'localhost:3000',
+    '3000': 'sipandpaints.nl',
     '3001': 'localhost:3001',
-    '3002': 'localhost:3002',
+    '3002': 'sipandpaintamsterdam.nl', // Amsterdam site
     '3003': 'localhost:3003',
+    '3004': 'sipenpaints.nl', // sipenpaints.nl on port 3004 (development only)
   };
   
   return portToSiteMap[port] || null;
@@ -205,12 +215,15 @@ export async function getStaticSiteConfigFromAirtable(domain: string): Promise<S
     if (isDev) {
       const portBasedSiteId = getPortBasedSiteId(domain);
       if (portBasedSiteId) {
-        filterFormula = `OR({Domain} = "${normalized}", {Local domain} = "${portBasedSiteId}")`;
-        console.log('Using port-based site detection for:', portBasedSiteId);
+        // Map port to actual domain - check both the mapped domain and local domain
+        filterFormula = `OR({Domain} = "${portBasedSiteId}", {Domain} = "${normalized}", {Local domain} = "${portBasedSiteId}", {Local domain} = "${normalized}")`;
+        console.log('Using port-based site detection for:', portBasedSiteId, 'from port:', domain);
       } else {
+        // Fallback to original local domain logic
         filterFormula = `OR({Domain} = "${normalized}", {Local domain} = "${normalized}")`;
       }
     }
+    // In production, use actual domain only (no port-based detection)
     
     // Fetch site from Airtable
     const sites = await base(TABLES.SITES)

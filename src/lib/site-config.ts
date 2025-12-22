@@ -38,7 +38,8 @@ export interface SiteConfig {
 /**
  * Normalize a domain for consistent matching
  * Removes protocol, www, and trailing slashes
- * In development, preserves port numbers for site detection
+ * In development, preserves port numbers for port-based site detection
+ * In production, removes port numbers and uses actual domain
  */
 export function normalizeDomain(domain: string): string {
   const isDev = process.env.NODE_ENV === 'development';
@@ -49,7 +50,7 @@ export function normalizeDomain(domain: string): string {
     .replace(/^www\./, '')
     .replace(/\/$/, '');
     
-  // In production, remove port numbers
+  // In production, remove port numbers (use actual domain)
   // In development, keep them for port-based site detection
   if (!isDev) {
     normalized = normalized.replace(/:\d+$/, '');
@@ -59,18 +60,27 @@ export function normalizeDomain(domain: string): string {
 }
 
 /**
- * Map port numbers to site identifiers for local development
+ * Map port numbers to actual site domains
+ * ONLY works in development - in production, use actual URL/domain
  */
 export function getPortBasedSiteId(domain: string): string | null {
+  // Only use port-based detection in development
+  const isDev = process.env.NODE_ENV === 'development';
+  if (!isDev) {
+    return null;
+  }
+  
   const portMatch = domain.match(/:(\d+)$/);
   if (!portMatch) return null;
   
   const port = portMatch[1];
+  // Map ports to actual site domains (development only)
   const portToSiteMap: Record<string, string> = {
-    '3000': 'localhost:3000', // Site 1
+    '3000': 'sipandpaints.nl', // Site 1
     '3001': 'localhost:3001', // Site 2
-    '3002': 'localhost:3002', // Site 3 (future)
-    '3003': 'localhost:3003', // Site 4 (future)
+    '3002': 'sipandpaintamsterdam.nl', // Amsterdam site
+    '3003': 'localhost:3003', // Site 4
+    '3004': 'sipenpaints.nl', // sipenpaints.nl on port 3004 (development only)
   };
   
   return portToSiteMap[port] || null;
@@ -79,6 +89,7 @@ export function getPortBasedSiteId(domain: string): string | null {
 /**
  * Get domain matching strategy for site lookup
  * Returns the domains/identifiers to check for a given domain
+ * Port-based detection ONLY works in development
  */
 export function getDomainMatchingStrategy(domain: string): {
   normalizedDomain: string;
@@ -87,6 +98,7 @@ export function getDomainMatchingStrategy(domain: string): {
 } {
   const normalizedDomain = normalizeDomain(domain);
   const isDev = process.env.NODE_ENV === 'development';
+  // Port-based detection ONLY in development
   const portBasedId = isDev ? getPortBasedSiteId(domain) : null;
   
   return {
@@ -113,7 +125,10 @@ export function getAirtableViewsForDomain(domain: string): {
   features?: string;
   tags?: string;
 } {
-  const normalizedDomain = normalizeDomain(domain);
+  // Check if this is a port-based domain that maps to another domain (development only)
+  const portBasedDomain = getPortBasedSiteId(domain);
+  const domainToCheck = portBasedDomain || domain;
+  const normalizedDomain = normalizeDomain(domainToCheck);
   
   // Map domains to their Airtable view names
   // Views should be pre-configured in Airtable to filter by site
@@ -136,6 +151,15 @@ export function getAirtableViewsForDomain(domain: string): {
       authors: 'sipandpaints.nl',
       features: 'sipandpaints.nl',
       tags: 'sipandpaints.nl' // If Tags table is used
+    },
+    'sipenpaints.nl': {
+      blogPosts: 'sipenpaints.nl',
+      listingPosts: 'sipenpaints.nl',
+      pages: 'sipenpaints.nl',
+      categories: 'sipenpaints.nl',
+      authors: 'sipenpaints.nl',
+      features: 'sipenpaints.nl',
+      tags: 'sipenpaints.nl' // If Tags table is used
     },
     // Add more domain mappings as needed
     // 'example.com': {

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSite, useSitePages } from '@/contexts/site';
 import { Category, Page } from '@/types/airtable';
-import { getLogoPath } from '@/lib/utils/asset-paths';
+import { getLogoPath, getLogoPathFallbacks } from '@/lib/utils/asset-paths';
 
 interface FooterProps {
   className?: string;
@@ -16,6 +16,7 @@ export default function Footer({ className = '' }: FooterProps) {
   const pages = useSitePages(); // Use hook to get pages from context
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logoErrorCount, setLogoErrorCount] = useState(0);
 
   useEffect(() => {
     if (!site?.id) return;
@@ -40,6 +41,11 @@ export default function Footer({ className = '' }: FooterProps) {
   }, [site?.id]);
 
   // Debug: Log contact info to verify data is being fetched
+  // Reset logo error count when site changes
+  useEffect(() => {
+    setLogoErrorCount(0);
+  }, [site?.Domain]);
+
   useEffect(() => {
     if (site) {
       console.log('Footer - Site contact info:', {
@@ -275,11 +281,20 @@ export default function Footer({ className = '' }: FooterProps) {
             {/* Site Logo */}
             <div className="mb-6">
               {(() => {
-                // Use getLogoPath to prefer local files over Airtable URLs
-                const logoUrl = getLogoPath(
-                  site.Domain || '',
-                  site['Site logo']?.[0]?.url
-                );
+                // Use getLogoPathFallbacks to try multiple extensions
+                const fallbacks = getLogoPathFallbacks(site.Domain || '');
+                const airtableUrl = site['Site logo']?.[0]?.url;
+                
+                // Try fallbacks first, then Airtable URL, then default
+                let logoUrl: string;
+                if (fallbacks.length > logoErrorCount) {
+                  logoUrl = fallbacks[logoErrorCount];
+                } else if (airtableUrl) {
+                  logoUrl = airtableUrl;
+                } else {
+                  logoUrl = getLogoPath(site.Domain || '', airtableUrl);
+                }
+                
                 const logoAlt = site['Site logo alt text'] || site.Name || 'Site Logo';
                 const logoTitle = site['Site logo title'] || site.Name;
                 
@@ -294,6 +309,15 @@ export default function Footer({ className = '' }: FooterProps) {
                       className="h-15 w-auto"
                       priority // Footer logo: always preload for LCP
                       quality={100} // High quality for crisp logos
+                      onError={() => {
+                        // Try next fallback if current one fails
+                        if (logoErrorCount < fallbacks.length - 1) {
+                          setLogoErrorCount(prev => prev + 1);
+                        } else if (airtableUrl && logoUrl !== airtableUrl) {
+                          // If all fallbacks failed, try Airtable URL
+                          setLogoErrorCount(fallbacks.length);
+                        }
+                      }}
                       // Next.js automatically serves WebP/AVIF if supported
                     />
                   );
