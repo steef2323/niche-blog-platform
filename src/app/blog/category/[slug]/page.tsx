@@ -9,6 +9,8 @@ import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { generateCategoryPageSchemas } from '@/lib/utils/schema';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import { getLanguageText } from '@/lib/utils/language-text';
+import { formatBlogDate } from '@/lib/utils/date-formatting';
 
 interface CategoryPageProps {
   params: {
@@ -132,6 +134,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     // Get category posts (both blog and listing posts)
     const allPosts = await getCombinedPostsByCategorySlug(params.slug, site.id);
 
+    // Get language-specific text
+    const languageText = getLanguageText(site?.Language);
+
     // Build breadcrumbs
     const breadcrumbItems = [
       { label: 'Home', href: '/' },
@@ -175,7 +180,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               fontFamily: 'var(--font-body)'
             }}
           >
-            <span>{allPosts.length} article{allPosts.length !== 1 ? 's' : ''}</span>
+            <span>{allPosts.length} {allPosts.length !== 1 ? languageText.articles : languageText.article}</span>
           </div>
         </div>
 
@@ -189,7 +194,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                 fontFamily: 'var(--font-body)'
               }}
             >
-              No articles found in this category.
+              {languageText.noArticlesFound}
             </p>
             <Link 
               href="/blog"
@@ -207,13 +212,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             {allPosts.map((post) => {
               const isListingPost = post.type === 'listing';
               const readingTime = !isListingPost && 'Content' in post && post.Content ? calculateReadingTime(post.Content) : null;
-              const publishDate = post['Published date'] 
-                ? new Date(post['Published date']).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })
-                : null;
+                const publishDate = post['Published date'] 
+                  ? formatBlogDate(post['Published date'], site?.Language)
+                  : null;
 
               // Helper functions for blog posts to use H1 and Meta description
               const getDisplayTitle = (post: any) => {

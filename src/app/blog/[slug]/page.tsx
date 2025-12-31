@@ -7,6 +7,8 @@ import { getBlogPostBySlug, getListingPostBySlug, getRelatedBlogPosts, getHomepa
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { parseMarkdownToHtml } from '@/lib/utils/markdown';
 import { getLanguageText } from '@/lib/utils/language-text';
+import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
+import { formatDate } from '@/lib/utils/date-formatting';
 import { 
   getBlogContent, 
   renderStructuredHTML, 
@@ -119,13 +121,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     // Get featured image with same logic as component: Featured image, then first location image, then first business image
     let featuredImageUrl: string | undefined;
     if (post['Featured image']?.[0]?.url) {
-      featuredImageUrl = post['Featured image'][0].url;
+      featuredImageUrl = getProxiedImageUrl(post['Featured image'][0].url);
     } else if (listingPost) {
       const firstLocation = listingPost.LocationDetails?.[0];
       if (firstLocation?.Image?.[0]?.url) {
-        featuredImageUrl = firstLocation.Image[0].url;
+        featuredImageUrl = getProxiedImageUrl(firstLocation.Image[0].url);
       } else if (listingPost['Image (from Business) (from Businesses)']?.[0]?.url) {
-        featuredImageUrl = listingPost['Image (from Business) (from Businesses)'][0].url;
+        featuredImageUrl = getProxiedImageUrl(listingPost['Image (from Business) (from Businesses)'][0].url);
       }
     }
 
@@ -277,10 +279,21 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
     // Get language-specific text
     const languageText = getLanguageText(site?.Language);
+    const language = (site?.Language || '').toLowerCase();
+    const isDutch = language === 'dutch' || language === 'nl' || language === 'nederlands';
+    
+    // Fallback text translations
+    const fallbackTexts = {
+      privateEventTitle: isDutch ? 'Klaar om uw privé evenement te boeken?' : 'Ready to Book Your Private Event?',
+      privateEventSubtitle: isDutch ? 'Neem contact met ons op om uw speciale gelegenheid te bespreken en een onvergetelijke ervaring te creëren.' : 'Contact us to discuss your special occasion and create an unforgettable experience.',
+      privateEventTitleShort: isDutch ? 'Boek een privé evenement' : 'Book a Private Event',
+      privateEventSubtitleShort: isDutch ? 'Klaar om uw speciale gelegenheid te plannen? Neem contact met ons op om uw privé evenement behoeften te bespreken.' : 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.',
+      privateEventInterested: isDutch ? 'Geïnteresseerd in een privé evenement?' : 'Interested in a Private Event?'
+    };
 
     // Format publish date
     const publishDate = post['Published date'] 
-      ? new Date(post['Published date']).toLocaleDateString('en-US', {
+      ? formatDate(post['Published date'], site?.Language, {
           year: 'numeric',
           month: 'long',
           day: 'numeric'
@@ -641,7 +654,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         fontFamily: 'var(--font-heading)'
                       }}
                     >
-                      {homePage?.['Private event form - Title'] || 'Book a Private Event'}
+                      {homePage?.['Private event form - Title'] || fallbackTexts.privateEventTitleShort}
                     </h3>
                     <p 
                       className="mb-4"
@@ -651,7 +664,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         opacity: 0.8
                       }}
                     >
-                      {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
+                      {homePage?.['Private event form - Subtitle'] || fallbackTexts.privateEventSubtitleShort}
                     </p>
                     <Link 
                       href={languageText.privateEventFormUrl}
@@ -1024,7 +1037,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                             >
                               <div className="flex items-center gap-2">
                                 <GlobeAltIcon className="h-5 w-5" style={{ color: 'var(--secondary-color)' }} />
-                                <span>Language</span>
+                                <span>{languageText.language}</span>
                               </div>
                             </td>
                             {comparisonData.map((item, idx) => (
@@ -1460,7 +1473,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 fontFamily: 'var(--font-heading)'
                               }}
                             >
-                              {homePage?.['Private event form - Title'] || 'Interested in a Private Event?'}
+                              {homePage?.['Private event form - Title'] || fallbackTexts.privateEventInterested}
                             </h3>
                             <p 
                               className="mb-4"
@@ -1470,7 +1483,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 opacity: 0.8
                               }}
                             >
-                              {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
+                              {homePage?.['Private event form - Subtitle'] || fallbackTexts.privateEventSubtitleShort}
                             </p>
                             <Link 
                               href={languageText.privateEventFormUrl}
@@ -1546,7 +1559,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         fontFamily: 'var(--font-heading)'
                       }}
                     >
-                      {homePage?.['Private event form - Title'] || 'Book a Private Event'}
+                      {homePage?.['Private event form - Title'] || fallbackTexts.privateEventTitleShort}
                     </h3>
                     <p 
                       className="mb-4"
@@ -1556,7 +1569,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         opacity: 0.8
                       }}
                     >
-                      {homePage?.['Private event form - Subtitle'] || 'Ready to plan your special occasion? Get in touch with us to discuss your private event needs.'}
+                      {homePage?.['Private event form - Subtitle'] || fallbackTexts.privateEventSubtitleShort}
                     </p>
                     <Link 
                       href={languageText.privateEventFormUrl}
@@ -1634,7 +1647,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   fontFamily: 'var(--font-heading)'
                 }}
               >
-                Ready to Book Your Private Event?
+                {homePage?.['Private event form - Title'] || fallbackTexts.privateEventTitle}
               </h3>
               <p 
                 className="text-lg mb-6 opacity-90"
@@ -1643,7 +1656,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   fontFamily: 'var(--font-body)'
                 }}
               >
-                Contact us to discuss your special occasion and create an unforgettable experience.
+                {homePage?.['Private event form - Subtitle'] || fallbackTexts.privateEventSubtitle}
               </p>
               <Link 
                 href={languageText.privateEventFormUrl}

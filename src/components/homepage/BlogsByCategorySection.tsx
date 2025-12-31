@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BlogPost, Category } from '@/types/airtable';
+import { useSite } from '@/contexts/site';
+import { formatBlogDate } from '@/lib/utils/date-formatting';
 
 interface BlogsByCategorySectionProps {
   siteId: string;
 }
 
 export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectionProps) {
+  const { site } = useSite();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryPosts, setCategoryPosts] = useState<Record<string, BlogPost[]>>({});
   const [loading, setLoading] = useState(true);
@@ -61,13 +64,9 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
     fetchCategoriesAndPosts();
   }, [siteId]);
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDateLocal = (dateString: string | undefined) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return formatBlogDate(dateString, site?.Language);
   };
 
   if (loading) {
@@ -208,7 +207,7 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
                             className="text-xs"
                             style={{ color: 'var(--muted-color)' }}
                           >
-                            {formatDate(post['Published date'])}
+                            {formatDateLocal(post['Published date'])}
                           </div>
                         </div>
                       </article>

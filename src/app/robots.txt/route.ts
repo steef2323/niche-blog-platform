@@ -24,6 +24,17 @@ Disallow: /private/
 Disallow: /temp/
 Disallow: /draft/
 
+# Block debug and test endpoints from crawlers
+Disallow: /api/test-*
+Disallow: /api/debug-*
+Disallow: /api/fetch-all-sites
+Disallow: /api/list-tables
+Disallow: /api/create-*
+Disallow: /api/fix-*
+Disallow: /api/update-*
+Disallow: /site-switcher
+Disallow: /port-testing
+
 # AI Bot Protection
 User-agent: GPTBot
 Disallow: /
@@ -64,7 +75,18 @@ Disallow: /_next/image/
 Disallow: /admin/
 Disallow: /private/
 Disallow: /temp/
-Disallow: /draft/`;
+Disallow: /draft/
+
+# Block debug and test endpoints from crawlers
+Disallow: /api/test-*
+Disallow: /api/debug-*
+Disallow: /api/fetch-all-sites
+Disallow: /api/list-tables
+Disallow: /api/create-*
+Disallow: /api/fix-*
+Disallow: /api/update-*
+Disallow: /site-switcher
+Disallow: /port-testing`;
 
     // Add site-specific disallow rules from Airtable if they exist
     if (site['Custom robots.txt rules']) {
@@ -128,6 +150,17 @@ Disallow: /admin/
 Disallow: /private/
 Disallow: /temp/
 Disallow: /draft/
+
+# Block debug and test endpoints from crawlers
+Disallow: /api/test-*
+Disallow: /api/debug-*
+Disallow: /api/fetch-all-sites
+Disallow: /api/list-tables
+Disallow: /api/create-*
+Disallow: /api/fix-*
+Disallow: /api/update-*
+Disallow: /site-switcher
+Disallow: /port-testing
 
 # AI Bot Protection
 User-agent: GPTBot

@@ -12,6 +12,25 @@ export interface LanguageText {
   home: string;
   sitemap: string;
   privateEventFormUrl: string; // URL path for the private event form
+  
+  // Blog and content related
+  otherBlogs: string;
+  noImage: string;
+  minRead: string;
+  article: string;
+  articles: string;
+  listicle: string;
+  noArticlesFound: string;
+  browseAllArticles: string;
+  articlesBy: string; // Template: "Articles by {author}" or "Artikelen van {author}"
+  
+  // UI elements
+  languages: string;
+  language: string;
+  viewExamples: string;
+  viewAllIn: string; // Template: "View All in {category}" or "Bekijk alles in {category}"
+  loadingMorePosts: string;
+  joined: string;
 }
 
 /**
@@ -32,7 +51,26 @@ export function getLanguageText(language?: string | null): LanguageText {
       allArticles: 'Alle artikelen',
       home: 'Home',
       sitemap: 'Sitemap',
-      privateEventFormUrl: '/aanmeld-formulier'
+      privateEventFormUrl: '/aanmeld-formulier',
+      
+      // Blog and content related
+      otherBlogs: 'Andere blogs',
+      noImage: 'Geen afbeelding',
+      minRead: 'min lezen',
+      article: 'artikel',
+      articles: 'artikelen',
+      listicle: 'Lijst',
+      noArticlesFound: 'Geen artikelen gevonden',
+      browseAllArticles: 'Bekijk alle artikelen',
+      articlesBy: 'Artikelen van', // Will be used as "Artikelen van {author}"
+      
+      // UI elements
+      languages: 'Talen:',
+      language: 'Taal',
+      viewExamples: 'Bekijk voorbeelden',
+      viewAllIn: 'Bekijk alles in', // Will be used as "Bekijk alles in {category}"
+      loadingMorePosts: 'Meer berichten laden...',
+      joined: 'Lid sinds'
     };
   }
   
@@ -45,7 +83,26 @@ export function getLanguageText(language?: string | null): LanguageText {
     allArticles: 'All Articles',
     home: 'Home',
     sitemap: 'Sitemap',
-    privateEventFormUrl: '/private-event-form'
+    privateEventFormUrl: '/private-event-form',
+    
+    // Blog and content related
+    otherBlogs: 'Other blogs',
+    noImage: 'No image',
+    minRead: 'min read',
+    article: 'article',
+    articles: 'articles',
+    listicle: 'Listicle',
+    noArticlesFound: 'No articles found',
+    browseAllArticles: 'Browse All Articles',
+    articlesBy: 'Articles by', // Will be used as "Articles by {author}"
+    
+    // UI elements
+    languages: 'Languages:',
+    language: 'Language',
+    viewExamples: 'View Examples',
+    viewAllIn: 'View All in', // Will be used as "View All in {category}"
+    loadingMorePosts: 'Loading more posts...',
+    joined: 'Joined'
   };
 }
 

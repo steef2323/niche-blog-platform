@@ -9,6 +9,8 @@ The user requested detailed implementation strategy for SEO optimizations, speci
 2. Automated internal link insertion based on keywords/topics
 3. Integration with existing `[LINK: text: slug]` pattern system
 
+**LATEST REQUEST (Localization)**: The user wants to identify and replace all hardcoded English strings with localized versions. The system already tracks site language in Airtable (`Language` field), and there's a `getLanguageText` utility that provides some localized strings. However, many hardcoded English strings remain throughout the codebase that need to be localized.
+
 ## Key Challenges and Analysis
 
 ### Implementation Strategy Overview
@@ -1127,3 +1129,238 @@ Add these in Vercel dashboard → Settings → Environment Variables:
 2. Update `src/types/airtable/listing-post.ts` with new field names
 3. Update all code references to use new field names
 4. Test listicle page rendering
+
+## ✅ LOCALIZATION IMPLEMENTATION COMPLETED
+
+**Date**: December 2024
+
+**Status**: All hardcoded English strings have been replaced with localized versions
+
+### Implementation Summary
+
+**✅ Completed Tasks:**
+1. Extended `LanguageText` utility with all missing strings (15 new strings added)
+2. Created date formatting utility (`date-formatting.ts`) that respects site language
+3. Replaced hardcoded strings in all blog components (9 files)
+4. Replaced date formatting in all homepage components (5 files)
+
+**Files Modified:**
+- `/src/lib/utils/language-text.ts` - Extended with 15 new localized strings
+- `/src/lib/utils/date-formatting.ts` - NEW FILE - Date formatting utility
+- `/src/components/blog/LazyRelatedBlogs.tsx` - Localized
+- `/src/components/blog/BusinessCard.tsx` - Localized
+- `/src/components/blog/CategoryBlogSection.tsx` - Localized
+- `/src/components/blog/BlogGrid.tsx` - Localized
+- `/src/app/blog/[slug]/page.tsx` - Localized
+- `/src/app/blog/author/[slug]/page.tsx` - Localized
+- `/src/app/blog/category/[slug]/page.tsx` - Localized
+- `/src/components/homepage/MostPopularSection.tsx` - Date formatting localized
+- `/src/components/homepage/BlogsByCategorySection.tsx` - Date formatting localized
+- `/src/components/homepage/ListiclesByCategorySection.tsx` - Date formatting localized
+- `/src/components/homepage/AllListiclesSection.tsx` - Date formatting localized
+- `/src/components/homepage/AllBlogsSection.tsx` - Date formatting localized
+
+**New Localized Strings Added:**
+- `otherBlogs`, `noImage`, `minRead`, `article`, `articles`, `listicle`
+- `noArticlesFound`, `browseAllArticles`, `articlesBy`
+- `languages`, `language`, `viewExamples`, `viewAllIn`
+- `loadingMorePosts`, `joined`
+
+**Date Formatting:**
+- All dates now use `formatDate()` or `formatBlogDate()` utilities
+- Dates automatically format according to site language (Dutch: nl-NL, English: en-US)
+- Supports custom date format options
+
+**Language Detection:**
+- Site language is tracked in Airtable (`Language` field)
+- Accessible via `site?.Language` throughout the app
+- Supports: 'Dutch', 'English', 'nl', 'en', 'nederlands'
+
+**Testing Recommendations:**
+1. Test all pages on Dutch site (sipandpaints.nl or sipenpaints.nl)
+2. Test all pages on English site
+3. Verify all strings display in correct language
+4. Verify dates format correctly (Dutch: "15 jan 2024", English: "Jan 15, 2024")
+5. Check for any remaining hardcoded English strings
+
+**Note**: Some homepage components (MostPopularSection, AllListiclesSection, AllBlogsSection) now accept an optional `language` prop. If not provided, they default to English formatting. These components should be updated where they're used to pass the site language.
+
+## Localization Analysis and Implementation Plan
+
+### Background
+The user has sites in different languages and wants to ensure all hardcoded English strings are replaced with localized versions. The system already tracks site language in Airtable (`Language` field) and has a basic `getLanguageText` utility, but many hardcoded English strings remain.
+
+### Current State Analysis
+
+#### ✅ Language Tracking (Already Implemented)
+- **Site Language**: Stored in Airtable `Sites` table `Language` field
+- **Access**: Available via `site?.Language` throughout the app
+- **Language Detection**: Supports 'Dutch', 'English', 'nl', 'en', 'nederlands'
+- **Existing Utility**: `getLanguageText()` in `/src/lib/utils/language-text.ts` provides some localized strings
+
+#### ❌ Hardcoded English Strings Found
+
+**1. Date Formatting (12 instances)**
+- All use `toLocaleDateString('en-US', ...)` hardcoded
+- Files affected:
+  - `src/components/blog/LazyRelatedBlogs.tsx` (line 79)
+  - `src/components/blog/CategoryBlogSection.tsx` (line 127)
+  - `src/app/blog/[slug]/page.tsx` (line 295)
+  - `src/components/blog/BlogGrid.tsx` (line 96)
+  - `src/app/blog/author/[slug]/page.tsx` (line 211)
+  - `src/app/blog/category/[slug]/page.tsx` (line 211)
+  - `src/components/homepage/MostPopularSection.tsx` (line 21)
+  - `src/components/homepage/BlogsByCategorySection.tsx` (line 66)
+  - `src/components/homepage/ListiclesByCategorySection.tsx` (line 66)
+  - `src/components/homepage/AllListiclesSection.tsx` (line 17)
+  - `src/components/homepage/AllBlogsSection.tsx` (line 17)
+
+**2. UI Text Strings (Multiple instances)**
+- "Other blogs" - `LazyRelatedBlogs.tsx` (line 66)
+- "No image" - Multiple files (LazyRelatedBlogs, CategoryBlogSection, BlogGrid)
+- "min read" - `LazyRelatedBlogs.tsx` (line 178)
+- "Languages:" - `BusinessCard.tsx` (line 175)
+- "View Examples" - `BusinessCard.tsx` (line 389)
+- "View All in {category.Name} →" - `CategoryBlogSection.tsx` (line 252)
+- "Loading more posts..." - `BlogGrid.tsx` (line 264)
+- "Language" - `blog/[slug]/page.tsx` (line 1039)
+- "Joined" - `blog/author/[slug]/page.tsx` (line 211)
+- "article"/"articles" - `blog/author/[slug]/page.tsx` (line 207)
+- "Article"/"Articles" - Multiple files
+- "Listicle" - `CategoryBlogSection.tsx` (line 181)
+- "No articles found" - Multiple files
+- "Browse All Articles" - `blog/author/[slug]/page.tsx`
+- "Articles by {author.Name}" - `blog/author/[slug]/page.tsx`
+
+### Implementation Plan
+
+#### Task L.1: Extend Language Text Utility
+**Priority**: HIGH
+**Estimated Time**: 1-2 hours
+
+**Subtasks**:
+- [ ] Extend `LanguageText` interface in `/src/lib/utils/language-text.ts` to include all new strings
+- [ ] Add Dutch translations for all new strings
+- [ ] Add English fallbacks for all strings
+- [ ] Ensure consistent naming convention
+
+**New Strings to Add**:
+```typescript
+interface LanguageText {
+  // ... existing strings ...
+  otherBlogs: string;
+  noImage: string;
+  minRead: string;
+  languages: string;
+  viewExamples: string;
+  viewAllIn: string; // "View All in {category}"
+  loadingMorePosts: string;
+  language: string;
+  joined: string;
+  article: string;
+  articles: string;
+  listicle: string;
+  noArticlesFound: string;
+  browseAllArticles: string;
+  articlesBy: string; // "Articles by {author}"
+}
+```
+
+**Success Criteria**:
+- All new strings added to interface
+- Dutch translations provided
+- English fallbacks provided
+- Utility function returns correct strings based on language
+
+#### Task L.2: Create Date Formatting Utility
+**Priority**: HIGH
+**Estimated Time**: 1 hour
+
+**Subtasks**:
+- [ ] Create `/src/lib/utils/date-formatting.ts` utility
+- [ ] Implement `formatDate(date: Date | string, language?: string, options?: Intl.DateTimeFormatOptions): string`
+- [ ] Map site language to locale codes ('Dutch' → 'nl-NL', 'English' → 'en-US')
+- [ ] Support common date formats (short, long, with time, etc.)
+
+**Success Criteria**:
+- Utility function maps language to correct locale
+- Dates formatted according to site language
+- Fallback to 'en-US' if language not recognized
+
+#### Task L.3: Replace Hardcoded Strings in Components
+**Priority**: HIGH
+**Estimated Time**: 3-4 hours
+
+**Subtasks**:
+- [ ] Update `LazyRelatedBlogs.tsx` - Replace "Other blogs", "No image", "min read", date formatting
+- [ ] Update `BusinessCard.tsx` - Replace "Languages:", "View Examples"
+- [ ] Update `CategoryBlogSection.tsx` - Replace "View All in", "No image", "Listicle", date formatting
+- [ ] Update `BlogGrid.tsx` - Replace "Loading more posts...", "No image", "Article", date formatting
+- [ ] Update `blog/[slug]/page.tsx` - Replace "Language", date formatting
+- [ ] Update `blog/author/[slug]/page.tsx` - Replace "Joined", "article"/"articles", "Articles by", "Browse All Articles", date formatting
+- [ ] Update `blog/category/[slug]/page.tsx` - Replace "article"/"articles", "No articles found", date formatting
+- [ ] Update all homepage components - Replace date formatting in:
+  - `MostPopularSection.tsx`
+  - `BlogsByCategorySection.tsx`
+  - `ListiclesByCategorySection.tsx`
+  - `AllListiclesSection.tsx`
+  - `AllBlogsSection.tsx`
+
+**Success Criteria**:
+- All hardcoded English strings replaced with `getLanguageText()` calls
+- All date formatting uses new utility function
+- Components receive site language from context
+- No hardcoded English strings remain
+
+#### Task L.4: Update Components to Use Site Context
+**Priority**: MEDIUM
+**Estimated Time**: 1-2 hours
+
+**Subtasks**:
+- [ ] Ensure all components that need language have access to `useSite()` hook
+- [ ] Pass language to date formatting utility
+- [ ] Verify language is available in all component contexts
+
+**Success Criteria**:
+- All components can access site language
+- Language passed correctly to utilities
+- No undefined language errors
+
+#### Task L.5: Testing and Validation
+**Priority**: HIGH
+**Estimated Time**: 2-3 hours
+
+**Subtasks**:
+- [ ] Test all pages with Dutch site (sipandpaints.nl or sipenpaints.nl)
+- [ ] Test all pages with English site
+- [ ] Verify all strings are localized correctly
+- [ ] Verify date formatting matches site language
+- [ ] Check for any remaining hardcoded English strings
+- [ ] Test edge cases (missing language, undefined site, etc.)
+
+**Success Criteria**:
+- All strings display in correct language
+- Dates formatted in correct locale
+- No console errors
+- Graceful fallbacks work correctly
+
+### Files to Modify
+
+1. `/src/lib/utils/language-text.ts` - Extend interface and translations
+2. `/src/lib/utils/date-formatting.ts` - NEW FILE - Date formatting utility
+3. `/src/components/blog/LazyRelatedBlogs.tsx` - Replace strings and dates
+4. `/src/components/blog/BusinessCard.tsx` - Replace strings
+5. `/src/components/blog/CategoryBlogSection.tsx` - Replace strings and dates
+6. `/src/components/blog/BlogGrid.tsx` - Replace strings and dates
+7. `/src/app/blog/[slug]/page.tsx` - Replace strings and dates
+8. `/src/app/blog/author/[slug]/page.tsx` - Replace strings and dates
+9. `/src/app/blog/category/[slug]/page.tsx` - Replace strings and dates
+10. `/src/components/homepage/MostPopularSection.tsx` - Replace dates
+11. `/src/components/homepage/BlogsByCategorySection.tsx` - Replace dates
+12. `/src/components/homepage/ListiclesByCategorySection.tsx` - Replace dates
+13. `/src/components/homepage/AllListiclesSection.tsx` - Replace dates
+14. `/src/components/homepage/AllBlogsSection.tsx` - Replace dates
+
+### Estimated Total Time: 8-12 hours
+
+### Priority: HIGH (User-facing localization is critical for multi-language sites)

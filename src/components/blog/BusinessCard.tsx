@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Business } from '@/types/airtable';
+import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
+import { useSite } from '@/contexts/site';
+import { getLanguageText } from '@/lib/utils/language-text';
 
 interface BusinessCardProps {
   business: Business;
@@ -10,6 +13,9 @@ interface BusinessCardProps {
 }
 
 export default function BusinessCard({ business, rank }: BusinessCardProps) {
+  const { site } = useSite();
+  const languageText = getLanguageText(site?.Language);
+  
   // Validate required fields
   if (!business) {
     console.error('BusinessCard: Missing business prop');
@@ -108,7 +114,7 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
           {businessImage && (
             <div className="mb-4">
               <Image
-                src={businessImage.url}
+                src={getProxiedImageUrl(businessImage.url)}
                 alt={business.Competitor}
                 width={businessImage.width || 600}
                 height={businessImage.height || 400}
@@ -171,7 +177,7 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
                     fontFamily: 'var(--font-body)'
                   }}
                 >
-                  Languages:
+                  {languageText.languages}
                 </span>
                 <span 
                   className="text-sm"
@@ -385,7 +391,7 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                View Examples
+                {languageText.viewExamples}
               </Link>
             )}
           </div>

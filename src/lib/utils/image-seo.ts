@@ -1,11 +1,13 @@
 import { Attachment, SEOImage } from '@/types/airtable';
+import { getProxiedImageUrl } from './image-proxy';
 
 /**
  * Converts an Airtable attachment to SEOImage with proper fallbacks
+ * Automatically proxies Airtable CDN URLs to hide infrastructure relationships
  * @param attachment - Airtable attachment object
  * @param fallbackAlt - Fallback alt text if not provided in attachment
  * @param fallbackTitle - Fallback title if not provided in attachment
- * @returns SEOImage object with proper SEO attributes
+ * @returns SEOImage object with proper SEO attributes (with proxied URL if from Airtable)
  */
 export function attachmentToSEOImage(
   attachment: Attachment,
@@ -13,7 +15,7 @@ export function attachmentToSEOImage(
   fallbackTitle?: string
 ): SEOImage {
   return {
-    src: attachment.url,
+    src: getProxiedImageUrl(attachment.url), // Automatically proxy Airtable URLs
     alt: attachment.altText || fallbackAlt || generateAltFromFilename(attachment.filename),
     title: attachment.title || fallbackTitle,
     caption: attachment.caption,

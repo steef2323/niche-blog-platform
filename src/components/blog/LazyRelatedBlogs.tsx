@@ -6,12 +6,18 @@ import Link from 'next/link';
 import { BlogPost } from '@/types/airtable';
 import { getBlogTitle, getBlogExcerpt, getContentForReadingTime } from '@/lib/utils/structured-content';
 import { calculateReadingTime } from '@/lib/utils/reading-time';
+import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
+import { useSite } from '@/contexts/site';
+import { getLanguageText } from '@/lib/utils/language-text';
+import { formatBlogDate } from '@/lib/utils/date-formatting';
 
 interface LazyRelatedBlogsProps {
   relatedBlogs: BlogPost[];
 }
 
 export default function LazyRelatedBlogs({ relatedBlogs }: LazyRelatedBlogsProps) {
+  const { site } = useSite();
+  const languageText = getLanguageText(site?.Language);
   const [isVisible, setIsVisible] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -62,7 +68,7 @@ export default function LazyRelatedBlogs({ relatedBlogs }: LazyRelatedBlogsProps
           fontFamily: 'var(--font-heading)'
         }}
       >
-        Other blogs
+        {languageText.otherBlogs}
       </h2>
       
       {isVisible ? (
@@ -75,11 +81,7 @@ export default function LazyRelatedBlogs({ relatedBlogs }: LazyRelatedBlogsProps
               return content ? calculateReadingTime(content) : null;
             })();
             const relatedPublishDate = relatedPost['Published date'] 
-              ? new Date(relatedPost['Published date']).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric'
-                })
+              ? formatBlogDate(relatedPost['Published date'], site?.Language)
               : null;
 
             return (
@@ -92,7 +94,7 @@ export default function LazyRelatedBlogs({ relatedBlogs }: LazyRelatedBlogsProps
                   >
                     {relatedPost['Featured image']?.[0] ? (
                       <Image
-                        src={relatedPost['Featured image'][0].url}
+                        src={getProxiedImageUrl(relatedPost['Featured image'][0].url)}
                         alt={relatedTitle}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -111,7 +113,7 @@ export default function LazyRelatedBlogs({ relatedBlogs }: LazyRelatedBlogsProps
                           className="text-sm"
                           style={{ color: 'var(--muted-color)' }}
                         >
-                          No image
+                          {languageText.noImage}
                         </span>
                       </div>
                     )}
@@ -174,7 +176,7 @@ export default function LazyRelatedBlogs({ relatedBlogs }: LazyRelatedBlogsProps
                         <span>{relatedPublishDate}</span>
                       )}
                       {relatedReadingTime && (
-                        <span>{relatedReadingTime} min read</span>
+                        <span>{relatedReadingTime} {languageText.minRead}</span>
                       )}
                     </div>
                   </div>

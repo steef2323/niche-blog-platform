@@ -6,6 +6,10 @@ import Image from 'next/image';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { getBlogTitle, getBlogExcerpt, getContentForReadingTime } from '@/lib/utils/structured-content';
+import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
+import { useSite } from '@/contexts/site';
+import { getLanguageText } from '@/lib/utils/language-text';
+import { formatBlogDate } from '@/lib/utils/date-formatting';
 
 type PostWithType = (BlogPost & { type: 'blog' }) | (ListingPost & { type: 'listing' });
 
@@ -18,6 +22,8 @@ interface BlogGridProps {
 }
 
 export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams, disableInfiniteScroll = false }: BlogGridProps) {
+  const { site } = useSite();
+  const languageText = getLanguageText(site?.Language);
   const [posts, setPosts] = useState<PostWithType[]>(initialPosts);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(disableInfiniteScroll ? false : initialPosts.length === postsPerPage);
@@ -92,11 +98,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
             return content ? calculateReadingTime(content) : null;
           })() : null;
           const publishDate = post['Published date'] 
-            ? new Date(post['Published date']).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })
+            ? formatBlogDate(post['Published date'], site?.Language)
             : null;
 
           return (
@@ -109,7 +111,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                 >
                   {post['Featured image']?.[0] ? (
                     <Image
-                      src={post['Featured image'][0].url}
+                      src={getProxiedImageUrl(post['Featured image'][0].url)}
                       alt={post.type === 'blog' ? getBlogTitle(post as BlogPost) : (post as ListingPost).Title}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -132,7 +134,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                           fontFamily: 'var(--font-body)'
                         }}
                       >
-                        No image
+                        {languageText.noImage}
                       </span>
                     </div>
                   )}
@@ -158,7 +160,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                           color: 'var(--text-color)'
                         }}
                       >
-                        Article
+                        {languageText.article}
                       </span>
                     )}
                     
@@ -260,7 +262,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                 borderTopColor: 'var(--primary-color)',
               }}
             ></div>
-            <span>Loading more posts...</span>
+            <span>{languageText.loadingMorePosts}</span>
           </div>
         </div>
       )}

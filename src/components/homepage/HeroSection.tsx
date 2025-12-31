@@ -3,6 +3,7 @@
 import { useSite } from '@/contexts/site';
 import { Page } from '@/types/airtable';
 import Image from 'next/image';
+import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
 
 interface HeroSectionProps {
   homePage: Page | null;
@@ -33,13 +34,14 @@ export default function HeroSection({ homePage }: HeroSectionProps) {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative w-full max-w-[1140px] h-full rounded-xl overflow-hidden">
             <Image
-              src={featuredImage.url}
+              src={getProxiedImageUrl(featuredImage.url)}
               alt={title || 'Homepage hero image'}
               fill
               className="object-cover"
               priority // Hero image: always preload for LCP
               quality={75} // Compress for web
-              // Next.js automatically serves WebP/AVIF if supported
+              // Note: Next.js Image optimization doesn't work with API proxy routes,
+              // but priority still works for LCP. Images are served directly from proxy.
             />
             <div className="absolute inset-0 bg-black/20" />
           </div>

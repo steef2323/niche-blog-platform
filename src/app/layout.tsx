@@ -55,11 +55,11 @@ export default async function RootLayout({
     const siteLanguage = site?.Language?.toLowerCase() || 'en';
     const gtmId = site?.['Google Tag Manager ID'];
 
-    // Log GTM ID retrieval for debugging
+    // Log GTM ID retrieval for debugging (only in development)
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 GTM ID from Airtable:', gtmId || 'NOT FOUND');
+      console.log('🔍 GTM ID:', gtmId || 'NOT FOUND');
       if (!gtmId) {
-        console.warn('⚠️ GTM ID is missing - check Airtable "Google Tag Manager ID" field for site:', site?.Domain || host);
+        console.warn('⚠️ GTM ID is missing for site:', site?.Domain || host);
       }
     }
 
@@ -71,9 +71,7 @@ export default async function RootLayout({
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link rel="preconnect" href="https://www.googletagmanager.com" />
           
-          {/* Performance: DNS prefetch for image CDN domains */}
-          <link rel="dns-prefetch" href="https://v5.airtableusercontent.com" />
-          <link rel="dns-prefetch" href="https://dl.airtable.com" />
+          {/* Note: Airtable CDN DNS prefetch removed - images are now proxied through /api/image-proxy */}
           
           <GoogleTagManagerScript gtmId={gtmId} />
         </head>

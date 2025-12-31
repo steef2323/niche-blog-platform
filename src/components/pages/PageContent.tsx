@@ -15,6 +15,10 @@ interface PageContentProps {
 export default function PageContent({ page }: PageContentProps) {
   const { site } = useSite();
   const features = useSiteFeatures();
+  
+  // Get language for translations
+  const language = site?.Language?.toLowerCase() || 'en';
+  const isDutch = language === 'dutch' || language === 'nl' || language === 'nederlands';
 
   // Check if private event form feature is enabled
   const hasPrivateEventForm = features.some(
@@ -325,7 +329,7 @@ export default function PageContent({ page }: PageContentProps) {
                 fontFamily: 'var(--font-body)'
               }}
             >
-              Content coming soon...
+              {isDutch ? 'Inhoud komt binnenkort...' : 'Content coming soon...'}
             </p>
           </div>
         )

@@ -1,20 +1,22 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ListingPost } from '@/types/airtable';
+import { formatDate } from '@/lib/utils/date-formatting';
 
 interface AllListiclesSectionProps {
   listingPosts: ListingPost[];
   siteId: string;
+  language?: string | null;
 }
 
-export default function AllListiclesSection({ listingPosts, siteId }: AllListiclesSectionProps) {
+export default function AllListiclesSection({ listingPosts, siteId, language }: AllListiclesSectionProps) {
   if (!listingPosts || listingPosts.length === 0) {
     return null;
   }
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDateLocal = (dateString: string | undefined) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return formatDate(dateString, language, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -125,7 +127,7 @@ export default function AllListiclesSection({ listingPosts, siteId }: AllListicl
 
                     {/* Date */}
                     <div className="text-xs text-gray-500">
-                      {formatDate(post['Published date'])}
+                      {formatDateLocal(post['Published date'])}
                     </div>
                   </div>
                 </article>

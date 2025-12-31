@@ -6,6 +6,10 @@ import Image from 'next/image';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { getBlogTitle, getBlogExcerpt, getContentForReadingTime } from '@/lib/utils/structured-content';
+import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
+import { useSite } from '@/contexts/site';
+import { getLanguageText } from '@/lib/utils/language-text';
+import { formatBlogDate } from '@/lib/utils/date-formatting';
 
 interface Category {
   id: string;
@@ -24,6 +28,8 @@ interface CategoryBlogSectionProps {
 }
 
 export default function CategoryBlogSection({ category, siteId, isFirst = false }: CategoryBlogSectionProps) {
+  const { site } = useSite();
+  const languageText = getLanguageText(site?.Language);
   const [posts, setPosts] = useState<PostWithType[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -123,11 +129,7 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
             return content ? calculateReadingTime(content) : null;
           })() : null;
           const publishDate = post['Published date'] 
-            ? new Date(post['Published date']).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })
+            ? formatBlogDate(post['Published date'], site?.Language)
             : null;
 
           return (
@@ -140,7 +142,7 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                 >
                   {post['Featured image']?.[0] ? (
                     <Image
-                      src={post['Featured image'][0].url}
+                      src={getProxiedImageUrl(post['Featured image'][0].url)}
                       alt={post.type === 'blog' ? getBlogTitle(post as BlogPost) : (post as ListingPost).Title}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -163,7 +165,7 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                           fontFamily: 'var(--font-body)'
                         }}
                       >
-                        No image
+                        {languageText.noImage}
                       </span>
                     </div>
                   )}
@@ -177,7 +179,7 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                         color: 'var(--text-color)'
                       }}
                     >
-                      {isListingPost ? 'Listicle' : 'Article'}
+                      {isListingPost ? languageText.listicle : languageText.article}
                     </span>
                   </div>
                 </div>
@@ -248,7 +250,7 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
           href={`/blog/category/${category.Slug}`}
           className="btn-accent"
         >
-          View All in {category.Name} →
+          {languageText.viewAllIn} {category.Name} →
         </Link>
       </div>
     </section>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { BlogPost, ListingPost } from '@/types/airtable';
+import { formatDate } from '@/lib/utils/date-formatting';
 
 interface PostWithType extends Omit<BlogPost | ListingPost, 'type'> {
   type: 'blog' | 'listing';
@@ -9,16 +10,17 @@ interface PostWithType extends Omit<BlogPost | ListingPost, 'type'> {
 interface MostPopularSectionProps {
   posts: PostWithType[];
   siteId: string;
+  language?: string | null;
 }
 
-export default function MostPopularSection({ posts, siteId }: MostPopularSectionProps) {
+export default function MostPopularSection({ posts, siteId, language }: MostPopularSectionProps) {
   if (!posts || posts.length === 0) {
     return null;
   }
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDateLocal = (dateString: string | undefined) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return formatDate(dateString, language, {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -125,7 +127,7 @@ export default function MostPopularSection({ posts, siteId }: MostPopularSection
                     className="flex items-center justify-between text-xs"
                     style={{ color: 'var(--muted-color)' }}
                   >
-                    <span>{formatDate(post['Published date'])}</span>
+                    <span>{formatDateLocal(post['Published date'])}</span>
                     {post.CategoryDetails?.Name && (
                       <span 
                         className="px-2 py-1 rounded-full border"

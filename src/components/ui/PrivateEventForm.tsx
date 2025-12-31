@@ -27,8 +27,12 @@ export default function PrivateEventForm({
   title,
   subtitle,
   successMessage,
-  language = 'en'
+  language: propLanguage
 }: PrivateEventFormProps) {
+  
+  const { site, siteId: contextSiteId } = useSite();
+  // Use prop language if provided, otherwise use site language, fallback to 'en'
+  const language = propLanguage || site?.Language?.toLowerCase() || 'en';
   
   // Default titles based on language
   const defaultTitles = {
@@ -64,6 +68,8 @@ export default function PrivateEventForm({
       thankYou: 'Thank You!',
       submitAnother: 'Submit Another Request',
       requiredFieldsError: 'Please fill in all required fields.',
+      nameRequiredError: 'Please enter your name.',
+      emailRequiredError: 'Please enter your email address.',
       invalidEmailError: 'Please enter a valid email address.',
       networkError: 'Network error. Please check your connection and try again.',
       defaultError: 'Something went wrong. Please try again.',
@@ -84,6 +90,8 @@ export default function PrivateEventForm({
       thankYou: 'Dank Je Wel!',
       submitAnother: 'Verstuur Nog Een Aanvraag',
       requiredFieldsError: 'Vul alle verplichte velden in.',
+      nameRequiredError: 'Voer uw naam in.',
+      emailRequiredError: 'Voer uw e-mailadres in.',
       invalidEmailError: 'Voer een geldig e-mailadres in.',
       networkError: 'Netwerkfout. Controleer uw verbinding en probeer opnieuw.',
       defaultError: 'Er is iets misgegaan. Probeer het opnieuw.',
@@ -93,7 +101,6 @@ export default function PrivateEventForm({
   };
 
   const t = translations[language as keyof typeof translations] || translations.en;
-  const { site, siteId: contextSiteId } = useSite();
   // Get current date in YYYY-MM-DD format for default
   const getCurrentDate = () => {
     const today = new Date();
@@ -226,13 +233,13 @@ export default function PrivateEventForm({
     const email = formData.email.trim();
     
     if (!name) {
-      setError('Please enter your name.');
+      setError(t.nameRequiredError);
       setIsSubmitting(false);
       return;
     }
     
     if (!email) {
-      setError('Please enter your email address.');
+      setError(t.emailRequiredError);
       setIsSubmitting(false);
       return;
     }

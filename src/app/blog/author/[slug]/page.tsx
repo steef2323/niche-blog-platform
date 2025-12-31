@@ -9,6 +9,8 @@ import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { generateAuthorPageSchemas } from '@/lib/utils/schema';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import { getLanguageText } from '@/lib/utils/language-text';
+import { formatAuthorDate, formatBlogDate } from '@/lib/utils/date-formatting';
 
 interface AuthorPageProps {
   params: {
@@ -132,6 +134,9 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
     // Get author's combined posts (both blog and listing posts)
     const allPosts = await getCombinedPostsByAuthorSlug(params.slug, site.id);
 
+    // Get language-specific text
+    const languageText = getLanguageText(site?.Language);
+
     // Build breadcrumbs
     const breadcrumbItems = [
       { label: 'Home', href: '/' },
@@ -204,11 +209,11 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
               fontFamily: 'var(--font-body)'
             }}
           >
-            <span>{allPosts.length} article{allPosts.length !== 1 ? 's' : ''}</span>
+            <span>{allPosts.length} {allPosts.length !== 1 ? languageText.articles : languageText.article}</span>
             {author['Published date'] && (
               <>
                 <span>•</span>
-                <span>Joined {new Date(author['Published date']).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</span>
+                <span>{languageText.joined} {formatAuthorDate(author['Published date'], site?.Language)}</span>
               </>
             )}
           </div>
@@ -223,7 +228,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
               fontFamily: 'var(--font-heading)'
             }}
           >
-            Articles by {author.Name}
+            {languageText.articlesBy} {author.Name}
           </h2>
 
           {allPosts.length === 0 ? (
@@ -235,7 +240,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                   fontFamily: 'var(--font-body)'
                 }}
               >
-                No articles found by this author.
+                {languageText.noArticlesFound}
               </p>
               <Link 
                 href="/blog"
@@ -245,7 +250,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                   color: 'var(--background-color)',
                 }}
               >
-                Browse All Articles
+                {languageText.browseAllArticles}
               </Link>
             </div>
           ) : (
@@ -254,11 +259,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                 const isListingPost = post.type === 'listing';
                 const readingTime = !isListingPost && 'Content' in post && post.Content ? calculateReadingTime(post.Content) : null;
                 const publishDate = post['Published date'] 
-                  ? new Date(post['Published date']).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })
+                  ? formatBlogDate(post['Published date'], site?.Language)
                   : null;
 
                 // Helper functions for blog posts to use H1 and Meta description

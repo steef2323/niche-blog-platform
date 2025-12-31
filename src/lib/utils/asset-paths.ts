@@ -14,6 +14,7 @@
  */
 
 import { normalizeDomain } from '@/lib/site-config';
+import { getProxiedImageUrl } from './image-proxy';
 
 /**
  * Common image extensions (in order of preference)
@@ -75,9 +76,9 @@ export function getLogoPath(domain: string, airtableUrl?: string): string {
     return `/${localLogo}`; // Return with leading slash for public path
   }
   
-  // 2. Fall back to Airtable URL if provided
+  // 2. Fall back to Airtable URL if provided (proxied to hide infrastructure)
   if (airtableUrl) {
-    return airtableUrl;
+    return getProxiedImageUrl(airtableUrl);
   }
   
   // 3. Default fallback

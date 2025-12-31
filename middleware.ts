@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getRedirectUrl } from '@/lib/redirects';
+import { protectDebugEndpoints } from '@/middleware/api-protection';
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const host = request.headers.get('host') || '';
+  
+  // Protect debug/test endpoints in production (returns 404 if blocked)
+  const protectionResponse = protectDebugEndpoints(request);
+  if (protectionResponse) {
+    return protectionResponse;
+  }
   
   // Check for redirects on blog post routes
   if (pathname.startsWith('/blog/') && pathname !== '/blog') {
@@ -84,12 +91,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * Match all request paths including API routes (for debug endpoint protection)
+     * Exclude:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }; 

@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ListingPost, Category } from '@/types/airtable';
+import { useSite } from '@/contexts/site';
+import { formatBlogDate } from '@/lib/utils/date-formatting';
 
 interface ListiclesByCategorySectionProps {
   siteId: string;
 }
 
 export default function ListiclesByCategorySection({ siteId }: ListiclesByCategorySectionProps) {
+  const { site } = useSite();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryPosts, setCategoryPosts] = useState<Record<string, ListingPost[]>>({});
   const [loading, setLoading] = useState(true);
@@ -61,13 +64,9 @@ export default function ListiclesByCategorySection({ siteId }: ListiclesByCatego
     fetchCategoriesAndPosts();
   }, [siteId]);
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDateLocal = (dateString: string | undefined) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return formatBlogDate(dateString, site?.Language);
   };
 
   if (loading) {
@@ -208,7 +207,7 @@ export default function ListiclesByCategorySection({ siteId }: ListiclesByCatego
 
                           {/* Date */}
                           <div className="text-xs text-gray-500">
-                            {formatDate(post['Published date'])}
+                            {formatDateLocal(post['Published date'])}
                           </div>
                         </div>
                       </article>
