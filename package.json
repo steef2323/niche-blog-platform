@@ -10,7 +10,9 @@
     "dev:site4": "next dev -p 3003",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "release:preflight": "./scripts/paperclip-release-preflight.sh",
+    "release:verify-prod": "./scripts/paperclip-release-verify-prod.sh"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.3",
