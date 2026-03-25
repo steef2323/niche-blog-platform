@@ -1,6 +1,45 @@
 import { BlogPost, ListingPost, Site, Author, Category, Business, Page } from '@/types/airtable';
 
 /**
+ * Per-site entity config — gives each site a unique local identity for
+ * zero-footprint LocalBusiness schema on the homepage.
+ * Distinct geo/city/openingHours per site prevents layout-similarity correlation.
+ */
+const SITE_ENTITY_CONFIG: Record<string, {
+  addressLocality: string;
+  addressRegion?: string;
+  postalCode?: string;
+  geo: { latitude: number; longitude: number };
+  openingHours: string[];
+  priceRange: string;
+}> = {
+  'sipandpaints.nl': {
+    addressLocality: 'Utrecht',
+    addressRegion: 'Utrecht',
+    postalCode: '3511',
+    geo: { latitude: 52.0907, longitude: 5.1214 },
+    openingHours: ['Th-Su 18:00-22:00'],
+    priceRange: '€€',
+  },
+  'sipenpaints.nl': {
+    addressLocality: 'Rotterdam',
+    addressRegion: 'Zuid-Holland',
+    postalCode: '3011',
+    geo: { latitude: 51.9244, longitude: 4.4777 },
+    openingHours: ['Fr-Su 18:00-22:00'],
+    priceRange: '€€',
+  },
+  'sipandpaintamsterdam.nl': {
+    addressLocality: 'Amsterdam',
+    addressRegion: 'Noord-Holland',
+    postalCode: '1017',
+    geo: { latitude: 52.3676, longitude: 4.9041 },
+    openingHours: ['Th-Su 18:00-22:00'],
+    priceRange: '€€',
+  },
+};
+
+/**
  * Generate Organization schema for the site
  * @param site - Site data from Airtable
  * @returns JSON-LD Organization schema
@@ -23,7 +62,7 @@ export function generateOrganizationSchema(site: Site) {
       "height": site['Site logo'][0].height
     } : undefined,
     "description": site['Default meta description'] || `Welcome to ${site.Name || 'our organization'}`,
-    "sameAs": [], // Add social media URLs if available
+    "sameAs": site.Instagram ? [site.Instagram] : [],
     "contactPoint": {
       "@type": "ContactPoint",
       "contactType": "customer service"
@@ -351,6 +390,174 @@ export function generateReviewSchema(
 }
 
 /**
+ * Generate VisualArtsStudio LocalBusiness schema for the site itself (homepage).
+ * Uses per-site entity config for unique geo/address identity per domain.
+ */
+export function generateSiteLocalBusinessSchema(site: Site) {
+  if (!site) return null;
+
+  const domain = site.Domain || '';
+  const entity = SITE_ENTITY_CONFIG[domain] || SITE_ENTITY_CONFIG['sipandpaints.nl'];
+  const siteUrl = site['Site URL'] || `https://${domain}`;
+
+  const sameAs: string[] = [];
+  if (site.Instagram) sameAs.push(site.Instagram);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "VisualArtsStudio",
+    "name": site.Name,
+    "description": site['Default meta description'] || `Sip & Paint in ${entity.addressLocality}`,
+    "url": siteUrl,
+    "image": site['Site logo']?.[0]?.url || undefined,
+    "telephone": undefined, // Add to Airtable Site when available
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": entity.addressLocality,
+      "addressRegion": entity.addressRegion,
+      "postalCode": entity.postalCode,
+      "addressCountry": "NL"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": entity.geo.latitude,
+      "longitude": entity.geo.longitude
+    },
+    "openingHoursSpecification": entity.openingHours.map(hours => {
+      // Parse "Th-Su 18:00-22:00" into schema.org OpeningHoursSpecification
+      const [dayRange, timeRange] = hours.split(' ');
+      const [opens, closes] = timeRange.split('-');
+      const dayMap: Record<string, string> = {
+        Mo: 'Monday', Tu: 'Tuesday', We: 'Wednesday', Th: 'Thursday',
+        Fr: 'Friday', Sa: 'Saturday', Su: 'Sunday'
+      };
+      const [fromDay, toDay] = dayRange.split('-');
+      const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+      const start = days.indexOf(fromDay);
+      const end = days.indexOf(toDay ?? fromDay);
+      const dayOfWeek = (start <= end ? days.slice(start, end + 1) : days)
+        .map(d => `https://schema.org/${dayMap[d]}`);
+      return { "@type": "OpeningHoursSpecification", "dayOfWeek": dayOfWeek, "opens": opens, "closes": closes };
+    }),
+    "priceRange": entity.priceRange,
+    "currenciesAccepted": "EUR",
+    "paymentAccepted": "Cash, Credit Card",
+    "areaServed": {
+      "@type": "State",
+      "name": "Netherlands"
+    },
+    ...(sameAs.length > 0 && { "sameAs": sameAs })
+  };
+}
+
+/**
+ * Detect whether a blog post is a HowTo guide based on its title.
+ */
+function isHowToPost(post: BlogPost): boolean {
+  const title = (post.H1 || post.Title || '').toLowerCase().trim();
+  return (
+    title.startsWith('how to') ||
+    title.startsWith('hoe ') ||
+    title.includes(' how to ') ||
+    title.includes('stap voor stap') ||
+    title.includes('step by step')
+  );
+}
+
+/**
+ * Generate HowTo schema for tutorial/guide posts.
+ * Steps are derived from the H2.x / Text2.x section pairs.
+ */
+export function generateHowToSchema(post: BlogPost, site: Site) {
+  if (!post || !site) return null;
+  if (!isHowToPost(post)) return null;
+
+  const steps: Array<{ name: string; text: string }> = [];
+  for (let i = 1; i <= 4; i++) {
+    const name = (post as any)[`H2.${i}`] as string | undefined;
+    const text = (post as any)[`Text2.${i}`] as string | undefined;
+    if (name?.trim() && text?.trim()) {
+      steps.push({ name: name.trim(), text: text.trim() });
+    }
+  }
+  if (steps.length === 0) return null;
+
+  const siteUrl = site['Site URL'] || `https://${site.Domain}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": post.H1 || post.Title,
+    "description": post['Meta description'] || post.Excerpt || '',
+    "image": post['Featured image']?.[0]?.url ? {
+      "@type": "ImageObject",
+      "url": post['Featured image'][0].url,
+      "width": post['Featured image'][0].width,
+      "height": post['Featured image'][0].height
+    } : undefined,
+    "url": `${siteUrl}/blog/${post.Slug}`,
+    "step": steps.map((s, i) => ({
+      "@type": "HowToStep",
+      "position": i + 1,
+      "name": s.name,
+      "text": s.text
+    }))
+  };
+}
+
+/**
+ * Generate Event schema for listing posts (sip & paint events).
+ * Uses location and business data to describe the recurring event.
+ */
+export function generateEventSchema(post: ListingPost, site: Site) {
+  if (!post || !site) return null;
+
+  const business = post.BusinessDetails?.[0] as Business | undefined;
+  const location = post.LocationDetails?.[0];
+
+  // Only emit if we have enough location context
+  if (!business && !location) return null;
+
+  const siteUrl = site['Site URL'] || `https://${site.Domain}`;
+  const postUrl = `${siteUrl}/blog/${post.Slug}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": post.Title,
+    "description": (typeof post['Meta description'] === 'string' ? post['Meta description'] : '') ||
+      post.Excerpt || `Sip & Paint event — ${business?.Cities?.[0] || ''}`,
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": business?.Competitor || post.Title,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": location?.Address || '',
+        "addressLocality": business?.Cities?.[0] || '',
+        "addressCountry": "NL"
+      },
+      ...(location?.['Google maps link'] && { "hasMap": location['Google maps link'] })
+    },
+    "organizer": {
+      "@type": "Organization",
+      "name": site.Name,
+      "url": siteUrl
+    },
+    "offers": business?.Price ? {
+      "@type": "Offer",
+      "price": business.Price,
+      "priceCurrency": "EUR",
+      "availability": "https://schema.org/InStock",
+      "url": postUrl
+    } : undefined,
+    "url": postUrl,
+    "image": post['Featured image']?.[0]?.url || undefined
+  };
+}
+
+/**
  * Combine multiple schemas into a single JSON-LD script
  * @param schemas - Array of schema objects
  * @returns Combined JSON-LD script
@@ -393,6 +600,14 @@ export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Aut
     }
   } catch (error) {
     console.error('Error generating FAQ schema:', error);
+  }
+
+  // HowTo schema — only emitted for how-to guide posts
+  try {
+    const howToSchema = generateHowToSchema(post, site);
+    if (howToSchema) schemas.push(howToSchema);
+  } catch (error) {
+    console.error('Error generating HowTo schema:', error);
   }
 
   if (breadcrumbs && breadcrumbs.length > 0) {
@@ -526,6 +741,10 @@ export function generateListingPostSchemas(post: ListingPost, site: Site, breadc
     
     const localBusinessSchema = generateLocalBusinessSchema(post, site);
     if (localBusinessSchema) schemas.push(localBusinessSchema);
+
+    // Event schema — sip & paint events
+    const eventSchema = generateEventSchema(post, site);
+    if (eventSchema) schemas.push(eventSchema);
   } catch (error) {
     console.error('Error generating listing post schemas:', error);
   }
@@ -583,9 +802,10 @@ export function generateCollectionPageSchema(site: Site, posts: Array<{id?: stri
 export function generateHomepageSchemas(site: Site, homePage?: Page) {
   const schemas: any[] = [
     generateWebSiteSchema(site),
-    generateOrganizationSchema(site)
+    generateOrganizationSchema(site),
+    generateSiteLocalBusinessSchema(site)
   ];
-  
+
   // Add Review schema if review exists
   if (homePage?.['Review 1'] && homePage?.['Review reviewer 1']) {
     schemas.push(generateReviewSchema(
@@ -594,7 +814,7 @@ export function generateHomepageSchemas(site: Site, homePage?: Page) {
       site
     ));
   }
-  
+
   return combineSchemas(schemas);
 }
 
