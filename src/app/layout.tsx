@@ -63,16 +63,37 @@ export default async function RootLayout({
       }
     }
 
+    // Build server-side font links to avoid JS-dependent font loading (CLS/LCP fix)
+    const headingFont = site?.['Heading font'];
+    const bodyFont = site?.['Body font'];
+    const fontNames = [...new Set([headingFont, bodyFont].filter(Boolean))] as string[];
+    const sanitizeFontName = (name: string) => name.replace(/[^a-zA-Z0-9 \-]/g, '');
+
     return (
       <html lang={siteLanguage}>
         <head>
           {/* Performance: Preconnect to external domains for faster resource loading */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link rel="preconnect" href="https://www.googletagmanager.com" />
-          
+
+          {/* Server-side font loading: no JS needed, eliminates CLS from late font swap */}
+          {fontNames.map(font => {
+            const safe = sanitizeFontName(font);
+            const url = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(safe)}:wght@400;600;700&display=swap`;
+            return (
+              <link key={`font-${safe}`} rel="stylesheet" href={url} crossOrigin="anonymous" />
+            );
+          })}
+
+          {/* CSS variables for font families — injected server-side so no flash */}
+          {fontNames.length > 0 && (
+            <style dangerouslySetInnerHTML={{ __html:
+              `:root{--font-heading:'${sanitizeFontName(headingFont || fontNames[0])}',system-ui,sans-serif;--font-body:'${sanitizeFontName(bodyFont || fontNames[0])}',system-ui,sans-serif;}`
+            }} />
+          )}
+
           {/* Note: Airtable CDN DNS prefetch removed - images are now proxied through /api/image-proxy */}
-          
+
           {/* RSS feed autodiscovery */}
           {site && (
             <link
@@ -82,13 +103,13 @@ export default async function RootLayout({
               href={`${(site['Site URL'] || `https://${host}`).replace(/\/$/, '')}/feed.xml`}
             />
           )}
-
-          <GoogleTagManagerScript gtmId={gtmId} />
         </head>
         <body>
           <GoogleTagManagerNoscript gtmId={gtmId} />
+          <GoogleTagManagerScript gtmId={gtmId} />
           <SiteProvider siteConfig={siteConfig}>
             <ThemeProvider site={site}>
+              {/* GoogleFonts client component kept for fallback CSS var updates only */}
               <GoogleFonts />
               <PageViewTracker />
               <BaseLayout>

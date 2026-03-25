@@ -39,9 +39,8 @@ export default function HeroSection({ homePage }: HeroSectionProps) {
               fill
               className="object-cover"
               priority // Hero image: always preload for LCP
-              quality={75} // Compress for web
-              // Note: Next.js Image optimization doesn't work with API proxy routes,
-              // but priority still works for LCP. Images are served directly from proxy.
+              quality={75}
+              sizes="(max-width: 1140px) 100vw, 1140px"
             />
             <div className="absolute inset-0 bg-black/20" />
           </div>
