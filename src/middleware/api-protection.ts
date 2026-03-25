@@ -25,6 +25,11 @@ const PROTECTED_ENDPOINTS = [
   '/api/test-static-config',
   '/api/test-structure',
   '/api/test-types',
+  // Development-only UI pages (block in production)
+  '/site-switcher',
+  '/port-testing',
+  '/layout-test',
+  '/theme-test',
 ];
 
 /**
