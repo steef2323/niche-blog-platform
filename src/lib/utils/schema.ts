@@ -502,6 +502,88 @@ export function generateListicleArticleSchema(post: ListingPost, site: Site, aut
 }
 
 /**
+ * Compute the ISO-8601 date string for the next occurrence of a given weekday.
+ * weekday: 0 = Sunday, 6 = Saturday
+ */
+function nextWeekdayDate(weekday: number): string {
+  const now = new Date();
+  const day = now.getDay();
+  const daysUntil = (weekday - day + 7) % 7 || 7; // always at least 1 day ahead
+  const next = new Date(now);
+  next.setDate(now.getDate() + daysUntil);
+  next.setHours(19, 0, 0, 0); // default 19:00 local
+  return next.toISOString();
+}
+
+/**
+ * Generate an Event schema for a single sip-and-paint business.
+ * Used by generateListingPostSchemas to emit one Event per business.
+ */
+export function generateEventSchema(
+  business: Business,
+  site: Site,
+  postUrl: string,
+  featuredImageUrl?: string
+) {
+  if (!business || !site) return null;
+
+  try {
+    const startDate = nextWeekdayDate(6); // next Saturday
+    const durationMs = (business['Duration (minutes)'] || 120) * 60 * 1000;
+    const endDate = new Date(new Date(startDate).getTime() + durationMs).toISOString();
+
+    const city = business.Cities?.[0] || '';
+    const price = business.Price;
+
+    const schema: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      "name": `${business.Competitor} – Sip & Paint`,
+      "description": business.Information || `Sip & Paint event hosted by ${business.Competitor}`,
+      "url": postUrl,
+      "startDate": startDate,
+      "endDate": endDate,
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "location": {
+        "@type": "Place",
+        "name": business.Competitor,
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": city,
+          "addressCountry": "NL"
+        }
+      },
+      "organizer": {
+        "@type": "Organization",
+        "name": business.Competitor,
+        "url": business.Website || postUrl
+      }
+    };
+
+    if (price != null) {
+      schema["offers"] = {
+        "@type": "Offer",
+        "price": price.toString(),
+        "priceCurrency": "EUR",
+        "availability": "https://schema.org/InStock",
+        "url": business.Website || postUrl
+      };
+    }
+
+    const imageUrl = business.Image?.[0]?.url || featuredImageUrl;
+    if (imageUrl) {
+      schema["image"] = imageUrl;
+    }
+
+    return schema;
+  } catch (error) {
+    console.error('Error generating event schema:', error);
+    return null;
+  }
+}
+
+/**
  * Generate schema markup for a listing post page
  * @param post - Listing post data
  * @param site - Site data
@@ -526,6 +608,20 @@ export function generateListingPostSchemas(post: ListingPost, site: Site, breadc
     
     const localBusinessSchema = generateLocalBusinessSchema(post, site);
     if (localBusinessSchema) schemas.push(localBusinessSchema);
+
+    // Event schemas — one per business listing
+    if (Array.isArray(post.BusinessDetails) && post.BusinessDetails.length > 0) {
+      const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
+      const postUrl = `${siteUrl}/blog/${post.Slug || 'untitled'}`;
+      const featuredImageUrl = post['Featured image']?.[0]?.url
+        || post.LocationDetails?.[0]?.Image?.[0]?.url
+        || post['Image (from Business) (from Businesses)']?.[0]?.url;
+
+      for (const biz of post.BusinessDetails as Business[]) {
+        const eventSchema = generateEventSchema(biz, site, postUrl, featuredImageUrl);
+        if (eventSchema) schemas.push(eventSchema);
+      }
+    }
   } catch (error) {
     console.error('Error generating listing post schemas:', error);
   }
