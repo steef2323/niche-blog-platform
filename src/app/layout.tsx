@@ -73,6 +73,16 @@ export default async function RootLayout({
           
           {/* Note: Airtable CDN DNS prefetch removed - images are now proxied through /api/image-proxy */}
           
+          {/* RSS feed autodiscovery */}
+          {site && (
+            <link
+              rel="alternate"
+              type="application/rss+xml"
+              title={site.Name || host}
+              href={`${(site['Site URL'] || `https://${host}`).replace(/\/$/, '')}/feed.xml`}
+            />
+          )}
+
           <GoogleTagManagerScript gtmId={gtmId} />
         </head>
         <body>
