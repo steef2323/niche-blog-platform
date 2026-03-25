@@ -34,8 +34,10 @@ import {
 import TableOfContents from '@/components/blog/TableOfContents';
 import PrivateEventForm from '@/components/ui/PrivateEventForm';
 import LazyRelatedBlogs from '@/components/blog/LazyRelatedBlogs';
+import ClusterNavSection from '@/components/blog/ClusterNavSection';
 import Link from 'next/link';
 import { BlogPost, ListingPost } from '@/types/airtable';
+import { getClusterForPost } from '@/lib/utils/cluster-links';
 
 interface BlogPostPageProps {
   params: {
@@ -404,6 +406,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       
       console.log(`Final relatedBlogs count: ${relatedBlogs.length}`);
 
+      // Determine cluster membership and fetch cluster sibling posts
+      const postCluster = getClusterForPost(blogPost.Slug);
+      let clusterPosts: BlogPost[] = [];
+      if (postCluster) {
+        try {
+          const allPosts = await getBlogPostsBySiteId(siteId, 50, airtableViews?.blogPosts);
+          clusterPosts = allPosts
+            .filter(p => p.id !== blogPost.id && getClusterForPost(p.Slug)?.id === postCluster.id)
+            .slice(0, 4);
+        } catch (error) {
+          console.error('Error fetching cluster posts:', error);
+        }
+      }
+
       // Fetch homepage content for private event form props using views if available
       let homePage = null;
       try {
@@ -702,6 +718,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 language={site?.Language?.toLowerCase() || 'en'}
               />
             </div>
+          )}
+
+          {/* Cluster Navigation Section */}
+          {postCluster && (
+            <ClusterNavSection
+              cluster={postCluster}
+              clusterPosts={clusterPosts}
+              isPillarPage={blogPost.Slug === postCluster.pillarSlug}
+              language={site?.Language}
+            />
           )}
 
           {/* Related Blogs Section - Lazy Loaded */}

@@ -1,5 +1,6 @@
 import { BlogPost, BlogContentSection } from '@/types/airtable';
 import { parseMarkdownToHtml } from './markdown';
+import { injectClusterLinks } from './cluster-links';
 
 /**
  * Extract structured content sections from blog post
@@ -103,18 +104,20 @@ export function buildStructuredContent(post: BlogPost, sections: BlogContentSect
  * Render structured content as HTML with proper sections
  * Each section gets its own container for better styling
  */
-export function renderStructuredHTML(post: BlogPost): string {
+export function renderStructuredHTML(post: BlogPost, injectLinks = true): string {
   const sections = extractContentSections(post);
-  
+
   // If we have structured sections, render them properly
   if (sections.length > 0) {
     const content = buildStructuredContent(post, sections);
-    return parseMarkdownToHtml(content);
+    const html = parseMarkdownToHtml(content);
+    return injectLinks ? injectClusterLinks(html, post.Slug) : html;
   }
-  
+
   // Fallback to existing content rendering
   const content = getBlogContent(post);
-  return parseMarkdownToHtml(content);
+  const html = parseMarkdownToHtml(content);
+  return injectLinks ? injectClusterLinks(html, post.Slug) : html;
 }
 
 /**
