@@ -237,6 +237,41 @@ export function generatePersonSchema(author: Author, site: Site) {
 }
 
 /**
+ * Extract FAQ items from a BlogPost.
+ *
+ * Priority order:
+ * 1. Explicit FAQ Q/A fields (FAQ Q1/A1 … FAQ Q5/A5) — set in Airtable
+ * 2. H2.x section headings that end with "?" + the matching Text2.x body
+ *
+ * Returns an empty array when no FAQ content is found.
+ */
+export function extractFAQItemsFromPost(post: BlogPost): Array<{question: string, answer: string}> {
+  const items: Array<{question: string, answer: string}> = [];
+
+  // 1. Explicit FAQ fields
+  for (let i = 1; i <= 5; i++) {
+    const q = (post as any)[`FAQ Q${i}`] as string | undefined;
+    const a = (post as any)[`FAQ A${i}`] as string | undefined;
+    if (q?.trim() && a?.trim()) {
+      items.push({ question: q.trim(), answer: a.trim() });
+    }
+  }
+
+  if (items.length > 0) return items;
+
+  // 2. Derive from H2.x headings phrased as questions
+  for (let i = 1; i <= 4; i++) {
+    const heading = (post as any)[`H2.${i}`] as string | undefined;
+    const body    = (post as any)[`Text2.${i}`] as string | undefined;
+    if (heading?.trim().endsWith('?') && body?.trim()) {
+      items.push({ question: heading.trim(), answer: body.trim() });
+    }
+  }
+
+  return items;
+}
+
+/**
  * Generate FAQ schema for FAQ content
  * @param questions - Array of FAQ items
  * @returns JSON-LD FAQPage schema
@@ -343,11 +378,21 @@ export function generateBlogPostSchemas(post: BlogPost, site: Site, author?: Aut
   try {
     const webSiteSchema = generateWebSiteSchema(site);
     if (webSiteSchema) schemas.push(webSiteSchema);
-    
+
     const articleSchema = generateArticleSchema(post, site, author);
     if (articleSchema) schemas.push(articleSchema);
   } catch (error) {
     console.error('Error generating blog post schemas:', error);
+  }
+
+  // FAQPage schema — only emitted when the post has FAQ content
+  try {
+    const faqItems = extractFAQItemsFromPost(post);
+    if (faqItems.length > 0) {
+      schemas.push(generateFAQSchema(faqItems));
+    }
+  } catch (error) {
+    console.error('Error generating FAQ schema:', error);
   }
 
   if (breadcrumbs && breadcrumbs.length > 0) {

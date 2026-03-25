@@ -71,6 +71,18 @@ export interface BlogPost extends BaseFields {
   AuthorDetails?: any;
   CategoryDetails?: any;
   
+  // FAQ fields — explicit Q&A pairs for FAQPage schema (Airtable columns: FAQ Q1/A1 … FAQ Q5/A5)
+  'FAQ Q1'?: string;
+  'FAQ A1'?: string;
+  'FAQ Q2'?: string;
+  'FAQ A2'?: string;
+  'FAQ Q3'?: string;
+  'FAQ A3'?: string;
+  'FAQ Q4'?: string;
+  'FAQ A4'?: string;
+  'FAQ Q5'?: string;
+  'FAQ A5'?: string;
+
   // DEPRECATED: Fields that may not exist in new Airtable setup
   // Keep for backward compatibility but mark as deprecated
   /** @deprecated Use H1 instead */
