@@ -732,6 +732,54 @@ export function generateBlogOverviewSchemas(
 }
 
 /**
+ * Generate schema markup for a city landing page.
+ * Emits: WebSite, LocalBusiness (one per business in city), Event (one per business).
+ */
+export function generateCityPageSchemas(
+  cityName: string,
+  citySlug: string,
+  businesses: Business[],
+  site: Site,
+  breadcrumbs?: Array<{label: string, href?: string, fullLabel?: string}>
+) {
+  const schemas: any[] = [];
+  const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
+  const pageUrl = `${siteUrl}/sip-and-paint/${citySlug}`;
+
+  schemas.push(generateWebSiteSchema(site));
+
+  for (const biz of businesses) {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": biz.Competitor,
+      "description": biz.Information || `Sip & Paint in ${cityName}`,
+      "url": biz.Website || pageUrl,
+      "image": biz.Image?.[0]?.url || undefined,
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": cityName,
+        "addressCountry": "NL"
+      },
+      "priceRange": biz.Price ? `€${biz.Price}` : undefined,
+      "currenciesAccepted": "EUR",
+      "areaServed": cityName,
+      "sameAs": biz.Website ? [biz.Website] : []
+    });
+
+    const eventSchema = generateEventSchema(biz, site, pageUrl, biz.Image?.[0]?.url);
+    if (eventSchema) schemas.push(eventSchema);
+  }
+
+  if (breadcrumbs && breadcrumbs.length > 0) {
+    const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs, site);
+    if (breadcrumbSchema) schemas.push(breadcrumbSchema);
+  }
+
+  return combineSchemas(schemas);
+}
+
+/**
  * Generate CollectionPage schema for category page
  * @param category - Category data
  * @param site - Site data

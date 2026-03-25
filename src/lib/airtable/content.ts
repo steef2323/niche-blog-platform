@@ -1730,6 +1730,24 @@ export async function getBlogPostsByCategory(categoryId: string, siteId: string,
  * @param viewName Optional Airtable view name (pre-filtered view)
  * @returns Array of BlogPost objects that are related
  */
+/**
+ * Get listing posts for a site that feature businesses in a given city.
+ * Fetches all listing posts for the site, then filters by BusinessDetails[].Cities.
+ * @param city - City name (e.g. "Amsterdam", "Den Haag")
+ * @param siteId - The Airtable record ID of the site
+ * @returns ListingPost[] filtered to those with at least one business in the city
+ */
+export async function getListingPostsByCity(city: string, siteId: string): Promise<ListingPost[]> {
+  const allPosts = await getListingPostsBySiteId(siteId);
+  const cityLower = city.toLowerCase();
+  return allPosts.filter(post => {
+    if (!Array.isArray(post.BusinessDetails)) return false;
+    return post.BusinessDetails.some((biz: any) =>
+      Array.isArray(biz?.Cities) && biz.Cities.some((c: string) => c.toLowerCase() === cityLower)
+    );
+  });
+}
+
 export async function getRelatedBlogPosts(relatedBlogIds: string[], siteId: string, currentPostId?: string, limit: number = 4, viewName?: string): Promise<BlogPost[]> {
   try {
     console.log(`Fetching related blog posts for IDs: ${relatedBlogIds.join(', ')}, site ID: ${siteId}${viewName ? ` using view: ${viewName}` : ''}`);
