@@ -13,7 +13,8 @@
     "lint": "next lint",
     "release:preflight": "./scripts/paperclip-release-preflight.sh",
     "release:verify-prod": "./scripts/paperclip-release-verify-prod.sh",
-    "content:generate": "npx ts-node --project tsconfig.scripts.json scripts/generate-content.ts"
+    "content:generate": "npx ts-node --project tsconfig.scripts.json scripts/generate-content.ts",
+    "gsc:report": "npx ts-node --project tsconfig.scripts.json scripts/gsc-weekly-report.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -41,6 +42,7 @@
     "autoprefixer": "^10.4.17",
     "eslint": "^8",
     "eslint-config-next": "^14.1.0",
+    "googleapis": "^171.4.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
