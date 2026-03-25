@@ -14,7 +14,9 @@
     "release:preflight": "./scripts/paperclip-release-preflight.sh",
     "release:verify-prod": "./scripts/paperclip-release-verify-prod.sh",
     "content:generate": "npx ts-node --project tsconfig.scripts.json scripts/generate-content.ts",
-    "gsc:report": "npx ts-node --project tsconfig.scripts.json scripts/gsc-weekly-report.ts"
+    "gsc:report": "npx ts-node --project tsconfig.scripts.json scripts/gsc-weekly-report.ts",
+    "crawl:check": "npx ts-node --project tsconfig.scripts.json scripts/check-404s.ts",
+    "indexing:ping": "npx ts-node --project tsconfig.scripts.json scripts/indexing-api-ping.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

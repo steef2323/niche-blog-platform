@@ -24,6 +24,9 @@ Disallow: /private/
 Disallow: /temp/
 Disallow: /draft/
 
+# Block duplicate parameter URLs (preserve crawl budget)
+Disallow: /*?*
+
 # Block debug and test endpoints from crawlers
 Disallow: /api/test-*
 Disallow: /api/debug-*
@@ -76,6 +79,9 @@ Disallow: /admin/
 Disallow: /private/
 Disallow: /temp/
 Disallow: /draft/
+
+# Block duplicate parameter URLs (preserve crawl budget)
+Disallow: /*?*
 
 # Block debug and test endpoints from crawlers
 Disallow: /api/test-*
@@ -161,6 +167,9 @@ Disallow: /api/fix-*
 Disallow: /api/update-*
 Disallow: /site-switcher
 Disallow: /port-testing
+
+# Block duplicate parameter URLs (preserve crawl budget)
+Disallow: /*?*
 
 # AI Bot Protection
 User-agent: GPTBot
