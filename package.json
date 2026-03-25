@@ -12,9 +12,11 @@
     "start": "next start",
     "lint": "next lint",
     "release:preflight": "./scripts/paperclip-release-preflight.sh",
-    "release:verify-prod": "./scripts/paperclip-release-verify-prod.sh"
+    "release:verify-prod": "./scripts/paperclip-release-verify-prod.sh",
+    "content:generate": "npx ts-node --project tsconfig.scripts.json scripts/generate-content.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@headlessui/react": "^2.2.3",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/typography": "^0.5.16",
