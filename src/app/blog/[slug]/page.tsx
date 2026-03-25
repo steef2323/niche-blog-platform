@@ -135,6 +135,20 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
     const canonicalUrl = `${siteUrl}/blog/${params.slug}`;
 
+    // Build dynamic OG image URL (always branded; featured image used as fallback only when OG route unavailable)
+    const ogParams = new URLSearchParams({
+      title: displayTitle,
+      ...(displayDescription ? { description: displayDescription } : {}),
+      siteName: site.Name || '',
+      primaryColor: site['Primary color'] || '#7c3aed',
+      accentColor: site['Accent color'] || '#e11d48',
+    });
+    const ogImageUrl = `${siteUrl}/api/og?${ogParams.toString()}`;
+
+    // Prefer dynamic OG image; fall back to featured image for twitter if no OG image could be generated
+    const ogImages = [{ url: ogImageUrl, width: 1200, height: 630, alt: displayTitle }];
+    const twitterImages = [ogImageUrl];
+
     // Get keywords for meta tag
     const keywords = Array.isArray(post.Tags) ? post.Tags.join(', ') : (post.Tags || '');
 
@@ -149,7 +163,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
         title: displayTitle,
         description: displayDescription,
         url: canonicalUrl,
-        images: featuredImageUrl ? [featuredImageUrl] : [],
+        images: ogImages,
         type: 'article',
         publishedTime: post['Published date'],
         modifiedTime: post['Last updated'] || post['Published date'],
@@ -161,7 +175,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
         card: 'summary_large_image',
         title: displayTitle,
         description: displayDescription,
-        images: featuredImageUrl ? [featuredImageUrl] : [],
+        images: twitterImages,
       },
       other: {
         // Add JSON-LD schema markup
