@@ -35,6 +35,37 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+## Lighthouse CI (performance & SEO budget)
+
+The CI pipeline runs [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci) on every push/PR to main and enforces these score minimums (defined in `.lighthouserc.json`):
+
+| Category | Min score |
+|---|---|
+| Performance | 90 |
+| Accessibility | 90 |
+| Best Practices | 90 |
+| SEO | 100 |
+
+**Required GitHub Secrets** (set in repo Settings → Secrets → Actions):
+
+| Secret | Description |
+|---|---|
+| `AIRTABLE_API_KEY` | Airtable personal access token |
+| `AIRTABLE_BASE_ID` | Airtable base ID (e.g. `appXXXXXXXXXXXXXX`) |
+| `LHCI_GITHUB_APP_TOKEN` | Optional — install the [LHCI GitHub App](https://github.com/apps/lighthouse-ci) for PR status checks |
+
+**Run Lighthouse locally:**
+
+```bash
+# 1. Build the app
+npm run build
+
+# 2. Run LHCI against the local build (starts next start, audits, reports)
+npx lhci autorun
+```
+
+Results are uploaded to temporary public storage and a URL is printed at the end of the run.
+
 ## Paperclip / Mac mini autorelease
 
 See [docs/MAC_MINI_PAPERCLIP.md](./docs/MAC_MINI_PAPERCLIP.md). Preflight: `npm run release:preflight` — post-deploy smoke test: `npm run release:verify-prod`.
