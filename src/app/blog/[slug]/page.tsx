@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { getSiteConfig } from '@/lib/site-detection';
 import { getBlogPostBySlug, getListingPostBySlug, getRelatedBlogPosts, getHomepageContent, getBlogPostsBySiteId } from '@/lib/airtable/content';
+import { getAllPublishedContent } from '@/lib/airtable/bulk-fetchers';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { parseMarkdownToHtml } from '@/lib/utils/markdown';
 import { getLanguageText } from '@/lib/utils/language-text';
@@ -48,6 +49,23 @@ interface BlogPostPageProps {
 // Enable ISR with 12-hour revalidation (content changes ~2x/week)
 // This dramatically reduces API calls by caching pages at the Next.js level
 export const revalidate = 12 * 60 * 60; // 12 hours in seconds
+
+// Pre-render all known blog and listing post slugs at build time (SSG).
+// dynamicParams = true (default) means unknown slugs still render on-demand and get cached.
+export async function generateStaticParams() {
+  try {
+    const { blogPosts, listingPosts } = await getAllPublishedContent();
+    const params = [
+      ...blogPosts.map((post) => ({ slug: post.Slug })),
+      ...listingPosts.map((post) => ({ slug: post.Slug })),
+    ].filter((item) => !!item.slug);
+    console.log(`generateStaticParams: pre-rendering ${params.length} blog/listing post slugs`);
+    return params;
+  } catch (error) {
+    console.error('generateStaticParams failed for blog/[slug]:', error);
+    return [];
+  }
+}
 
 type PostData = {
   post: BlogPost | ListingPost;

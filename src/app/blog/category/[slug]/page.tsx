@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getSiteByDomain } from '@/lib/airtable/sites';
+import base, { TABLES } from '@/lib/airtable/config';
 import { getCategoryBySlug, getCombinedPostsByCategorySlug } from '@/lib/airtable/content';
 import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
@@ -20,6 +21,24 @@ interface CategoryPageProps {
 
 // Enable ISR with 12-hour revalidation (content changes ~2x/week)
 export const revalidate = 12 * 60 * 60; // 12 hours in seconds
+
+// Pre-render all known category slugs at build time (SSG).
+// dynamicParams = true (default) means unknown slugs still render on-demand and get cached.
+export async function generateStaticParams() {
+  try {
+    const categoryRecords = await base(TABLES.CATEGORIES)
+      .select({ fields: ['Slug'] })
+      .all();
+    const params = categoryRecords
+      .filter((record) => !!record.fields.Slug)
+      .map((record) => ({ slug: record.fields.Slug as string }));
+    console.log(`generateStaticParams: pre-rendering ${params.length} category slugs`);
+    return params;
+  } catch (error) {
+    console.error('generateStaticParams failed for blog/category/[slug]:', error);
+    return [];
+  }
+}
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const headersList = headers();
