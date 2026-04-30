@@ -1252,8 +1252,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   const businessImage = listingPost['Image (from Business) (from Businesses)']?.[index - 1]; // 0-indexed array
                   const itemImage = locationImage || businessImage;
                   
-                  // Get alt text: use location name, fallback to address, then header
-                  const imageAltText = location?.Name || location?.Address || header || `Business ${index}`;
+                  // Get alt text: combine venue name and section header for maximum descriptiveness.
+                  // e.g. "Studio Amsterdam — Best Sip and Paint in Amsterdam"
+                  const imageAltText = location?.Name
+                    ? (header ? `${location.Name} — ${header}` : location.Name)
+                    : (header || location?.Address || `Item ${index}`);
                   
                   // Skip if both header and paragraph are empty
                   const paragraphText = getContentValue(paragraph);

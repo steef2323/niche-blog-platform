@@ -75,6 +75,7 @@ export default async function RootLayout({
           {/* Performance: Preconnect to external domains for faster resource loading */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link rel="preconnect" href="https://www.googletagmanager.com" />
 
           {/* Server-side font loading: no JS needed, eliminates CLS from late font swap */}
           {fontNames.map(font => {

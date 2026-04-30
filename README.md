@@ -66,6 +66,19 @@ npx lhci autorun
 
 Results are uploaded to temporary public storage and a URL is printed at the end of the run.
 
+## Google Search Console verification
+
+**TODO (action required — CEO):** The site has not yet been verified in [Google Search Console](https://search.google.com/search-console). To complete verification:
+
+1. Log in to Google Search Console and add the property for the production domain.
+2. Choose **HTML file** or **HTML tag** verification method.
+3. **HTML file method:** download the `google<code>.html` file and place it in `public/`. Commit and deploy.
+4. **Meta tag method:** copy the `<meta name="google-site-verification" content="…" />` tag and add it to `src/app/layout.tsx` inside `<head>` (use the Next.js `metadata.verification.google` key — see [Next.js docs](https://nextjs.org/docs/app/api-reference/functions/generate-metadata#verification)).
+5. Click **Verify** in Search Console.
+6. After verification, submit the sitemap: `https://<domain>/sitemap.xml`.
+
+The verification code/file must come from your own Google Search Console account — it cannot be committed without the actual code.
+
 ## Paperclip / Mac mini autorelease
 
 See [docs/MAC_MINI_PAPERCLIP.md](./docs/MAC_MINI_PAPERCLIP.md). Preflight: `npm run release:preflight` — post-deploy smoke test: `npm run release:verify-prod`.
