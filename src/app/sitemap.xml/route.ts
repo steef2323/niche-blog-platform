@@ -9,6 +9,7 @@ import {
 } from '@/lib/airtable/content';
 import { getPagesBySiteId } from '@/lib/airtable/sites';
 import { BlogPost, ListingPost, Author, Category, Page } from '@/types/airtable';
+import { getCanonicalOrigin } from '@/lib/utils/canonical-url';
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
     let sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
 
-    const siteUrl = site['Site URL'] || `https://${host}`;
+    const siteUrl = getCanonicalOrigin(host, site['Site URL'], site.Domain);
 
     // Add homepage
     sitemapXml += `

@@ -19,6 +19,7 @@ import {
   getBlogExcerpt 
 } from '@/lib/utils/structured-content';
 import { generateBlogPostSchemas, generateListingPostSchemas } from '@/lib/utils/schema';
+import { buildCanonicalUrl, withCanonicalOrigin } from '@/lib/utils/canonical-url';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { 
   CurrencyEuroIcon, 
@@ -78,7 +79,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   
   try {
     const siteConfig = await getSiteConfig(host);
-    const site = siteConfig?.site;
+    const site = siteConfig?.site ? withCanonicalOrigin(siteConfig.site, host) : undefined;
     if (!site?.id) {
       return { title: 'Post Not Found' };
     }
@@ -151,9 +152,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       }
     }
 
-    // Build canonical URL
-    const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
-    const canonicalUrl = `${siteUrl}/blog/${params.slug}`;
+    const canonicalUrl = buildCanonicalUrl(site['Site URL'], site.Domain, `/blog/${params.slug}`, host);
 
     // Build dynamic OG image URL (always branded; featured image used as fallback only when OG route unavailable)
     const ogParams = new URLSearchParams({

@@ -2,6 +2,8 @@
 
 ## Background and Motivation
 
+**NEW REQUEST (Aug 17, 2026)**: Fix Screaming Frog SEO issues on sipandpaints.nl one by one. Crawl of https://www.sipandpaints.nl/ found 14 items (3 issues, 9 warnings, 2 opportunities). First item: Internal Blocked by Robots.txt (30 URLs under `/_next/static/` and `/_next/image`).
+
 The user requested detailed implementation strategy for SEO optimizations, specifically asking what can be hardcoded vs. what needs to be dynamic from Airtable. This analysis will provide a comprehensive implementation plan for achieving high search engine rankings.
 
 **NEW REQUEST**: The user wants to set up automated blog creation with automatic internal linking. Blogs should be created fully automatically based on just a few variables, and the generated text should contain relevant internal links to other articles. This requires:
@@ -407,6 +409,16 @@ Sitemap: {DYNAMIC_SITE_URL}/sitemap.xml
 
 ## Project Status Board
 
+- 🔄 **Screaming Frog SEO Fixes (Aug 17, 2026)**
+  - [x] Issue 1: Internal Blocked by Robots.txt (`/_next/static`, `/_next/image`) — CODE UPDATED, awaiting deploy + recrawl
+  - [x] Issue 2: Canonicals — Non-Indexable Canonical (www vs apex) — CODE UPDATED, awaiting deploy + recrawl
+  - [x] Issue 3: Canonicals — Canonicalised (4 URLs) — same www/apex bug as Issue 2, already fixed in code
+  - [x] Issue 4: Page Titles — Missing (`/private-event-form`) — CODE UPDATED, awaiting deploy + recrawl
+  - [x] Issue 5: H1 — Missing — same form page, heading is now h1 on dedicated form URLs
+  - [ ] Issue 6: Content — Low Content Pages (1 URL)
+  - [x] Issue 7: Canonicals — Missing — same form page now has a canonical
+  - [ ] Issue 8: Security — Missing Referrer-Policy / X-Frame-Options / X-Content-Type-Options (5 URLs)
+
 - ✅ **Phase 1: Technical SEO Foundation**
   - [x] Task 1.1: Robots.txt Implementation (CRITICAL) - COMPLETED
   - [x] Task 1.2: Sitemap.xml Implementation (CRITICAL) - COMPLETED
@@ -616,6 +628,52 @@ Sitemap: {DYNAMIC_SITE_URL}/sitemap.xml
 - **Low priority tasks**: 10-13 hours (Local SEO, voice search)
 
 ## Executor's Feedback or Assistance Requests
+
+**🔄 SCREAMING FROG ISSUE 5 — Missing H1 on /private-event-form (Aug 17, 2026)**
+
+**Rule**: H1 and document title use `Private event Form - [Site name]` (Dutch: `Privé evenement formulier - [Site name]`). Rendered in the first HTML so crawlers see it, including the loading state.
+
+---
+
+**🔄 SCREAMING FROG ISSUE 4 — Missing page title on /private-event-form (Aug 17, 2026)**
+
+**Cause**: `private-event-form/page.tsx` is `'use client'`, so Next.js never emitted `<title>`, description, or canonical. The form heading was also an `h3`, so the same URL would fail the missing H1 check.
+
+**Code change**:
+- Server `layout.tsx` for `/private-event-form` and `/aanmeld-formulier` with title, description, canonical
+- Dedicated form pages use `h1`; homepage embed stays `h3`
+
+**Likely also clears**: missing H1 and missing canonical on this URL. Low-content warning may remain (it is a form).
+
+**Needs user confirmation**: Deploy and recrawl `https://www.sipandpaints.nl/private-event-form`. Title should be like `Book a private event | sipandpaints.nl`.
+
+---
+
+**🔄 SCREAMING FROG ISSUE 2 — Non-indexable canonical (Aug 17, 2026)**
+
+**Cause**: Live host is `https://www.sipandpaints.nl/` (200). Apex `https://sipandpaints.nl/` 307-redirects to www. Canonical tags used `https://sipandpaints.nl/...` from Airtable Domain / missing Site URL, so they pointed at a redirect.
+
+**Code change**: Canonicals, schema, sitemap, and robots sitemap now use the request host in production (`www.sipandpaints.nl`). Files: `src/lib/utils/canonical-url.ts` plus homepage, static pages, blog, author, category, sitemap, robots.
+
+**Also likely fixes**: Issue 3 Canonicalised (same 4 URLs).
+
+**Needs user confirmation**: Deploy, then recrawl. Canonicals should be `https://www.sipandpaints.nl/...`. Then continue with titles/H1.
+
+---
+
+**🔄 SCREAMING FROG ISSUE 1 — robots.txt blocking `/_next/` (Aug 17, 2026)**
+
+**Question from user**: Do we need to fix Internal Blocked by Robots.txt, or ignore it?
+
+**Answer**: Yes, allow `/_next/static/` and `/_next/image`. Those 30 URLs are JS, CSS, and images — not pages — but Google needs them to render the site and to index images. Do not remove the internal links; the HTML must reference those files.
+
+**Code change**: `src/app/robots.txt/route.ts`
+- Removed `Disallow: /_next/`, `/_next/static/`, `/_next/image/`
+- Added `Allow: /_next/static/` and `Allow: /_next/image` (repeated after Airtable custom rules so `Disallow: /*?*` cannot still block `?url=` and `?dpl=` assets)
+
+**Needs user confirmation**: Deploy this change, then recrawl in Screaming Frog. The warning should drop from 30 to 0. Then we can start Issue 2 (canonicals).
+
+---
 
 **✅ SITEMAP ENHANCEMENT COMPLETED (Dec 5, 2024)**
 
@@ -1109,6 +1167,8 @@ Add these in Vercel dashboard → Settings → Environment Variables:
 12. **Performance Optimizations**: Compression, caching, and resource hints provide immediate benefits before CDN deployment
 13. **Font Loading**: Reducing font weights and using preload dramatically improves CLS scores
 14. **Images Stay in Airtable**: CDN caches images at the edge; no need to move them out of Airtable
+15. **Do not Disallow `/_next/` in robots.txt**: Next.js CSS/JS/images live there. Google needs them to render pages. Airtable `Disallow: /*?*` also blocks `/_next/image?url=` and Vercel `?dpl=` assets unless there is a longer `Allow: /_next/static/` / `Allow: /_next/image` rule.
+16. **Canonical host must match the live 200 URL**: sipandpaints.nl apex 307s to www. Canonicals built from Airtable Domain without www point at a redirect (non-indexable canonical). Use the production request host for canonicals, sitemap, and schema.
 
 ## Current Issue: Listicle Pages Not Loading
 

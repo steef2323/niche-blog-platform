@@ -8,6 +8,7 @@ import { getAuthorBySlug, getCombinedPostsByAuthorSlug } from '@/lib/airtable/co
 import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { generateAuthorPageSchemas } from '@/lib/utils/schema';
+import { buildCanonicalUrl, withCanonicalOrigin } from '@/lib/utils/canonical-url';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { getLanguageText } from '@/lib/utils/language-text';
 import { formatAuthorDate, formatBlogDate } from '@/lib/utils/date-formatting';
@@ -26,10 +27,11 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
   const host = headersList.get('host') || '';
   
   try {
-    const site = await getSiteByDomain(host);
-    if (!site?.id) {
+    const siteRecord = await getSiteByDomain(host);
+    if (!siteRecord?.id) {
       return { title: 'Author Not Found' };
     }
+    const site = withCanonicalOrigin(siteRecord, host);
 
     const author = await getAuthorBySlug(params.slug);
     if (!author) {
@@ -42,10 +44,8 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
       author.Bio || 
       `Read articles by ${author.Name}`;
 
-    // Build canonical URL
-    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
     const authorSlug = author.Slug || params.slug;
-    const canonicalUrl = `${siteUrl}/blog/author/${authorSlug}`;
+    const canonicalUrl = buildCanonicalUrl(site['Site URL'], site.Domain, `/blog/author/${authorSlug}`, host);
 
     // Get Open Graph image from author profile picture or site logo
     const ogImage = author['Profile picture']?.[0]?.url || site['Site logo']?.[0]?.url;

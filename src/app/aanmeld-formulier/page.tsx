@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react';
 import { useSite, useSiteFeatures } from '@/contexts/site';
 import { Page, Feature } from '@/types/airtable';
 import { PrivateEventForm } from '@/components/ui';
+import { getPrivateEventFormH1 } from '@/lib/utils/language-text';
 
 export default function AanmeldFormulierPage() {
   const { site } = useSite();
   const features = useSiteFeatures();
   const [homePage, setHomePage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
+  const heading = getPrivateEventFormH1(site?.Name, site?.Language || 'nl');
 
-  // Check if private event form feature is enabled
   const hasPrivateEventForm = features.some(
     (feature: any) => {
       if (typeof feature === 'object' && feature !== null) {
@@ -41,11 +42,18 @@ export default function AanmeldFormulierPage() {
     fetchHomepageContent();
   }, [site?.id]);
 
-  if (loading) {
-    return (
-      <main className="min-h-screen">
-        <div className="site-container py-16">
-          <div className="max-w-2xl mx-auto">
+  return (
+    <main className="min-h-screen">
+      <div className="site-container py-16">
+        <div className="max-w-2xl mx-auto">
+          <h1
+            className="text-3xl font-bold mb-8 text-center"
+            style={{ fontFamily: 'var(--font-heading)' }}
+          >
+            {heading}
+          </h1>
+
+          {loading ? (
             <div className="rounded-[10px] bg-gray-300 p-8 animate-pulse w-full">
               <div className="text-center mb-6">
                 <div className="w-64 h-6 bg-gray-400 rounded mx-auto mb-4"></div>
@@ -65,49 +73,28 @@ export default function AanmeldFormulierPage() {
                 <div className="h-12 bg-gray-400 rounded"></div>
               </div>
             </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (!hasPrivateEventForm) {
-    return (
-      <main className="min-h-screen">
-        <div className="site-container py-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Aanmeld Formulier Niet Beschikbaar
-            </h1>
-            <p className="text-gray-600 mb-8">
-              Het aanmeld formulier is niet beschikbaar voor deze site.
-            </p>
-            <a 
-              href="/"
-              className="btn-accent"
-            >
-              Terug naar Homepage
-            </a>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen">
-      <div className="site-container py-16">
-        <div className="max-w-2xl mx-auto">
-          <PrivateEventForm 
-            title={homePage?.['Private event form - Title']}
-            subtitle={homePage?.['Private event form - Subtitle']}
-            successMessage={homePage?.['Private event form - Success message']}
-            language={site?.Language?.toLowerCase() || 'nl'}
-          />
+          ) : !hasPrivateEventForm ? (
+            <div className="text-center">
+              <p className="text-gray-600 mb-8">
+                Het aanmeld formulier is niet beschikbaar voor deze site.
+              </p>
+              <a
+                href="/"
+                className="btn-accent"
+              >
+                Terug naar Homepage
+              </a>
+            </div>
+          ) : (
+            <PrivateEventForm
+              title={homePage?.['Private event form - Title']}
+              subtitle={homePage?.['Private event form - Subtitle']}
+              successMessage={homePage?.['Private event form - Success message']}
+              language={site?.Language?.toLowerCase() || 'nl'}
+            />
+          )}
         </div>
       </div>
     </main>
   );
 }
-
-

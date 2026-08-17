@@ -5,6 +5,7 @@ import { getSiteConfig } from '@/lib/site-detection';
 import { getBlogPageContent, getCategoriesBySiteId, getBlogPostsBySiteId, getListingPostsBySiteId } from '@/lib/airtable/content';
 import { parseMarkdownToHtml } from '@/lib/utils/markdown';
 import { generateBlogOverviewSchemas } from '@/lib/utils/schema';
+import { buildCanonicalUrl, withCanonicalOrigin } from '@/lib/utils/canonical-url';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import BlogGrid from '@/components/blog/BlogGrid';
@@ -24,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   try {
     // Use centralized site detection - will use cache if already called in layout
     const siteConfig = await getSiteConfig(host);
-    const site = siteConfig?.site;
+    const site = siteConfig?.site ? withCanonicalOrigin(siteConfig.site, host) : undefined;
     
     if (!site?.id) {
       return { title: 'Blog' };
@@ -40,9 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
       site['Default meta description'] || 
       'Read our latest articles and insights';
     
-    // Build canonical URL
-    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
-    const canonicalUrl = `${siteUrl}/blog`;
+    const canonicalUrl = buildCanonicalUrl(site['Site URL'], site.Domain, '/blog', host);
 
     // Get Open Graph image from blog page featured image or site logo
     const ogImage = blogPage?.['Featured image']?.[0]?.url || site['Site logo']?.[0]?.url;

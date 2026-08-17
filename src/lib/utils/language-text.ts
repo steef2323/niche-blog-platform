@@ -12,6 +12,8 @@ export interface LanguageText {
   home: string;
   sitemap: string;
   privateEventFormUrl: string; // URL path for the private event form
+  privateEventPageTitle: string;
+  privateEventPageDescription: string;
   
   // Blog and content related
   otherBlogs: string;
@@ -52,6 +54,8 @@ export function getLanguageText(language?: string | null): LanguageText {
       home: 'Home',
       sitemap: 'Sitemap',
       privateEventFormUrl: '/aanmeld-formulier',
+      privateEventPageTitle: 'Privé evenement formulier',
+      privateEventPageDescription: 'Vraag een privé sip and paint evenement aan. Wij nemen contact met je op om de details te plannen.',
       
       // Blog and content related
       otherBlogs: 'Andere blogs',
@@ -84,6 +88,8 @@ export function getLanguageText(language?: string | null): LanguageText {
     home: 'Home',
     sitemap: 'Sitemap',
     privateEventFormUrl: '/private-event-form',
+    privateEventPageTitle: 'Private event Form',
+    privateEventPageDescription: 'Request a private sip and paint event. We will get back to you to plan your occasion.',
     
     // Blog and content related
     otherBlogs: 'Other blogs',
@@ -104,5 +110,15 @@ export function getLanguageText(language?: string | null): LanguageText {
     loadingMorePosts: 'Loading more posts...',
     joined: 'Joined'
   };
+}
+
+/**
+ * Standard H1 / document title for dedicated private-event form pages:
+ * "Private event Form - [Site name]"
+ */
+export function getPrivateEventFormH1(siteName?: string | null, language?: string | null): string {
+  const t = getLanguageText(language);
+  const name = (siteName || '').trim() || 'Sip and Paints';
+  return `${t.privateEventPageTitle} - ${name}`;
 }
 

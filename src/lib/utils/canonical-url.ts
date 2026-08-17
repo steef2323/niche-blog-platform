@@ -3,81 +3,91 @@
  * Ensures canonical URLs are properly normalized and consistent
  */
 
+type SiteLike = {
+  'Site URL'?: string;
+  Domain?: string;
+};
+
+function hostnameFromHost(requestHost?: string | null): string {
+  return (requestHost || '')
+    .toLowerCase()
+    .replace(/:\d+$/, '')
+    .replace(/\.$/, '');
+}
+
+function isLocalHostname(hostname: string): boolean {
+  return !hostname || hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+/**
+ * Preferred public origin for canonicals, sitemaps, and schema.
+ * Uses the request host in production so www vs non-www matches the URL
+ * Vercel actually serves (apex sipandpaints.nl 307s to www).
+ */
+export function getCanonicalOrigin(
+  requestHost?: string | null,
+  siteUrl?: string,
+  domain?: string
+): string {
+  const hostname = hostnameFromHost(requestHost);
+
+  if (!isLocalHostname(hostname)) {
+    return `https://${hostname}`;
+  }
+
+  let origin = siteUrl || (domain ? `https://${domain}` : '');
+  origin = origin.replace(/\/$/, '');
+
+  if (origin && !origin.startsWith('http://') && !origin.startsWith('https://')) {
+    origin = `https://${origin}`;
+  } else if (origin.startsWith('http://')) {
+    origin = origin.replace('http://', 'https://');
+  }
+
+  return origin;
+}
+
+export function withCanonicalOrigin<T extends SiteLike>(site: T, requestHost?: string | null): T {
+  return {
+    ...site,
+    'Site URL': getCanonicalOrigin(requestHost, site['Site URL'], site.Domain),
+  };
+}
+
 /**
  * Normalize a canonical URL to ensure consistency
  * - Always uses HTTPS
  * - Removes trailing slashes (except for homepage which should have one)
- * - Ensures consistent format
- * 
- * @param url - The URL to normalize
- * @param isHomepage - Whether this is the homepage (should have trailing slash)
- * @returns Normalized canonical URL
  */
 export function normalizeCanonicalUrl(url: string, isHomepage: boolean = false): string {
   if (!url) return url;
-  
-  // Remove any existing protocol
+
   let normalized = url.replace(/^https?:\/\//, '');
-  
-  // Ensure HTTPS protocol
   normalized = `https://${normalized}`;
-  
-  // Remove trailing slash (we'll add it back for homepage if needed)
   normalized = normalized.replace(/\/$/, '');
-  
-  // For homepage, ensure trailing slash
+
   if (isHomepage) {
     normalized = `${normalized}/`;
   }
-  
+
   return normalized;
 }
 
 /**
- * Build a canonical URL from site configuration
- * Uses Site URL from Airtable if available, otherwise constructs from domain
- * 
- * @param siteUrl - Site URL from Airtable (may be undefined)
- * @param domain - Domain name (fallback)
- * @param path - Path to append (optional, should not include leading slash for homepage)
- * @returns Canonical URL
+ * Build a canonical URL from the live request host (production) or site config.
  */
 export function buildCanonicalUrl(
   siteUrl: string | undefined,
   domain: string,
-  path: string = ''
+  path: string = '',
+  requestHost?: string | null
 ): string {
-  // Use Site URL if available, otherwise construct from domain
-  const baseUrl = siteUrl || `https://${domain}`;
-  
-  // Normalize the base URL (remove trailing slash)
-  let normalized = baseUrl.replace(/\/$/, '');
-  
-  // Ensure HTTPS
-  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
-    normalized = `https://${normalized}`;
-  } else if (normalized.startsWith('http://')) {
-    normalized = normalized.replace('http://', 'https://');
-  }
-  
-  // Add path if provided
+  let origin = getCanonicalOrigin(requestHost, siteUrl, domain).replace(/\/$/, '');
+
   if (path) {
-    // Ensure path starts with /
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    normalized = `${normalized}${cleanPath}`;
-  } else {
-    // For homepage, ensure trailing slash
-    normalized = `${normalized}/`;
+    return `${origin}${cleanPath}`;
   }
-  
-  return normalized;
+
+  return `${origin}/`;
 }
-
-
-
-
-
-
-
-
-

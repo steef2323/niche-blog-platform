@@ -9,6 +9,7 @@ interface PrivateEventFormProps {
   subtitle?: string;
   successMessage?: string;
   language?: string;
+  titleAs?: 'h1' | 'h3';
 }
 
 interface FormData {
@@ -27,7 +28,8 @@ export default function PrivateEventForm({
   title,
   subtitle,
   successMessage,
-  language: propLanguage
+  language: propLanguage,
+  titleAs = 'h3'
 }: PrivateEventFormProps) {
   
   const { site, siteId: contextSiteId } = useSite();
@@ -51,6 +53,7 @@ export default function PrivateEventForm({
   
   const displayTitle = title || defaults.title;
   const displaySubtitle = subtitle || defaults.subtitle;
+  const TitleTag = titleAs;
   
   // Multi-language support
   const translations = {
@@ -386,12 +389,12 @@ export default function PrivateEventForm({
         fontFamily: 'var(--font-body)'
       }}
     >
-      <h3 
+      <TitleTag 
         className="text-2xl font-bold mb-4 text-center"
         style={{ fontFamily: 'var(--font-heading)' }}
       >
         {displayTitle}
-      </h3>
+      </TitleTag>
       <p className="text-center mb-6 opacity-90">
         {displaySubtitle}
       </p>

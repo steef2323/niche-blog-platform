@@ -6,6 +6,7 @@ import { getPageBySlug } from '@/lib/airtable/sites';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import PageContent from '@/components/pages/PageContent';
 import { generateWebSiteSchema, generateOrganizationSchema } from '@/lib/utils/schema';
+import { buildCanonicalUrl, withCanonicalOrigin } from '@/lib/utils/canonical-url';
 
 interface PageProps {
   params: {
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   
   try {
     const siteConfig = await getSiteConfig(host);
-    const site = siteConfig?.site;
+    const site = siteConfig?.site ? withCanonicalOrigin(siteConfig.site, host) : undefined;
     if (!site?.id) {
       return { title: 'Page Not Found' };
     }
@@ -38,9 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       site['Default meta description'] || 
       '';
     
-    // Build canonical URL
-    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
-    const canonicalUrl = `${siteUrl}/${params.slug}`;
+    const canonicalUrl = buildCanonicalUrl(site['Site URL'], site.Domain, params.slug, host);
 
     // Get Open Graph image from page featured image or site logo
     const ogImage = page['Featured image']?.[0]?.url || site['Site logo']?.[0]?.url;

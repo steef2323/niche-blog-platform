@@ -9,6 +9,7 @@ import { getCategoryBySlug, getCombinedPostsByCategorySlug } from '@/lib/airtabl
 import { getFeaturesBySiteId } from '@/lib/airtable/features';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { generateCategoryPageSchemas } from '@/lib/utils/schema';
+import { buildCanonicalUrl, withCanonicalOrigin } from '@/lib/utils/canonical-url';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { getLanguageText } from '@/lib/utils/language-text';
 import { formatBlogDate } from '@/lib/utils/date-formatting';
@@ -45,10 +46,11 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   const host = headersList.get('host') || '';
   
   try {
-    const site = await getSiteByDomain(host);
-    if (!site?.id) {
+    const siteRecord = await getSiteByDomain(host);
+    if (!siteRecord?.id) {
       return { title: 'Category Not Found' };
     }
+    const site = withCanonicalOrigin(siteRecord, host);
 
     const category = await getCategoryBySlug(params.slug);
     if (!category) {
@@ -62,9 +64,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
       category.Description || 
       `Browse articles in ${categoryName}`;
 
-    // Build canonical URL
-    const siteUrl = site['Site URL'] || `https://${site.Domain}`;
-    const canonicalUrl = `${siteUrl}/blog/category/${category.Slug}`;
+    const canonicalUrl = buildCanonicalUrl(site['Site URL'], site.Domain, `/blog/category/${category.Slug}`, host);
 
     // Get Open Graph image from site logo
     const ogImage = site['Site logo']?.[0]?.url;
