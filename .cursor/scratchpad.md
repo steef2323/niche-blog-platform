@@ -456,6 +456,7 @@ Sitemap: {DYNAMIC_SITE_URL}/sitemap.xml
 
 - 🔄 **Screaming Frog SEO Fixes (Aug 17, 2026)**
   - [x] Issue 1: Internal Blocked by Robots.txt (`/_next/static`, `/_next/image`) — CODE UPDATED, awaiting deploy + recrawl
+  - [x] Issue 1b: Internal Blocked by Robots.txt (`/api/image-proxy`, 8 URLs) — CODE UPDATED, awaiting deploy + recrawl
   - [x] Issue 2: Canonicals — Non-Indexable Canonical (www vs apex) — CODE UPDATED, awaiting deploy + recrawl
   - [x] Issue 3: Canonicals — Canonicalised (4 URLs) — same www/apex bug as Issue 2, already fixed in code
   - [x] Issue 4: Page Titles — Missing (`/private-event-form`) — CODE UPDATED, awaiting deploy + recrawl
@@ -765,6 +766,16 @@ Plan: delay GTM; self-host Inter; next/image fetches Airtable directly; composit
 - Added `Allow: /_next/static/` and `Allow: /_next/image` (repeated after Airtable custom rules so `Disallow: /*?*` cannot still block `?url=` and `?dpl=` assets)
 
 **Needs user confirmation**: Deploy this change, then recrawl in Screaming Frog. The warning should drop from 30 to 0. Then we can start Issue 2 (canonicals).
+
+---
+
+**🔄 SCREAMING FROG ISSUE 1b — robots.txt blocking `/api/image-proxy` (Aug 17, 2026)**
+
+**Cause**: Airtable photos are served from `/api/image-proxy?url=...`. `Disallow: /api/` (line 6) blocks those 8 image URLs. Google cannot fetch the photos to render or index them. Do not remove the image links.
+
+**Code change**: `Allow: /api/image-proxy` in `src/lib/utils/robots-txt.ts`, listed with `/_next/image` and repeated after `Disallow: /*?*`. Other `/api/` routes stay blocked.
+
+**Needs user confirmation**: Deploy, then recrawl. Internal Blocked by Robots.txt should be 0. `https://www.sipandpaints.nl/robots.txt` should include `Allow: /api/image-proxy`.
 
 ---
 
@@ -1261,6 +1272,7 @@ Add these in Vercel dashboard → Settings → Environment Variables:
 13. **Font Loading**: Reducing font weights and using preload dramatically improves CLS scores
 14. **Images Stay in Airtable**: CDN caches images at the edge; no need to move them out of Airtable
 15. **Do not Disallow `/_next/` in robots.txt**: Next.js CSS/JS/images live there. Google needs them to render pages. Airtable `Disallow: /*?*` also blocks `/_next/image?url=` and Vercel `?dpl=` assets unless there is a longer `Allow: /_next/static/` / `Allow: /_next/image` rule.
+18. **Allow `/api/image-proxy` in robots.txt**: Airtable photos are served there. `Disallow: /api/` blocks them (Screaming Frog “Internal Blocked by Robots.txt”). Keep other `/api/` routes disallowed. Repeat the Allow after `Disallow: /*?*` because proxy URLs have query strings.
 17. **PageSpeed 74 root causes (Aug 17, 2026)**: Render-blocking Google Fonts CSS (~750 ms), GTM unused JS (~132 KiB), and LCP image via `/_next/image` → `/api/image-proxy` → Airtable (~770 ms download). Self-host Inter, delay GTM until interaction/8s. Do **not** pass Airtable URLs to next/image — Vercel returns 400 INVALID_IMAGE_OPTIMIZE_REQUEST and cards show broken images + alt text. Serve Airtable files through `/api/image-proxy` with `unoptimized` so the browser hits the proxy in one hop.
 19. **Category grid vs post page Site filter**: Category/author listings can show a published post that is not linked to the current Site. Post pages that only query `Site = siteId` then 404. After a site-scoped miss, look up `{Slug} = "..."` and prefer a Site match. Also do not nest `<a>` inside blog cards — browsers drop those clicks.
 
