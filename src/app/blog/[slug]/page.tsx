@@ -153,6 +153,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     }
 
     const canonicalUrl = buildCanonicalUrl(site['Site URL'], site.Domain, `/blog/${params.slug}`, host);
+    const siteUrl = site['Site URL'] || `https://${site.Domain || 'example.com'}`;
 
     // Build dynamic OG image URL (always branded; featured image used as fallback only when OG route unavailable)
     const ogParams = new URLSearchParams({
