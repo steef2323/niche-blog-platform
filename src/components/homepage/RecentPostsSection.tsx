@@ -1,6 +1,6 @@
 import { BlogPost, ListingPost } from '@/types/airtable';
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 
 interface RecentPostsSectionProps {
   blogPosts: BlogPost[];
@@ -47,7 +47,7 @@ export default function RecentPostsSection({ blogPosts, listingPosts }: RecentPo
                 <article className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow h-full">
                   {featuredImage && (
                     <div className="aspect-video overflow-hidden">
-                      <Image 
+                      <ContentImage 
                         src={featuredImage} 
                         alt={post.Title || 'Post image'}
                         fill

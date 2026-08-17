@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import Link from 'next/link';
 import { Business } from '@/types/airtable';
 import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
@@ -113,7 +113,7 @@ export default function BusinessCard({ business, rank }: BusinessCardProps) {
           {/* Business Image */}
           {businessImage && (
             <div className="mb-4">
-              <Image
+              <ContentImage
                 src={getProxiedImageUrl(businessImage.url)}
                 alt={business.Competitor}
                 width={businessImage.width || 600}

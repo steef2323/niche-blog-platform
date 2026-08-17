@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { getSiteConfig } from '@/lib/site-detection';
 import { getListingPostsByCity } from '@/lib/airtable/content';
 import { generateCityPageSchemas } from '@/lib/utils/schema';
@@ -207,7 +207,7 @@ export default async function CityPage({ params }: Props) {
               >
                 {post['Featured image']?.[0]?.url && (
                   <div className="relative h-44 w-full">
-                    <Image
+                    <ContentImage
                       src={getProxiedImageUrl(post['Featured image'][0].url)}
                       alt={post['Featured image alt text'] || post.Title}
                       fill
@@ -420,7 +420,7 @@ function BusinessCityCard({ business, rank }: { business: Business; rank: number
           {image?.url && (
             <div className="flex-shrink-0 hidden sm:block">
               <div className="relative w-28 h-28 rounded-lg overflow-hidden">
-                <Image
+                <ContentImage
                   src={getProxiedImageUrl(image.url)}
                   alt={business.Competitor}
                   fill

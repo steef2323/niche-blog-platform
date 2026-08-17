@@ -1,6 +1,7 @@
 import { BlogPost, ListingPost, Page, Business, Location } from '@/types/airtable';
 import base, { TABLES, AirtableError } from './config';
 import contentCache from './content-cache';
+import { pickRecordForSite, siteFieldIncludes, slugEqualsFormula, isPublishedOnSite } from './formula';
 
 /**
  * Get blog posts for a specific site, optionally using an Airtable view
@@ -352,7 +353,7 @@ export async function getBlogPostBySlug(slug: string, siteId: string, viewName?:
         posts = await base(TABLES.BLOG_POSTS)
           .select({
             view: viewName,
-            filterByFormula: `{Slug} = "${slug}"`, // No Published filter - we need to check redirects
+            filterByFormula: slugEqualsFormula(slug), // No Published filter - we need to check redirects
             maxRecords: 1,
           })
           .firstPage();
@@ -371,7 +372,7 @@ export async function getBlogPostBySlug(slug: string, siteId: string, viewName?:
       
       posts = await base(TABLES.BLOG_POSTS)
         .select({
-          filterByFormula: `AND({Slug} = "${slug}", Site = "${siteId}")`, // No Published filter
+          filterByFormula: `AND(${slugEqualsFormula(slug)}, Site = "${siteId}")`, // No Published filter
           maxRecords: 1,
         })
         .firstPage();
@@ -391,10 +392,8 @@ export async function getBlogPostBySlug(slug: string, siteId: string, viewName?:
         // Filter manually for slug and site
         const filteredPosts = allPosts.filter(post => {
           const postSlug = post.fields.Slug;
-          const siteField = post.fields.Site;
-          
           const slugMatches = postSlug === slug;
-          const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+          const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
           
           return slugMatches && siteMatches;
         });
@@ -413,6 +412,18 @@ export async function getBlogPostBySlug(slug: string, siteId: string, viewName?:
         
         posts = filteredPosts;
       }
+    }
+
+    if (posts.length === 0) {
+      console.log(`Site-scoped blog lookup missed for "${slug}". Trying slug-only (category pages can list posts missing a Site link).`);
+      const bySlug = await base(TABLES.BLOG_POSTS)
+        .select({
+          filterByFormula: slugEqualsFormula(slug),
+          maxRecords: 5,
+        })
+        .firstPage();
+      const matched = pickRecordForSite(bySlug, siteId);
+      posts = matched ? [matched] : [];
     }
 
     if (posts.length === 0) {
@@ -653,7 +664,7 @@ export async function getBlogPostsByAuthorSlug(authorSlug: string, siteId: strin
       const siteField = post.fields.Site;
       const authorField = post.fields.Author;
       
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
       
       // Debug author matching
       console.log(`Post ${post.fields.Title}:`, {
@@ -897,7 +908,7 @@ export async function getBlogPostsByCategorySlug(categorySlug: string, siteId: s
       console.log(`Found ${allPosts.length} total published blog posts`);
     }
     
-    // Filter for posts in this category (site is already filtered by view, Published is already filtered)
+    // Only posts published on this site and in this category
     const filteredPosts = allPosts.filter(post => {
       const categoriesField = post.fields.Categories;
       
@@ -906,7 +917,7 @@ export async function getBlogPostsByCategorySlug(categorySlug: string, siteId: s
         return categoryId === category.id;
       }) : false;
       
-      return categoryMatches;
+      return categoryMatches && isPublishedOnSite(post.fields, siteId);
     });
     
     console.log(`Filtered to ${filteredPosts.length} posts for category: ${categorySlug}`);
@@ -1063,7 +1074,7 @@ export async function getListingPostBySlug(slug: string, siteId: string, viewNam
         posts = await base(TABLES.LISTING_POSTS)
           .select({
             view: viewName,
-            filterByFormula: `{Slug} = "${slug}"`, // No Published filter - we need to check redirects
+            filterByFormula: slugEqualsFormula(slug), // No Published filter - we need to check redirects
             maxRecords: 1,
           })
           .firstPage();
@@ -1092,16 +1103,26 @@ export async function getListingPostBySlug(slug: string, siteId: string, viewNam
       // Filter for slug and site
       const filteredPosts = allPosts.filter(post => {
         const postSlug = post.fields.Slug;
-        const siteField = post.fields.Site;
-        
         const slugMatches = postSlug === slug;
-        const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+        const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
         
         return slugMatches && siteMatches;
       });
       
       console.log(`Manually filtered to ${filteredPosts.length} posts for slug: ${slug} and site ID: ${siteId}`);
       posts = filteredPosts;
+    }
+
+    if (posts.length === 0) {
+      console.log(`Site-scoped listing lookup missed for "${slug}". Trying slug-only.`);
+      const bySlug = await base(TABLES.LISTING_POSTS)
+        .select({
+          filterByFormula: slugEqualsFormula(slug),
+          maxRecords: 5,
+        })
+        .firstPage();
+      const matched = pickRecordForSite(bySlug, siteId);
+      posts = matched ? [matched] : [];
     }
     
     if (posts.length === 0) {
@@ -1260,7 +1281,7 @@ export async function getListingPostsByAuthorSlug(authorSlug: string, siteId: st
       const siteField = post.fields.Site;
       const authorField = post.fields.Author;
       
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
       
       const authorMatches = Array.isArray(authorField) ? authorField.some(a => {
         const authorId = typeof a === 'string' ? a : a.id;
@@ -1356,7 +1377,7 @@ export async function getListingPostsByCategorySlug(categorySlug: string, siteId
       console.log(`Found ${allPosts.length} total published listing posts`);
     }
     
-    // Filter for posts in this category (site is already filtered by view, Published is already filtered)
+    // Only posts published on this site and in this category
     const filteredPosts = allPosts.filter(post => {
       const categoriesField = post.fields.Categories;
       
@@ -1365,7 +1386,7 @@ export async function getListingPostsByCategorySlug(categorySlug: string, siteId
         return categoryId === category.id;
       }) : false;
       
-      return categoryMatches;
+      return categoryMatches && isPublishedOnSite(post.fields, siteId);
     });
     
     console.log(`Filtered to ${filteredPosts.length} listing posts for category: ${categorySlug}`);
@@ -1410,7 +1431,9 @@ export async function getCombinedPostsByAuthorSlug(authorSlug: string, siteId: s
   const allPosts = [
     ...blogPosts.map(post => ({ ...post, type: 'blog' as const })),
     ...listingPosts.map(post => ({ ...post, type: 'listing' as const }))
-  ].sort((a, b) => {
+  ]
+    .filter((post) => isPublishedOnSite(post, siteId))
+    .sort((a, b) => {
     const dateA = new Date(a['Published date'] || '').getTime();
     const dateB = new Date(b['Published date'] || '').getTime();
     return dateB - dateA;
@@ -1437,11 +1460,14 @@ export async function getCombinedPostsByCategorySlug(categorySlug: string, siteI
     getListingPostsByCategorySlug(categorySlug, siteId, undefined, listingPostsViewName)
   ]);
 
-  // Combine and sort by published date (most recent first)
+  // Combine and sort by published date (most recent first).
+  // Drop anything not published on this site (shared categories can include other sites).
   const allPosts = [
     ...blogPosts.map(post => ({ ...post, type: 'blog' as const })),
     ...listingPosts.map(post => ({ ...post, type: 'listing' as const }))
-  ].sort((a, b) => {
+  ]
+    .filter((post) => isPublishedOnSite(post, siteId))
+    .sort((a, b) => {
     const dateA = new Date(a['Published date'] || '').getTime();
     const dateB = new Date(b['Published date'] || '').getTime();
     return dateB - dateA;
@@ -1568,7 +1594,7 @@ export async function getPopularBlogPosts(siteId: string, limit: number = 3): Pr
       const siteField = post.fields.Site;
       const popularField = post.fields.Popular;
       
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
       const isPopular = popularField === true;
       
       return siteMatches && isPopular;
@@ -1633,7 +1659,7 @@ export async function getBlogPostsByCategoryExcludingPopular(categoryId: string,
       const categoriesField = post.fields.Categories;
       const popularField = post.fields.Popular;
       
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
       const categoryMatches = Array.isArray(categoriesField) ? categoriesField.some(c => {
         const catId = typeof c === 'string' ? c : c.id;
         return catId === categoryId;
@@ -1693,7 +1719,7 @@ export async function getBlogPostsByCategory(categoryId: string, siteId: string,
       const siteField = post.fields.Site;
       const categoriesField = post.fields.Categories;
       
-      const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+      const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
       const categoryMatches = Array.isArray(categoriesField) ? categoriesField.some(c => {
         const catId = typeof c === 'string' ? c : c.id;
         return catId === categoryId;
@@ -1828,7 +1854,7 @@ export async function getRelatedBlogPosts(relatedBlogIds: string[], siteId: stri
       } else {
         // When not using a view, also filter by site
         const siteField = post.fields.Site;
-        const siteMatches = Array.isArray(siteField) ? siteField.includes(siteId) : false;
+        const siteMatches = siteFieldIncludes(post.fields.Site, siteId);
         return siteMatches && isNotCurrentPost;
       }
     });

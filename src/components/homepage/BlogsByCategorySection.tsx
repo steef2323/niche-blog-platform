@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { BlogPost, Category } from '@/types/airtable';
 import { useSite } from '@/contexts/site';
 import { formatBlogDate } from '@/lib/utils/date-formatting';
@@ -166,7 +166,7 @@ export default function BlogsByCategorySection({ siteId }: BlogsByCategorySectio
                         {/* Featured Image */}
                         {featuredImage && (
                           <div className="aspect-[4/3] relative overflow-hidden">
-                            <Image
+                            <ContentImage
                               src={featuredImage}
                               alt={post.Title || 'Blog post image'}
                               fill

@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { Metadata } from 'next';
 import { getSiteConfig } from '@/lib/site-detection';
 import { getBlogPostBySlug, getListingPostBySlug, getRelatedBlogPosts, getHomepageContent, getBlogPostsBySiteId } from '@/lib/airtable/content';
@@ -212,16 +212,22 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 }
 
 async function getPostData(slug: string, siteId: string, blogPostsViewName?: string, listingPostsViewName?: string): Promise<PostData | null> {
-  // Try blog post first
-  const blogPost = await getBlogPostBySlug(slug, siteId, blogPostsViewName);
-  if (blogPost) {
-    return { post: blogPost, type: 'blog' };
+  try {
+    const blogPost = await getBlogPostBySlug(slug, siteId, blogPostsViewName);
+    if (blogPost) {
+      return { post: blogPost, type: 'blog' };
+    }
+  } catch (error) {
+    console.error(`Error fetching blog post "${slug}":`, error);
   }
-  
-  // If not found, try listing post
-  const listingPost = await getListingPostBySlug(slug, siteId, listingPostsViewName);
-  if (listingPost) {
-    return { post: listingPost, type: 'listing' };
+
+  try {
+    const listingPost = await getListingPostBySlug(slug, siteId, listingPostsViewName);
+    if (listingPost) {
+      return { post: listingPost, type: 'listing' };
+    }
+  } catch (error) {
+    console.error(`Error fetching listing post "${slug}":`, error);
   }
   
   return null;
@@ -500,7 +506,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 {/* Featured Image */}
                 {blogPost['Featured image']?.[0] && (
                   <div className="mb-8 relative">
-                    <Image
+                    <ContentImage
                       src={blogPost['Featured image'][0].url}
                       alt={blogPost['Featured image alt text'] || displayTitle || 'Blog post image'}
                       width={blogPost['Featured image'][0].width}
@@ -898,7 +904,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 
                 {/* Excerpt */}
-                {listingPost.Excerpt && (
+                {getContentValue(listingPost.Excerpt) && (
                   <div 
                     className="text-xl leading-relaxed mb-8 border-l-4 pl-6 prose prose-xl max-w-none prose-a:text-[var(--text-color)] prose-a:underline hover:prose-a:opacity-80"
                     style={{ 
@@ -908,7 +914,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       opacity: 0.8
                     }}
                     dangerouslySetInnerHTML={{ 
-                      __html: parseMarkdownToHtml(listingPost.Excerpt) 
+                      __html: parseMarkdownToHtml(getContentValue(listingPost.Excerpt)) 
                     }}
                   />
                 )}
@@ -1301,7 +1307,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       {/* Business Image - from Location.Image first, then fallback to Business image */}
                       {itemImage && (
                         <div className="mb-6 aspect-[4/3] relative overflow-hidden rounded-lg shadow-md">
-                          <Image
+                          <ContentImage
                             src={itemImage.url}
                             alt={imageAltText}
                             fill
@@ -1736,8 +1742,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     // Check if it's a redirect error
     if (error && typeof error === 'object' && 'digest' in error) {
       const digest = (error as any).digest;
-      if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
-        // This is a Next.js redirect - rethrow it so Next.js can handle it
+      if (typeof digest === 'string' && (digest.startsWith('NEXT_REDIRECT') || digest.startsWith('NEXT_NOT_FOUND'))) {
+        // Let Next.js handle redirects and notFound()
         throw error;
       }
     }

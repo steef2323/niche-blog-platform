@@ -2,6 +2,12 @@
 
 ## Background and Motivation
 
+**NEW REQUEST (Aug 17, 2026 — Blog cards 404 on click)**: User reports many overview links do not work, e.g. `https://www.sipandpaints.nl/blog/all-amsterdam-sip-and-paint-options`. Live HEAD of that URL returns **404**. Of 31 category-page post links, this was the only 404; the rest returned 200. The slug is listed on the category grid (no Site filter) and missing from sitemap (site-filtered). Post lookup required a Site match, so posts without a Site link (or from a shared category) 404. Category cards also only linked the title/“Read more”, not the image.
+
+**NEW REQUEST (Aug 17, 2026 — Blog overview images broken)**: On sipandpaints.nl category/blog overview (`/blog/category/sip-and-paint`), every card shows a broken image + alt text. Live HTML uses `/_next/image?url=https://v5.airtableusercontent.com/...`. Curling that optimizer URL returns **400 INVALID_IMAGE_OPTIMIZE_REQUEST**. The same Airtable JPEG returns **200**. Cause: PageSpeed “one-hop” change passed Airtable URLs to next/image; Vercel’s optimizer rejects them. Category/author/homepage cards also passed raw Airtable URLs and never used `/api/image-proxy`. Fix: wrap Airtable URLs in the proxy again and skip `/_next/image` (`unoptimized`) so the browser loads `/api/image-proxy` directly.
+
+**NEW REQUEST (Aug 17, 2026 — PageSpeed / slow load)**: User reports sipandpaints.nl loads slowly. Mobile PageSpeed Insights: Performance **74**, Accessibility 92, Best Practices 100, SEO 100. Speed Index 2.7s (good). No Chrome UX Report field data. Lighthouse highlights: render-blocking requests (~1,780 ms), unused JavaScript (~132 KiB), network dependency tree, legacy JS (~12 KiB), 1 long main-thread task, 7 non-composited animations. User asked what extra evidence is needed before we implement Core Web Vitals fixes (Task 1.5).
+
 **NEW REQUEST (Aug 17, 2026)**: Fix Screaming Frog SEO issues on sipandpaints.nl one by one. Crawl of https://www.sipandpaints.nl/ found 14 items (3 issues, 9 warnings, 2 opportunities). First item: Internal Blocked by Robots.txt (30 URLs under `/_next/static/` and `/_next/image`).
 
 The user requested detailed implementation strategy for SEO optimizations, specifically asking what can be hardcoded vs. what needs to be dynamic from Airtable. This analysis will provide a comprehensive implementation plan for achieving high search engine rankings.
@@ -14,6 +20,19 @@ The user requested detailed implementation strategy for SEO optimizations, speci
 **LATEST REQUEST (Localization)**: The user wants to identify and replace all hardcoded English strings with localized versions. The system already tracks site language in Airtable (`Language` field), and there's a `getLanguageText` utility that provides some localized strings. However, many hardcoded English strings remain throughout the codebase that need to be localized.
 
 ## Key Challenges and Analysis
+
+### PageSpeed 74 — Planner analysis (Aug 17, 2026)
+
+Already visible without extra screenshots:
+
+1. **Render-blocking CSS (~1.8s opportunity)**: Live homepage loads Google Fonts as a blocking stylesheet (`fonts.googleapis.com/css2?family=Inter...`) plus Next CSS `/_next/static/css/...`. Font CSS is the classic Lighthouse render-blocking hit.
+2. **Unused JS (~132 KiB)**: The whole homepage is a client component (`Homepage.tsx` `'use client'`), plus Header, Footer, BaseLayout, SiteProvider, ThemeProvider, GoogleFonts, PageViewTracker. That ships a large JS bundle before the page can feel done.
+3. **HTML not cached at the edge**: Live homepage returns `cache-control: private, no-cache, no-store` and `x-vercel-cache: MISS`. ISR is set to 12 hours in `page.tsx`, but `headers()` in root layout likely forces a dynamic render, so every first visit waits on the server.
+4. **Apex vs www**: PSI was run on `https://sipandpaints.nl/` (no www). Apex 307-redirects to www, which adds latency before any paint.
+5. **Third parties**: GTM loads `afterInteractive`. Still counted in unused JS / 3rd-party audits.
+6. **Legacy JS (~12 KiB)**: Polyfills chunk is loaded without `async` (`polyfills-*.js`).
+
+Missing from the screenshots (ask user): FCP/LCP/TBT/CLS numbers; expanded file lists for render-blocking, unused JS, network tree, LCP element, 3rd parties; whether slowness is homepage-only.
 
 ### Implementation Strategy Overview
 
@@ -409,6 +428,32 @@ Sitemap: {DYNAMIC_SITE_URL}/sitemap.xml
 
 ## Project Status Board
 
+- 🔄 **Footer Pages list A–Z (Aug 17, 2026)** — Executor: awaiting user check
+  - [x] Removed Work with us / Sip and Paint Amsterdam pin in `Footer.tsx`
+  - [x] Sort all footer page links (including Home and Sitemap) by visible label
+  - [ ] User confirms order on sipandpaints.nl footer
+
+- 🔄 **Blog card links 404 (Aug 17, 2026)**
+  - [x] Category/author grids only include posts published on this site
+  - [x] Do not fall back to another site’s post for a missing slug (404 is correct)
+  - [x] Make category/author cards fully clickable (image included); no nested `<a>`
+  - [ ] User confirms the Amsterdam card is gone from the Sip and Paint overview after deploy
+
+- 🔄 **Blog overview images not loading (Aug 17, 2026)**
+  - [x] Restore `/api/image-proxy` wrapping (do not send Airtable URLs to `/_next/image`)
+  - [x] Skip optimizer for proxied images (`unoptimized`) so cards load in one hop
+  - [x] Use that path on category/author/homepage/blog cards that still passed raw Airtable `src`
+  - [ ] User confirms images load on `/blog/category/sip-and-paint` after deploy
+
+- 🔄 **PageSpeed / Core Web Vitals (Aug 17, 2026)** — Executor: site-wide critical path
+  - [x] User sent render-blocking, unused JS, LCP breakdown, network tree
+  - [x] All pages (not homepage-only); GTM delay approved
+  - [x] Delay GTM until interaction or timeout
+  - [x] Self-host Inter; stop blocking Google Fonts CSS
+  - [x] One-hop LCP images (skip image-proxy → next/image chain)
+  - [x] Compositor-safe transitions
+  - [ ] User re-runs mobile PageSpeed after deploy (baseline 74)
+
 - 🔄 **Screaming Frog SEO Fixes (Aug 17, 2026)**
   - [x] Issue 1: Internal Blocked by Robots.txt (`/_next/static`, `/_next/image`) — CODE UPDATED, awaiting deploy + recrawl
   - [x] Issue 2: Canonicals — Non-Indexable Canonical (www vs apex) — CODE UPDATED, awaiting deploy + recrawl
@@ -628,6 +673,54 @@ Sitemap: {DYNAMIC_SITE_URL}/sitemap.xml
 - **Low priority tasks**: 10-13 hours (Local SEO, voice search)
 
 ## Executor's Feedback or Assistance Requests
+
+**🔄 BLOG CARD LINKS 404 — Executor (Aug 17, 2026)**
+
+**Cause**: `/blog/all-amsterdam-sip-and-paint-options` is linked from the Sip and Paint overview but is not in this site’s Airtable (user confirmed). The category grid listed every published post in that category across the base, including other sites. The article URL 404s, which is correct.
+
+**Code change**: Grids only include posts with `Published = true` and a Site link to this site. Slug lookup no longer serves another site’s post. Category/author cards are one link (image included).
+
+**Needs user confirmation**: Deploy, then open the Sip and Paint overview. The Amsterdam card that 404’d should be gone. Remaining cards should open.
+
+---
+
+**🔄 BLOG OVERVIEW IMAGES BROKEN — Executor (Aug 17, 2026)**
+
+**Cause**: Live category cards use `/_next/image?url=https://v5.airtableusercontent.com/...`. That optimizer request returns **400 INVALID_IMAGE_OPTIMIZE_REQUEST**. The same Airtable JPEG returns **200**. `/api/image-proxy` also returns **200** for that URL.
+
+The PageSpeed “one-hop” change sent Airtable URLs to next/image. Vercel’s optimizer rejects those signed, extensionless URLs. Category/author/homepage cards also passed raw Airtable `src` and never used the proxy.
+
+**Code change**:
+- `getProxiedImageUrl` wraps Airtable URLs in `/api/image-proxy` again (idempotent)
+- New `ContentImage` uses that URL with `unoptimized` so the browser loads the proxy directly (no `/_next/image`, no double hop)
+- Wired into blog overview/category/author/post, homepage cards, hero, and info sections
+- `next.config.js` no longer lists Airtable as a remote image host
+
+**Needs user confirmation**: Deploy, then open `https://www.sipandpaints.nl/blog/category/sip-and-paint`. Card photos should load. View-source should show `/api/image-proxy?url=` not `/_next/image?url=https://v5.airtableusercontent.com`.
+
+---
+
+**🔄 FOOTER PAGES ORDER — A–Z (Aug 17, 2026)**
+
+User asked to drop the special-case sort. Footer Pages links (Home, Airtable pages, Sitemap) now sort by visible label. Expected sipandpaints.nl order: Blog, DIY Painting Kit, Home, Sip and Paint Amsterdam, Sip and Paint Utrecht, Sitemap, Work with us.
+
+Needs user confirmation on the live/local footer.
+
+---
+
+**🔄 PAGESPEED 74 — Executor implementing site-wide critical path (Aug 17, 2026)**
+
+Lab evidence:
+- Render-blocking: Next CSS 9.3 KiB / 170 ms + Google Fonts CSS 1.4 KiB / **750 ms**
+- Font chain: HTML 319 ms → fonts.googleapis CSS 321 ms → gstatic woff2 **423 ms**
+- Unused JS: **GTM 279 KiB** (gtag G-YZNWKCD9ZL + GTM-MCHD952K), ~132 KiB unused
+- LCP image: TTFB 10 ms, delay 310 ms, **download 770 ms**, render 20 ms
+- LCP element is hero via `/_next/image?url=/api/image-proxy?url=https://v5.airtable...` (double hop)
+- Legacy JS: 12 KiB polyfills in chunk 117 (low priority)
+
+Plan: delay GTM; self-host Inter; next/image fetches Airtable directly; compositor-safe CSS. Then user re-runs PSI.
+
+---
 
 **🔄 SCREAMING FROG ISSUE 5 — Missing H1 on /private-event-form (Aug 17, 2026)**
 
@@ -1168,7 +1261,8 @@ Add these in Vercel dashboard → Settings → Environment Variables:
 13. **Font Loading**: Reducing font weights and using preload dramatically improves CLS scores
 14. **Images Stay in Airtable**: CDN caches images at the edge; no need to move them out of Airtable
 15. **Do not Disallow `/_next/` in robots.txt**: Next.js CSS/JS/images live there. Google needs them to render pages. Airtable `Disallow: /*?*` also blocks `/_next/image?url=` and Vercel `?dpl=` assets unless there is a longer `Allow: /_next/static/` / `Allow: /_next/image` rule.
-16. **Canonical host must match the live 200 URL**: sipandpaints.nl apex 307s to www. Canonicals built from Airtable Domain without www point at a redirect (non-indexable canonical). Use the production request host for canonicals, sitemap, and schema.
+17. **PageSpeed 74 root causes (Aug 17, 2026)**: Render-blocking Google Fonts CSS (~750 ms), GTM unused JS (~132 KiB), and LCP image via `/_next/image` → `/api/image-proxy` → Airtable (~770 ms download). Self-host Inter, delay GTM until interaction/8s. Do **not** pass Airtable URLs to next/image — Vercel returns 400 INVALID_IMAGE_OPTIMIZE_REQUEST and cards show broken images + alt text. Serve Airtable files through `/api/image-proxy` with `unoptimized` so the browser hits the proxy in one hop.
+19. **Category grid vs post page Site filter**: Category/author listings can show a published post that is not linked to the current Site. Post pages that only query `Site = siteId` then 404. After a site-scoped miss, look up `{Slug} = "..."` and prefer a Site match. Also do not nest `<a>` inside blog cards — browsers drop those clicks.
 
 ## Current Issue: Listicle Pages Not Loading
 

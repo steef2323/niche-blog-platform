@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import { ClusterDefinition } from '@/lib/utils/cluster-links';
 import { getBlogTitle, getBlogExcerpt } from '@/lib/utils/structured-content';
@@ -98,7 +98,7 @@ export default function ClusterNavSection({
                     style={{ backgroundColor: 'var(--secondary-color)' }}
                   >
                     {imageUrl ? (
-                      <Image
+                      <ContentImage
                         src={getProxiedImageUrl(imageUrl)}
                         alt={title}
                         fill

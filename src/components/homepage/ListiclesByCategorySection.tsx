@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { ListingPost, Category } from '@/types/airtable';
 import { useSite } from '@/contexts/site';
 import { formatBlogDate } from '@/lib/utils/date-formatting';
@@ -154,7 +154,7 @@ export default function ListiclesByCategorySection({ siteId }: ListiclesByCatego
                         {/* Featured Image */}
                         {featuredImage && (
                           <div className="aspect-[4/3] relative overflow-hidden">
-                            <Image
+                            <ContentImage
                               src={featuredImage}
                               alt={post.Title}
                               fill

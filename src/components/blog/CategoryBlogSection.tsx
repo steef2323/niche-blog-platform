@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { getBlogTitle, getBlogExcerpt, getContentForReadingTime } from '@/lib/utils/structured-content';
@@ -141,7 +141,7 @@ export default function CategoryBlogSection({ category, siteId, isFirst = false 
                   style={{ backgroundColor: 'var(--secondary-color)' }}
                 >
                   {post['Featured image']?.[0] ? (
-                    <Image
+                    <ContentImage
                       src={getProxiedImageUrl(post['Featured image'][0].url)}
                       alt={post.type === 'blog' ? getBlogTitle(post as BlogPost) : (post as ListingPost).Title}
                       fill

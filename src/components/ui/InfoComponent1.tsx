@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { SEOImage } from '@/types/airtable';
 
 interface InfoComponent1Props {
@@ -61,7 +61,7 @@ export default function InfoComponent1({ title, text, image, className = '' }: I
       <div className="block md:hidden">
         {/* Image - no padding from border */}
         <div className="w-full">
-          <Image
+          <ContentImage
             src={image.src}
             alt={image.alt || image.title || title || 'Content image'}
             title={image.title}
@@ -131,7 +131,7 @@ export default function InfoComponent1({ title, text, image, className = '' }: I
         {/* Right Column: Image - no padding from border */}
         <div className="w-full h-full flex flex-col">
           <div className="flex-1">
-            <Image
+            <ContentImage
               src={image.src}
               alt={image.alt || image.title || title || 'Content image'}
               title={image.title}

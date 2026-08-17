@@ -2,11 +2,10 @@ import { notFound, redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
-import { getSiteByDomain } from '@/lib/airtable/sites';
-import base, { TABLES } from '@/lib/airtable/config';
+import ContentImage from '@/components/common/ContentImage';
 import { getCategoryBySlug, getCombinedPostsByCategorySlug } from '@/lib/airtable/content';
-import { getFeaturesBySiteId } from '@/lib/airtable/features';
+import { getSiteConfig } from '@/lib/site-detection';
+import base, { TABLES } from '@/lib/airtable/config';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { generateCategoryPageSchemas } from '@/lib/utils/schema';
 import { buildCanonicalUrl, withCanonicalOrigin } from '@/lib/utils/canonical-url';
@@ -46,11 +45,11 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   const host = headersList.get('host') || '';
   
   try {
-    const siteRecord = await getSiteByDomain(host);
-    if (!siteRecord?.id) {
+    const siteConfig = await getSiteConfig(host);
+    if (!siteConfig?.site?.id) {
       return { title: 'Category Not Found' };
     }
-    const site = withCanonicalOrigin(siteRecord, host);
+    const site = withCanonicalOrigin(siteConfig.site, host);
 
     const category = await getCategoryBySlug(params.slug);
     if (!category) {
@@ -72,7 +71,13 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     // Get posts for schema (limited to first 20)
     let schemaPosts: Array<{id?: string, Slug: string, Title?: string, H1?: string}> = [];
     try {
-      const allPosts = await getCombinedPostsByCategorySlug(params.slug, site.id);
+      const allPosts = await getCombinedPostsByCategorySlug(
+        params.slug,
+        site.id,
+        undefined,
+        siteConfig.airtableViews?.blogPosts,
+        siteConfig.airtableViews?.listingPosts,
+      );
       schemaPosts = allPosts.slice(0, 20).map(post => ({
         id: post.id,
         Slug: post.Slug,
@@ -131,14 +136,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const host = headersList.get('host') || '';
   
   try {
-    // Get site data
-    const site = await getSiteByDomain(host);
-    if (!site?.id) {
+    const siteConfig = await getSiteConfig(host);
+    if (!siteConfig?.site?.id) {
       redirect('/');
     }
 
+    const { site, siteId, features, airtableViews } = siteConfig;
+
     // Check if Blog feature is enabled
-    const features = await getFeaturesBySiteId(site.id);
     const blogFeature = features.find(f => f.Name === 'Blog');
     if (!blogFeature) {
       redirect('/');
@@ -150,8 +155,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       notFound();
     }
 
-    // Get category posts (both blog and listing posts)
-    const allPosts = await getCombinedPostsByCategorySlug(params.slug, site.id);
+    // Published posts assigned to this site only
+    const allPosts = await getCombinedPostsByCategorySlug(
+      params.slug,
+      siteId,
+      undefined,
+      airtableViews?.blogPosts,
+      airtableViews?.listingPosts,
+    );
 
     // Get language-specific text
     const languageText = getLanguageText(site?.Language);
@@ -244,10 +255,12 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               };
 
               const getDisplayExcerpt = (post: any) => {
-                if (post.type === 'blog' && post['Meta description']) {
-                  return post['Meta description'];
-                }
-                return post.Excerpt;
+                const raw = post.type === 'blog' && post['Meta description']
+                  ? post['Meta description']
+                  : post.Excerpt;
+                if (typeof raw === 'string') return raw;
+                if (raw && typeof raw === 'object' && typeof raw.value === 'string') return raw.value;
+                return '';
               };
 
               const displayTitle = getDisplayTitle(post);
@@ -262,10 +275,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                       border: '1px solid var(--border-color)',
                     }}
                   >
+                    <Link href={`/blog/${post.Slug}`} className="block">
                     {/* Featured Image */}
                     {post['Featured image']?.[0] && (
                       <div className="aspect-video relative">
-                        <Image
+                        <ContentImage
                           src={post['Featured image'][0].url}
                           alt={displayTitle}
                           fill
@@ -277,22 +291,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     <div className="p-6">
                       {/* Title */}
                       <h3 
-                        className="text-xl font-semibold mb-2 line-clamp-2"
+                        className="text-xl font-semibold mb-2 line-clamp-2 hover:text-[var(--primary-color)] transition-colors duration-200"
                         style={{ 
                           color: 'var(--text-color)',
                           fontFamily: 'var(--font-heading)'
                         }}
                       >
-                        <Link 
-                          href={`/blog/${post.Slug}`}
-                          className="hover:text-[var(--primary-color)] transition-colors duration-200"
-                          style={{ 
-                            color: 'var(--text-color)',
-                            fontFamily: 'var(--font-heading)'
-                          }}
-                        >
-                          {displayTitle}
-                        </Link>
+                        {displayTitle}
                       </h3>
 
                       {/* Excerpt */}
@@ -338,17 +343,17 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                             <span>{post.BusinessDetails?.length || 0} business{post.BusinessDetails?.length !== 1 ? 'es' : ''}</span>
                           </>
                         )}
-                      </div>
+                        </div>
                       
-                      <Link 
-                        href={`/blog/${post.Slug}`}
+                      <span 
                         className="hover:underline font-medium"
                         style={{ color: 'var(--text-color)' }}
                       >
                         Read more →
-                      </Link>
+                      </span>
                     </div>
-                  </div>
+                    </div>
+                    </Link>
                 </article>
               );
             })}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 import { getBlogTitle, getBlogExcerpt, getContentForReadingTime } from '@/lib/utils/structured-content';
@@ -110,7 +110,7 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                   style={{ backgroundColor: 'var(--secondary-color)' }}
                 >
                   {post['Featured image']?.[0] ? (
-                    <Image
+                    <ContentImage
                       src={getProxiedImageUrl(post['Featured image'][0].url)}
                       alt={post.type === 'blog' ? getBlogTitle(post as BlogPost) : (post as ListingPost).Title}
                       fill
@@ -164,19 +164,17 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
                       </span>
                     )}
                     
-                    {/* Category Badge */}
+                    {/* Category Badge — span, not a nested <a>, so the card link stays valid */}
                     {post.CategoryDetails && (
-                      <Link
-                        href={`/blog/category/${post.CategoryDetails.Slug}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-block px-3 py-1 text-sm font-medium rounded-full hover:opacity-90 transition-opacity"
+                      <span
+                        className="inline-block px-3 py-1 text-sm font-medium rounded-full"
                         style={{ 
                           backgroundColor: 'var(--accent-color)',
                           color: 'var(--text-color)'
                         }}
                       >
                         {post.CategoryDetails.Name}
-                      </Link>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -196,9 +194,14 @@ export default function BlogGrid({ initialPosts, siteId, postsPerPage, apiParams
 
                   {/* Excerpt/Introduction */}
                   {(() => {
-                    const excerpt = post.type === 'blog' 
+                    const excerptRaw = post.type === 'blog' 
                       ? getBlogExcerpt(post as BlogPost) 
                       : ((post as ListingPost).Excerpt || '');
+                    const excerpt = typeof excerptRaw === 'string'
+                      ? excerptRaw
+                      : (excerptRaw && typeof excerptRaw === 'object' && 'value' in excerptRaw
+                        ? String((excerptRaw as { value?: string }).value || '')
+                        : '');
                     
                     return excerpt ? (
                       <p 

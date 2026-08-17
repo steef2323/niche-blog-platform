@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import Link from 'next/link';
 import { BlogPost } from '@/types/airtable';
 import { getBlogTitle, getBlogExcerpt, getContentForReadingTime } from '@/lib/utils/structured-content';
@@ -93,7 +93,7 @@ export default function LazyRelatedBlogs({ relatedBlogs }: LazyRelatedBlogsProps
                     style={{ backgroundColor: 'var(--secondary-color)' }}
                   >
                     {relatedPost['Featured image']?.[0] ? (
-                      <Image
+                      <ContentImage
                         src={getProxiedImageUrl(relatedPost['Featured image'][0].url)}
                         alt={relatedTitle}
                         fill

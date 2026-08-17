@@ -1,17 +1,16 @@
 /**
- * Image Proxy Utilities
- * 
- * Converts Airtable CDN URLs to proxy URLs served from your own domain.
- * This hides the relationship between sites by making all images appear
- * to be hosted on each site's own domain.
+ * Image URL helpers for Airtable attachments.
+ *
+ * Always serve Airtable files through /api/image-proxy. Passing the signed
+ * Airtable URL to next/image makes Vercel Image Optimization return
+ * 400 INVALID_IMAGE_OPTIMIZE_REQUEST, which shows as broken card images.
+ * Proxied srcs use unoptimized next/image so the browser hits the proxy
+ * directly (one hop, no /_next/image).
  */
 
-/**
- * Check if a URL is from Airtable CDN
- */
 export function isAirtableUrl(url: string): boolean {
   if (!url) return false;
-  
+
   try {
     const urlObj = new URL(url);
     return (
@@ -19,50 +18,48 @@ export function isAirtableUrl(url: string): boolean {
       urlObj.hostname.includes('dl.airtable.com')
     );
   } catch {
-    // If URL parsing fails, check if it contains Airtable domain
     return url.includes('airtableusercontent.com') || url.includes('dl.airtable.com');
   }
 }
 
+export function isProxiedImageSrc(src: string): boolean {
+  if (!src) return false;
+  const queryIndex = src.indexOf('?');
+  const path = queryIndex === -1 ? src : src.slice(0, queryIndex);
+  return path.includes('/api/image-proxy');
+}
+
 /**
- * Convert an Airtable CDN URL to a proxy URL
- * 
- * @param airtableUrl - The original Airtable CDN URL
- * @returns Proxy URL served from your own domain, or original URL if not Airtable
- * 
- * @example
- * // Input: https://v5.airtableusercontent.com/xxx/yyy/image.jpg
- * // Output: /api/image-proxy?url=https%3A%2F%2Fv5.airtableusercontent.com%2Fxxx%2Fyyy%2Fimage.jpg
+ * Convert an Airtable CDN URL to a same-origin proxy URL.
+ * Already-proxied and non-Airtable URLs are returned as-is.
  */
 export function getProxiedImageUrl(airtableUrl: string | undefined | null): string {
   if (!airtableUrl) return '';
-  
-  // If it's not an Airtable URL, return as-is (local images, external images, etc.)
-  if (!isAirtableUrl(airtableUrl)) {
+
+  if (isProxiedImageSrc(airtableUrl) || !isAirtableUrl(airtableUrl)) {
     return airtableUrl;
   }
 
-  // Encode the URL for use as a query parameter
-  const encodedUrl = encodeURIComponent(airtableUrl);
-  
-  // Return the proxy URL
-  return `/api/image-proxy?url=${encodedUrl}`;
+  return `/api/image-proxy?url=${encodeURIComponent(airtableUrl)}`;
 }
 
-/**
- * Convert multiple Airtable URLs to proxy URLs
- * Useful for processing arrays of image URLs
- */
+export function getContentImageProps(url: string | undefined | null): {
+  src: string;
+  unoptimized: boolean;
+} {
+  const src = getProxiedImageUrl(url);
+  return {
+    src,
+    unoptimized: isProxiedImageSrc(src),
+  };
+}
+
 export function getProxiedImageUrls(urls: (string | undefined | null)[]): string[] {
   return urls
     .filter((url): url is string => !!url)
-    .map(url => getProxiedImageUrl(url));
+    .map((url) => getProxiedImageUrl(url));
 }
 
-/**
- * Batch convert URLs (for performance when processing many images)
- */
 export function batchProxiedImageUrls(urls: string[]): string[] {
-  return urls.map(url => getProxiedImageUrl(url));
+  return urls.map((url) => getProxiedImageUrl(url));
 }
-

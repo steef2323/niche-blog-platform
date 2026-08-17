@@ -2,7 +2,7 @@
 
 import { useSite } from '@/contexts/site';
 import { Page } from '@/types/airtable';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { getProxiedImageUrl } from '@/lib/utils/image-proxy';
 
 interface HeroSectionProps {
@@ -33,7 +33,7 @@ export default function HeroSection({ homePage }: HeroSectionProps) {
       {featuredImage && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative w-full max-w-[1140px] h-full rounded-xl overflow-hidden">
-            <Image
+            <ContentImage
               src={getProxiedImageUrl(featuredImage.url)}
               alt={title || 'Homepage hero image'}
               fill

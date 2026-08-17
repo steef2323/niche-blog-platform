@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { ListingPost } from '@/types/airtable';
 import { formatDate } from '@/lib/utils/date-formatting';
 
@@ -59,7 +59,7 @@ export default function AllListiclesSection({ listingPosts, siteId, language }: 
                   {/* Featured Image */}
                   {featuredImage && (
                     <div className="aspect-[4/3] relative overflow-hidden">
-                      <Image
+                      <ContentImage
                         src={featuredImage}
                         alt={post.Title}
                         fill

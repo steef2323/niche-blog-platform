@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { BlogPost, ListingPost } from '@/types/airtable';
 import { formatDate } from '@/lib/utils/date-formatting';
 
@@ -74,7 +74,7 @@ export default function MostPopularSection({ posts, siteId, language }: MostPopu
                 {/* Featured Image */}
                 {featuredImage && (
                   <div className="aspect-[16/10] relative overflow-hidden">
-                    <Image
+                    <ContentImage
                       src={featuredImage}
                       alt={post.Title || 'Featured post image'}
                       fill

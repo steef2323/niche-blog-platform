@@ -76,7 +76,7 @@ export function getLogoPath(domain: string, airtableUrl?: string): string {
     return `/${localLogo}`; // Return with leading slash for public path
   }
   
-  // 2. Fall back to Airtable URL if provided (proxied to hide infrastructure)
+  // 2. Fall back to Airtable URL if provided
   if (airtableUrl) {
     return getProxiedImageUrl(airtableUrl);
   }

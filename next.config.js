@@ -7,15 +7,12 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   
   images: {
-    // Note: Airtable domains removed - images are now proxied through /api/image-proxy
-    // This hides infrastructure relationships between sites
-    // The proxy route handles fetching from Airtable CDN
-    // Images are served from the same origin via /api/image-proxy, so no remote patterns needed
-    // Prefer AVIF over WebP for better compression (smaller file sizes)
+    // Airtable photos are served via /api/image-proxy (see ContentImage).
+    // Do not add Airtable hosts here — /_next/image returns
+    // INVALID_IMAGE_OPTIMIZE_REQUEST (400) for those signed URLs.
     formats: ['image/avif', 'image/webp'],
-    // Enable image optimization
     minimumCacheTTL: 60 * 60 * 24 * 365, // 1 year cache for optimized images
   },
 };
 
-module.exports = nextConfig; 
+module.exports = nextConfig;

@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
+import ContentImage from '@/components/common/ContentImage';
 import { getSiteByDomain } from '@/lib/airtable/sites';
 import { getAuthorBySlug, getCombinedPostsByAuthorSlug } from '@/lib/airtable/content';
 import { getFeaturesBySiteId } from '@/lib/airtable/features';
@@ -154,7 +154,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
           <div className="mb-6">
             {author['Profile picture']?.[0]?.url ? (
               <div className="w-24 h-24 mx-auto rounded-full overflow-hidden">
-                <Image
+                <ContentImage
                   src={author['Profile picture'][0].url}
                   alt={author.Name}
                   width={96}
@@ -271,10 +271,12 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                 };
 
                 const getDisplayExcerpt = (post: any) => {
-                  if (post.type === 'blog' && post['Meta description']) {
-                    return post['Meta description'];
-                  }
-                  return post.Excerpt;
+                  const raw = post.type === 'blog' && post['Meta description']
+                    ? post['Meta description']
+                    : post.Excerpt;
+                  if (typeof raw === 'string') return raw;
+                  if (raw && typeof raw === 'object' && typeof raw.value === 'string') return raw.value;
+                  return '';
                 };
 
                 const displayTitle = getDisplayTitle(post);
@@ -289,10 +291,11 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                       border: '1px solid var(--border-color)',
                     }}
                   >
+                    <Link href={`/blog/${post.Slug}`} className="block">
                     {/* Featured Image */}
                     {post['Featured image']?.[0] && (
                       <div className="aspect-video relative">
-                        <Image
+                        <ContentImage
                           src={post['Featured image'][0].url}
                           alt={displayTitle}
                           fill
@@ -319,22 +322,13 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
 
                       {/* Title */}
                       <h3 
-                        className="text-xl font-semibold mb-2 line-clamp-2"
+                        className="text-xl font-semibold mb-2 line-clamp-2 hover:text-[var(--primary-color)] transition-colors duration-200"
                         style={{ 
                           color: 'var(--text-color)',
                           fontFamily: 'var(--font-heading)'
                         }}
                       >
-                        <Link 
-                          href={`/blog/${post.Slug}`}
-                          className="hover:text-[var(--primary-color)] transition-colors duration-200"
-                          style={{ 
-                            color: 'var(--text-color)',
-                            fontFamily: 'var(--font-heading)'
-                          }}
-                        >
-                          {displayTitle}
-                        </Link>
+                        {displayTitle}
                       </h3>
 
                       {/* Excerpt */}
@@ -376,8 +370,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                           )}
                         </div>
                         
-                        <Link 
-                          href={`/blog/${post.Slug}`}
+                        <span 
                           className="hover:underline font-medium"
                           style={{ 
                             color: 'var(--text-color)',
@@ -385,9 +378,10 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
                           }}
                         >
                           Read more →
-                        </Link>
+                        </span>
                       </div>
                     </div>
+                    </Link>
                   </article>
                 );
               })}
