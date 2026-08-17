@@ -1,24 +1,57 @@
-import Script from 'next/script';
+'use client';
+
+import { useEffect } from 'react';
 
 interface GoogleTagManagerProps {
   gtmId?: string;
 }
 
+const INTERACTION_EVENTS = ['pointerdown', 'scroll', 'keydown', 'touchstart'] as const;
+const FALLBACK_DELAY_MS = 8000;
+
+function loadGtm(gtmId: string) {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    'gtm.start': new Date().getTime(),
+    event: 'gtm.js',
+  });
+
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtm.js?id=${gtmId}`;
+  document.head.appendChild(script);
+}
+
 export function GoogleTagManagerScript({ gtmId }: GoogleTagManagerProps) {
-  if (!gtmId) {
-    return null;
-  }
+  useEffect(() => {
+    if (!gtmId) return;
 
-  // afterInteractive defers GTM until after the page is interactive, reducing TBT
-  const gtmScript = `window.dataLayer=window.dataLayer||[];(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`;
+    let loaded = false;
 
-  return (
-    <Script
-      id="google-tag-manager"
-      strategy="afterInteractive"
-      dangerouslySetInnerHTML={{ __html: gtmScript }}
-    />
-  );
+    const load = () => {
+      if (loaded) return;
+      loaded = true;
+      window.clearTimeout(timeoutId);
+      INTERACTION_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, load);
+      });
+      loadGtm(gtmId);
+    };
+
+    const timeoutId = window.setTimeout(load, FALLBACK_DELAY_MS);
+    INTERACTION_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, load, { once: true, passive: true });
+    });
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      INTERACTION_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, load);
+      });
+    };
+  }, [gtmId]);
+
+  return null;
 }
 
 export function GoogleTagManagerNoscript({ gtmId }: GoogleTagManagerProps) {
@@ -36,4 +69,4 @@ export function GoogleTagManagerNoscript({ gtmId }: GoogleTagManagerProps) {
       />
     </noscript>
   );
-} 
+}

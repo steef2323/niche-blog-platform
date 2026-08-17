@@ -63,6 +63,50 @@ export default function Footer({ className = '' }: FooterProps) {
 
   // Get language-specific text
   const languageText = getLanguageText(site.Language);
+  const sortLocale = (site.Language || '').toLowerCase().match(/dutch|^nl$|nederlands/)
+    ? 'nl'
+    : 'en';
+
+  const footerPageLinks = [
+    { key: 'home', href: '/', label: languageText.home },
+    ...pages
+      .filter((page) => {
+        if (!page.Published || !page.Slug || !page.Title) return false;
+
+        const slugLower = page.Slug?.toLowerCase() || '';
+        const titleLower = page.Title?.toLowerCase() || '';
+
+        // Exclude home pages (Home is added separately above)
+        if (slugLower === 'home' || page.Page === 'Home') return false;
+
+        // Always include Work with us (check various possible formats)
+        const isWorkWithUs =
+          (slugLower.includes('work') && slugLower.includes('us')) ||
+          (titleLower.includes('work') && titleLower.includes('us'));
+
+        // Always include Sip and Paint Amsterdam (check various possible formats)
+        const isSipAndPaintAmsterdam =
+          (slugLower.includes('sip') && slugLower.includes('paint') && slugLower.includes('amsterdam')) ||
+          (titleLower.includes('sip') && titleLower.includes('paint') && titleLower.includes('amsterdam'));
+
+        if (isWorkWithUs || isSipAndPaintAmsterdam) {
+          return true;
+        }
+
+        // Exclude Amsterdam page (but not Sip and Paint Amsterdam)
+        if (slugLower === 'amsterdam' && !titleLower.includes('sip') && !titleLower.includes('paint')) {
+          return false;
+        }
+
+        return true;
+      })
+      .map((page) => ({
+        key: page.id || page.Slug || page.Title,
+        href: `/${page.Slug}`,
+        label: page.Title === 'Blog overview' ? 'Blog' : page.Title,
+      })),
+    { key: 'sitemap', href: '/sitemap.xml', label: languageText.sitemap },
+  ].sort((a, b) => a.label.localeCompare(b.label, sortLocale, { sensitivity: 'base' }));
 
   return (
     <footer 
@@ -151,94 +195,17 @@ export default function Footer({ className = '' }: FooterProps) {
               {languageText.pages}
             </h3>
             <ul className="space-y-2">
-              {/* Home page link at the top */}
-              <li>
-                <Link 
-                  href="/"
-                  className="text-sm hover:opacity-80 transition-opacity"
-                  style={{ color: 'var(--text-color)' }}
-                >
-                  {languageText.home}
-                </Link>
-              </li>
-              
-              {/* Other pages - including Work with us and Sip and Paint Amsterdam */}
-              {pages
-                .filter(page => {
-                  if (!page.Published || !page.Slug || !page.Title) return false;
-                  
-                  const slugLower = page.Slug?.toLowerCase() || '';
-                  const titleLower = page.Title?.toLowerCase() || '';
-                  
-                  // Exclude home pages
-                  if (slugLower === 'home' || page.Page === 'Home') return false;
-                  
-                  // Always include Work with us (check various possible formats)
-                  const isWorkWithUs = slugLower.includes('work') && slugLower.includes('us') ||
-                                       titleLower.includes('work') && titleLower.includes('us');
-                  
-                  // Always include Sip and Paint Amsterdam (check various possible formats)
-                  const isSipAndPaintAmsterdam = (slugLower.includes('sip') && slugLower.includes('paint') && slugLower.includes('amsterdam')) ||
-                                                 (titleLower.includes('sip') && titleLower.includes('paint') && titleLower.includes('amsterdam'));
-                  
-                  if (isWorkWithUs || isSipAndPaintAmsterdam) {
-                    return true;
-                  }
-                  
-                  // Exclude Amsterdam page (but not Sip and Paint Amsterdam)
-                  if (slugLower === 'amsterdam' && !titleLower.includes('sip') && !titleLower.includes('paint')) {
-                    return false;
-                  }
-                  
-                  // Include all other published pages
-                  return true;
-                })
-                .sort((a, b) => {
-                  // Sort: Work with us first, then Sip and Paint Amsterdam, then alphabetically
-                  const aSlug = a.Slug?.toLowerCase() || '';
-                  const aTitle = a.Title?.toLowerCase() || '';
-                  const bSlug = b.Slug?.toLowerCase() || '';
-                  const bTitle = b.Title?.toLowerCase() || '';
-                  
-                  const aIsWorkWithUs = (aSlug.includes('work') && aSlug.includes('us')) ||
-                                       (aTitle.includes('work') && aTitle.includes('us'));
-                  const aIsSipAndPaint = (aSlug.includes('sip') && aSlug.includes('paint') && aSlug.includes('amsterdam')) ||
-                                        (aTitle.includes('sip') && aTitle.includes('paint') && aTitle.includes('amsterdam'));
-                  const bIsWorkWithUs = (bSlug.includes('work') && bSlug.includes('us')) ||
-                                       (bTitle.includes('work') && bTitle.includes('us'));
-                  const bIsSipAndPaint = (bSlug.includes('sip') && bSlug.includes('paint') && bSlug.includes('amsterdam')) ||
-                                        (bTitle.includes('sip') && bTitle.includes('paint') && bTitle.includes('amsterdam'));
-                  
-                  if (aIsWorkWithUs && !bIsWorkWithUs && !bIsSipAndPaint) return -1;
-                  if (bIsWorkWithUs && !aIsWorkWithUs && !aIsSipAndPaint) return 1;
-                  if (aIsSipAndPaint && !bIsSipAndPaint && !bIsWorkWithUs) return -1;
-                  if (bIsSipAndPaint && !aIsSipAndPaint && !aIsWorkWithUs) return 1;
-                  
-                  // Alphabetical for others
-                  return (a.Title || '').localeCompare(b.Title || '');
-                })
-                .map((page) => (
-                  <li key={page.id || page.Slug}>
-                    <Link 
-                      href={`/${page.Slug}`}
-                      className="text-sm hover:opacity-80 transition-opacity"
-                      style={{ color: 'var(--text-color)' }}
-                    >
-                      {page.Title === 'Blog overview' ? 'Blog' : page.Title}
-                    </Link>
-                  </li>
-                ))}
-              
-              {/* Sitemap link */}
-              <li>
-                <Link 
-                  href="/sitemap.xml"
-                  className="text-sm hover:opacity-80 transition-opacity"
-                  style={{ color: 'var(--text-color)' }}
-                >
-                  {languageText.sitemap}
-                </Link>
-              </li>
+              {footerPageLinks.map((link) => (
+                <li key={link.key}>
+                  <Link
+                    href={link.href}
+                    className="text-sm hover:opacity-80 transition-opacity"
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

@@ -17,14 +17,15 @@
     --chart-text: #0f172a;
     --chart-grid: #e2e8f0;
     
-    /* Font variables - will be overridden by JS from Sites table */
-    --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
-    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    /* Font variables — Inter is self-hosted via next/font; other families load async */
+    --font-heading: var(--font-inter), system-ui, -apple-system, sans-serif;
+    --font-body: var(--font-inter), system-ui, -apple-system, sans-serif;
   }
 
   body {
     background-color: var(--background-color);
     color: var(--text-color);
+    font-family: var(--font-body);
     transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
   }
 }
@@ -35,13 +36,13 @@
     color: var(--card-text);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
-    transition: all 0.3s ease-in-out;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
   }
 
   .themed-button {
     padding: 0.5rem 1rem;
     border-radius: 0.375rem;
-    transition: all 0.2s ease-in-out;
+    transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
   }
 
   .themed-button-primary {
@@ -59,7 +60,7 @@
   /* Global Button Styles */
   /* Primary Button: Accent color background, text color text, text color border */
   .btn-primary {
-    @apply inline-flex items-center px-8 py-3 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg border-2;
+    @apply inline-flex items-center px-8 py-3 rounded-full transition-transform duration-300 hover:scale-105 border-2;
     background-color: var(--accent-color);
     color: var(--text-color);
     border-color: var(--text-color);
@@ -74,7 +75,7 @@
 
   /* Secondary Button: Text color background, accent color text */
   .btn-secondary {
-    @apply inline-flex items-center px-8 py-3 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg border-2;
+    @apply inline-flex items-center px-8 py-3 rounded-full transition-transform duration-300 hover:scale-105 border-2;
     background-color: var(--text-color);
     color: var(--accent-color);
     border-color: var(--accent-color);
@@ -103,7 +104,7 @@
     border: 1px solid var(--border-color);
     border-radius: 0.375rem;
     padding: 0.5rem;
-    transition: all 0.2s ease-in-out;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   }
 
   .themed-input:focus {

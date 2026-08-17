@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from 'next/font/google';
 import "./globals.css";
 import { headers } from 'next/headers';
 import { SiteProvider } from '@/contexts/site';
@@ -6,9 +7,22 @@ import { ThemeProvider } from '@/contexts/theme';
 import { getSiteConfig } from '@/lib/site-detection';
 import BaseLayout from '@/components/layout/BaseLayout';
 import { GoogleTagManagerScript, GoogleTagManagerNoscript } from '@/components/common/GoogleTagManager';
-import GoogleFonts from '@/components/common/GoogleFonts';
+import AsyncStylesheet from '@/components/common/AsyncStylesheet';
 import PageViewTracker from '@/components/common/PageViewTracker';
 import { getFaviconPath } from '@/lib/utils/asset-paths';
+import {
+  fontFamilyValue,
+  googleFontStylesheetUrl,
+  uniqueNonInterFonts,
+} from '@/lib/utils/fonts';
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  display: 'swap',
+  variable: '--font-inter',
+  adjustFontFallback: true,
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = headers();
@@ -41,12 +55,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Get the host from headers
   const headersList = headers();
   const host = headersList.get('host') || '';
   
   try {
-    // SINGLE site detection call - fetches everything in parallel
     console.log('🔍 Single site detection call for host:', host);
     const siteConfig = await getSiteConfig(host);
     console.log('✅ Site config fetched:', siteConfig ? 'success' : 'not found');
@@ -54,8 +66,11 @@ export default async function RootLayout({
     const site = siteConfig?.site || null;
     const siteLanguage = site?.Language?.toLowerCase() || 'en';
     const gtmId = site?.['Google Tag Manager ID'];
+    const extraGoogleFonts = uniqueNonInterFonts(
+      site?.['Heading font'],
+      site?.['Body font'],
+    );
 
-    // Log GTM ID retrieval for debugging (only in development)
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 GTM ID:', gtmId || 'NOT FOUND');
       if (!gtmId) {
@@ -63,39 +78,39 @@ export default async function RootLayout({
       }
     }
 
-    // Build server-side font links to avoid JS-dependent font loading (CLS/LCP fix)
-    const headingFont = site?.['Heading font'];
-    const bodyFont = site?.['Body font'];
-    const fontNames = [...new Set([headingFont, bodyFont].filter(Boolean))] as string[];
-    const sanitizeFontName = (name: string) => name.replace(/[^a-zA-Z0-9 \-]/g, '');
-
     return (
-      <html lang={siteLanguage}>
+      <html lang={siteLanguage} className={inter.variable}>
         <head>
-          {/* Performance: Preconnect to external domains for faster resource loading */}
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link rel="preconnect" href="https://www.googletagmanager.com" />
-
-          {/* Server-side font loading: no JS needed, eliminates CLS from late font swap */}
-          {fontNames.map(font => {
-            const safe = sanitizeFontName(font);
-            const url = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(safe)}:wght@400;600;700&display=swap`;
-            return (
-              <link key={`font-${safe}`} rel="stylesheet" href={url} crossOrigin="anonymous" />
-            );
-          })}
-
-          {/* CSS variables for font families — injected server-side so no flash */}
-          {fontNames.length > 0 && (
-            <style dangerouslySetInnerHTML={{ __html:
-              `:root{--font-heading:'${sanitizeFontName(headingFont || fontNames[0])}',system-ui,sans-serif;--font-body:'${sanitizeFontName(bodyFont || fontNames[0])}',system-ui,sans-serif;}`
-            }} />
+          {extraGoogleFonts.length > 0 && (
+            <>
+              <link rel="preconnect" href="https://fonts.googleapis.com" />
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+              {extraGoogleFonts.map((font) => {
+                const href = googleFontStylesheetUrl(font);
+                return (
+                  <link key={`preload-font-${font}`} rel="preload" as="style" href={href} crossOrigin="anonymous" />
+                );
+              })}
+              <noscript>
+                {extraGoogleFonts.map((font) => (
+                  <link
+                    key={`noscript-font-${font}`}
+                    rel="stylesheet"
+                    href={googleFontStylesheetUrl(font)}
+                    crossOrigin="anonymous"
+                  />
+                ))}
+              </noscript>
+              {extraGoogleFonts.map((font) => (
+                <AsyncStylesheet key={`font-${font}`} href={googleFontStylesheetUrl(font)} />
+              ))}
+            </>
           )}
 
-          {/* Note: Airtable CDN DNS prefetch removed - images are now proxied through /api/image-proxy */}
+          <style dangerouslySetInnerHTML={{ __html:
+            `:root{--font-heading:${fontFamilyValue(site?.['Heading font'])};--font-body:${fontFamilyValue(site?.['Body font'])};}`
+          }} />
 
-          {/* RSS feed autodiscovery */}
           {site && (
             <link
               rel="alternate"
@@ -107,11 +122,9 @@ export default async function RootLayout({
         </head>
         <body>
           <GoogleTagManagerNoscript gtmId={gtmId} />
-          <GoogleTagManagerScript gtmId={gtmId} />
+          {gtmId ? <GoogleTagManagerScript gtmId={gtmId} /> : null}
           <SiteProvider siteConfig={siteConfig}>
             <ThemeProvider site={site}>
-              {/* GoogleFonts client component kept for fallback CSS var updates only */}
-              <GoogleFonts />
               <PageViewTracker />
               <BaseLayout>
               {children}
@@ -123,9 +136,8 @@ export default async function RootLayout({
     );
   } catch (error) {
     console.error('Error in root layout:', error);
-    // Return a basic error layout
     return (
-      <html lang="en"> {/* Fallback language */}
+      <html lang="en" className={inter.variable}>
         <body>
           <div className="p-8">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Site</h1>

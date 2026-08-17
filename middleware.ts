@@ -66,7 +66,7 @@ export async function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: https: blob:; " +
-    "connect-src 'self' https://www.googletagmanager.com; " +
+    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com; " +
     "frame-src 'self' https://www.googletagmanager.com;"
   );
   
@@ -80,8 +80,8 @@ export async function middleware(request: NextRequest) {
   } else if (pathname.match(/\.(jpg|jpeg|png|gif|webp|avif|svg|ico)$/)) {
     // Static images in public folder
     response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-  } else if (pathname.startsWith('/api/')) {
-    // API routes: no cache by default (can be overridden per route)
+  } else if (pathname.startsWith('/api/') && !pathname.startsWith('/api/image-proxy')) {
+    // API routes: no cache by default (image-proxy sets its own long cache)
     response.headers.set('Cache-Control', 'no-store, max-age=0');
   }
 

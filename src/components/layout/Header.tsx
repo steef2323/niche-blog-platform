@@ -64,7 +64,7 @@ export default function Header({ className = '' }: HeaderProps) {
       className={`
         relative w-full py-4 
         ${hasScrolled ? 'shadow-sm' : ''} 
-        transition-all duration-300
+        transition-shadow duration-300
         ${className}
       `}
     >
